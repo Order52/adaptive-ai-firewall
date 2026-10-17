@@ -1,0 +1,30 @@
+[Unit]
+Description=AFW WAF (OWASP CRS nginx, host networking for true client IPs)
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+ExecStartPre=-/usr/bin/docker rm -f afw-waf
+ExecStartPre=/usr/bin/python3 /opt/afw/waf-helper/afw_waf_helper.py init
+ExecStart=/usr/bin/docker run --rm --name afw-waf --network host \
+  -v /srv/afw-waf/templates/conf.d/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template:ro \
+  -v /srv/afw-waf/templates/conf.d/logging.conf.template:/etc/nginx/templates/conf.d/logging.conf.template:ro \
+  -v /srv/afw-waf/templates/conf.d/upstream.conf.template:/etc/nginx/templates/conf.d/upstream.conf.template:ro \
+  -v /srv/afw-waf/proxy_backend.conf:/etc/nginx/afw/proxy_backend.conf:ro \
+  -v /srv/afw-waf/policy:/etc/nginx/afw/policy:ro \
+  -v /etc/afw/tls:/etc/afw/tls:ro \
+  -v /var/log/afw:/var/log/afw \
+  -e AFW_LISTEN_ADDR={{ waf_ip }} -e AFW_APP_ID={{ app_id }} -e AFW_BACKEND={{ app_ip }}:{{ app_port }} \
+  -e SERVER_NAME=rental.lab.afw \
+  -e SSL_CERT_FILE=/etc/afw/tls/waf.crt -e SSL_CERT_KEY_FILE=/etc/afw/tls/waf.key \
+  -e MODSEC_AUDIT_LOG=/var/log/afw/waf-audit.log -e MODSEC_AUDIT_LOG_FORMAT=JSON \
+  -e MODSEC_AUDIT_ENGINE=RelevantOnly -e MODSEC_AUDIT_LOG_PARTS=ABHZ \
+  -e BLOCKING_PARANOIA=1 -e ANOMALY_INBOUND=5 -e ANOMALY_OUTBOUND=4 \
+  -e ERRORLOG=/dev/stderr -e LOGLEVEL=warn \
+  {{ waf_image }}
+ExecStop=/usr/bin/docker stop -t 10 afw-waf
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

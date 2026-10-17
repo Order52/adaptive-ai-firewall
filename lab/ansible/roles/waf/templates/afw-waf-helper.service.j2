@@ -1,0 +1,19 @@
+[Unit]
+Description=AFW WAF policy helper (validated render, nginx -t, reload, self-test)
+After=afw-waf.service
+Requires=afw-waf.service
+
+[Service]
+Environment=AFW_HELPER_LISTEN={{ waf_ip }}
+Environment=AFW_HELPER_TOKEN_FILE=/etc/afw/waf-helper.token
+Environment=AFW_HELPER_CERT=/etc/afw/tls/waf.crt
+Environment=AFW_HELPER_KEY=/etc/afw/tls/waf.key
+Environment=AFW_LAB_CA=/etc/afw/tls/lab-ca.pem
+Environment=AFW_SELFTEST_URL=https://{{ waf_ip }}/__afw/selftest
+Environment=AFW_BACKEND_URL=http://{{ app_ip }}:{{ app_port }}/health
+ExecStart=/usr/bin/python3 /opt/afw/waf-helper/afw_waf_helper.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

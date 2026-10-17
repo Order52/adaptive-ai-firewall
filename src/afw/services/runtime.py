@@ -1,0 +1,328 @@
+"""The closed-loop controller runtime.
+
+ingest ─► correlate ─► windows ─► inference ─► correlation/risk ─► decision ─► policy service
+                                     │                                   │
+                                     └──────► shadow adaptation ◄────────┘ (reputation)
+"""
+
+from __future__ import annotations
+
+import queue
+import threading
+import time
+from collections import deque
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from ipaddress import IPv4Address
+
+import structlog
+
+from afw.config import LabConfig
+from afw.correlation.engine import CorrelationEngine
+from afw.domain.common import utcnow
+from afw.domain.detection import DetectionResult
+from afw.domain.events import HttpObservation
+from afw.domain.features import FeatureVector
+from afw.domain.policy import Policy, PolicyKind, SourceTarget
+from afw.domain.risk import EvidenceCategory, RiskAssessment, RiskBand
+from afw.features.extract import EndpointCatalog
+from afw.features.windows import SlidingWindows
+from afw.ml.inference import InferenceEngine, Strategy
+from afw.persistence.repositories import (
+    SqlAdaptationRepository,
+    SqlAnalysisRepository,
+    SqlEventRepository,
+)
+from afw.policy.decision import DecisionEngine
+from afw.policy.service import PolicyService
+from afw.profiling.adaptation import DriftMonitor, SourceReputation
+from afw.services.learning import LearningService
+from afw.telemetry.correlator import RequestCorrelator, to_ids_alert
+from afw.telemetry.parsers.lines import (
+    ParseError,
+    classify,
+    parse_app,
+    parse_suricata,
+    parse_waf_access,
+    parse_waf_audit,
+)
+from afw.telemetry.routes import RouteMatcher
+from afw.telemetry.stats import TelemetryStats
+
+log = structlog.get_logger(__name__)
+WATCH_RETENTION = timedelta(days=7)
+
+
+@dataclass
+class LiveSource:
+    source_ip: IPv4Address
+    app_id: str
+    last_seen: datetime
+    risk: RiskAssessment
+    features: FeatureVector
+    detections: list[DetectionResult] = field(default_factory=list)
+
+
+class Controller:
+    def __init__(
+        self,
+        cfg: LabConfig,
+        stats: TelemetryStats,
+        events: SqlEventRepository,
+        analysis: SqlAnalysisRepository,
+        adaptation: SqlAdaptationRepository,
+        learning: LearningService,
+        policies: PolicyService,
+        clock: Callable[[], datetime] = utcnow,
+    ) -> None:
+        self.cfg = cfg
+        self.stats = stats
+        self.events = events
+        self.analysis = analysis
+        self.adaptation_repo = adaptation
+        self.learning = learning
+        self.policies = policies
+        self.clock = clock
+        self.app_id = cfg.applications[0].app_id
+        matchers = {a.app_id: RouteMatcher(r.route for r in a.routes) for a in cfg.applications}
+        self.correlator = RequestCorrelator(
+            default_app=self.app_id,
+            matchers=matchers,
+            stats=stats,
+            join_wait_s=cfg.telemetry.join_wait_s,
+        )
+        self.inference = InferenceEngine()
+        self.correlation = CorrelationEngine(cfg.risk)
+        self.decisions = DecisionEngine(cfg)
+        self.reputation = SourceReputation()
+        self.windows = SlidingWindows(
+            cfg.window, EndpointCatalog(frozenset(), frozenset(), frozenset())
+        )
+        self.drift: DriftMonitor | None = None
+        self.live: dict[IPv4Address, LiveSource] = {}
+        self.timeline: deque[dict[str, object]] = deque(maxlen=720)
+        self.lines: queue.Queue[tuple[IPv4Address, str]] | None = None
+        self._stop = threading.Event()
+        self._threads: list[threading.Thread] = []
+        self.policies.on_enforced = self._on_enforced
+        self.last_tick: datetime | None = None
+        self.tick_ms: deque[float] = deque(maxlen=120)
+        self._drop_samples: deque[tuple[float, int]] = deque(maxlen=1000)
+
+    # ------------------------------------------------------------ model state
+    def reload(self) -> bool:
+        loaded = self.learning.load_active(self.app_id)
+        if loaded is None:
+            log.warning("no_trusted_profile", app=self.app_id)
+            return False
+        profile, models = loaded
+        self.inference.load(profile, models)
+        self.windows.set_catalog(self.learning.catalog(self.app_id, profile))
+        for m in models:
+            self.correlation.set_score_span(m.record.detector, m.record.benign_score_quantiles)
+        if self.drift is None:
+            self.drift = DriftMonitor(profile)
+        else:
+            self.drift.reset(profile)
+        log.info(
+            "models_loaded", profile=profile.version, models=[m.record.version for m in models]
+        )
+        return True
+
+    def set_strategy(self, strategy: Strategy) -> None:
+        self.inference.strategy = strategy
+
+    # ---------------------------------------------------------------- ingest
+    def ingest_line(self, sender: IPv4Address, line: str) -> None:
+        try:
+            kind, payload = classify(line)
+            match kind:
+                case "afw-waf-access":
+                    self.correlator.add_access(parse_waf_access(payload, sender))
+                    self.stats.seen("waf")
+                case "afw-waf-audit":
+                    self.correlator.add_audit(parse_waf_audit(payload))
+                    self.stats.seen("waf_audit")
+                case "afw-app":
+                    self.correlator.add_app(parse_app(payload))
+                    self.stats.seen("app")
+                case "suricata":
+                    alert = to_ids_alert(parse_suricata(payload, sensor_id=str(sender)))
+                    self.events.add_ids_alerts([alert])
+                    self.correlation.add_ids(alert)
+                    self.reputation.taint(alert.src_ip, alert.observed_at, "ids_alert")
+                    self.stats.seen("ids")
+                case _:
+                    self.stats.inc("ignored")
+        except ParseError as exc:
+            self.stats.inc(f"parse_error:{exc.reason}")
+
+    def ingest_observations(self, obs: list[HttpObservation]) -> None:
+        """Feed already-normalized observations (offline replay of recorded runs)."""
+        self.events.add_observations(obs)
+        for o in obs:
+            self.windows.add(o)
+
+    def degraded(self) -> bool:
+        """Evidence is degraded if lines were dropped in the last 60 s or the WAF
+        sensor has gone silent while sources are still being tracked."""
+        counts = self.stats.snapshot()["counts"]
+        assert isinstance(counts, dict)
+        drops = int(counts.get("queue_drop", 0)) + int(counts.get("join_overflow", 0))
+        now = time.monotonic()
+        self._drop_samples.append((now, drops))
+        while self._drop_samples and now - self._drop_samples[0][0] > 60:
+            self._drop_samples.popleft()
+        recent_drop = drops > self._drop_samples[0][1]
+        waf_age = self.stats.age("waf")
+        silent = waf_age is not None and waf_age > 120 and self.windows.tracked_sources > 0
+        return recent_drop or silent
+
+    # ------------------------------------------------------------- processing
+    def tick(self, now: datetime | None = None) -> list[RiskAssessment]:
+        """One processing step; deterministic given the ingested input."""
+        t0 = time.perf_counter()
+        now = now or self.clock()
+        obs = self.correlator.flush()
+        sensors = set(self.cfg.telemetry.waf_sensor_ips)
+        if sensors and obs:
+            own = [o for o in obs if o.client_ip in sensors]
+            if own:  # helper self-tests, not client behaviour
+                self.stats.inc("sensor_self", len(own))
+                obs = [o for o in obs if o.client_ip not in sensors]
+        if obs:
+            self.events.add_observations(obs)
+            for o in obs:
+                self.windows.add(o)
+        out: list[RiskAssessment] = []
+        if (
+            self.last_tick is None
+            or (now - self.last_tick).total_seconds() >= self.cfg.window.hop_s
+        ):
+            self.last_tick = now
+            vectors = self.windows.emit(now)
+            degraded = self.degraded()
+            for fv in vectors:
+                out.append(self._process_window(fv, now, degraded))
+            self._record_timeline(now, vectors, out)
+        self.tick_ms.append((time.perf_counter() - t0) * 1000)
+        return out
+
+    def _process_window(self, fv: FeatureVector, now: datetime, degraded: bool) -> RiskAssessment:
+        detections = self.inference.score(fv)
+        ra = self.correlation.assess(fv, detections, now, degraded=degraded)
+        watched = self.policies.has_active(fv.source_ip, {PolicyKind.WATCH})
+        self.analysis.add_features([fv], dataset_id=None)
+        for d in detections:
+            if d.is_anomalous or watched:
+                self.analysis.add_detection(d)
+        if ra.score > 0 or watched:
+            self.analysis.add_assessment(ra)
+        self.live[fv.source_ip] = LiveSource(
+            source_ip=fv.source_ip,
+            app_id=fv.app_id,
+            last_seen=now,
+            risk=ra,
+            features=fv,
+            detections=detections,
+        )
+        negative = {e.category for e in ra.evidence if e.points > 0} & {
+            EvidenceCategory.WAF,
+            EvidenceCategory.IDS,
+            EvidenceCategory.AUTH,
+        }
+        if negative:
+            self.reputation.taint(fv.source_ip, now, "+".join(sorted(map(str, negative))))
+        if self.drift is not None:
+            routes = {o for o in self._routes_of(fv)}
+            self.drift.observe(fv, ra, routes, self.reputation.is_tainted(fv.source_ip, now))
+        self._decide(ra, now, degraded)
+        return ra
+
+    def _routes_of(self, fv: FeatureVector) -> set[str]:
+        recent = self.events.recent_observations(limit=60, source_ip=fv.source_ip)
+        return {o.route for o in recent if o.observed_at >= fv.window_start}
+
+    def _decide(self, ra: RiskAssessment, now: datetime, degraded: bool) -> None:
+        if ra.band is RiskBand.NONE or self.inference.strategy is Strategy.STATIC:
+            return
+        if self.policies.has_active(ra.source_ip, {PolicyKind.SOURCE_BLOCK}):
+            return  # already maximally contained for this service
+        prior = self.correlation.prior_enforcements(ra.source_ip, timedelta(hours=6), now)
+        intent = self.decisions.decide(ra, prior, now)
+        if intent is None:
+            return
+        if intent.kind is not PolicyKind.SOURCE_BLOCK and self.policies.has_active(
+            ra.source_ip, {intent.kind}
+        ):
+            return
+        self.policies.submit(intent, degraded=degraded or not self.policies.reconciled_since_start)
+
+    def _on_enforced(self, p: Policy) -> None:
+        if p.kind is PolicyKind.SOURCE_BLOCK and isinstance(p.intent.target, SourceTarget):
+            self.correlation.note_enforcement(
+                p.intent.target.source_ip, p.effective_at or self.clock()
+            )
+
+    def _record_timeline(
+        self, now: datetime, vectors: list[FeatureVector], ras: list[RiskAssessment]
+    ) -> None:
+        self.timeline.append(
+            {
+                "t": now.isoformat(),
+                "sources": len(vectors),
+                "requests": sum(v.n_requests for v in vectors),
+                "max_risk": max((r.score for r in ras), default=0.0),
+                "anomalous": sum(
+                    1
+                    for r in ras
+                    if any(e.category is EvidenceCategory.BEHAVIOR_ML for e in r.evidence)
+                ),
+            }
+        )
+
+    def check_drift(self, now: datetime | None = None) -> None:
+        if self.drift is None:
+            return
+        report = self.drift.check(self.app_id, now or self.clock())
+        if report is not None:
+            self.adaptation_repo.add_drift(report)
+            log.info("drift_report", signals=report.signals, assessment=report.assessment)
+
+    # --------------------------------------------------------------- threads
+    def start(self, lines: queue.Queue[tuple[IPv4Address, str]] | None) -> None:
+        self.lines = lines
+        self._spawn("processor", self._process_loop, 1.0)
+        self._spawn("reconciler", self.policies.reconcile, 5.0)
+        self._spawn("drift", self.check_drift, 30.0)
+        self._spawn("retention", self._retention, 3600.0)
+
+    def _spawn(self, name: str, fn: Callable[[], object], every: float) -> None:
+        def loop() -> None:
+            while not self._stop.is_set():
+                try:
+                    fn()
+                except Exception:
+                    log.exception("loop_error", loop=name)
+                self._stop.wait(every)
+
+        th = threading.Thread(target=loop, name=name, daemon=True)
+        th.start()
+        self._threads.append(th)
+
+    def _process_loop(self) -> None:
+        if self.lines is not None:
+            for _ in range(5000):
+                try:
+                    sender, line = self.lines.get_nowait()
+                except queue.Empty:
+                    break
+                self.ingest_line(sender, line)
+        self.tick()
+
+    def _retention(self) -> None:
+        self.events.purge_before(self.clock() - WATCH_RETENTION)
+
+    def stop(self) -> None:
+        self._stop.set()

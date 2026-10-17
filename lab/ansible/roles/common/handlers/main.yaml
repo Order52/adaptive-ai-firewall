@@ -1,0 +1,8 @@
+- name: restart chrony
+  ansible.builtin.systemd: {name: chrony, state: restarted}
+- name: update ca
+  ansible.builtin.command: update-ca-certificates
+- name: restart rsyslog
+  ansible.builtin.systemd: {name: rsyslog, state: restarted}
+- name: reload nftables
+  ansible.builtin.command: nft -f /etc/nftables.conf

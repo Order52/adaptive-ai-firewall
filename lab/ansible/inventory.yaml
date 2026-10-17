@@ -1,0 +1,28 @@
+# Host names resolve through ~/.config/afw/ssh_config (lab key, host-only path).
+# nft_allow: inbound exceptions on each guest's host firewall (defence in depth).
+all:
+  children:
+    controller:
+      hosts: {ctrl01: {zone_gw: 10.77.50.1}}
+      vars:
+        nft_allow:
+          - {proto: tcp, port: 5514, src: [10.77.30.10, 10.77.40.10, 10.77.50.1]}
+          - {proto: tcp, port: 8080, src: [10.77.50.0/24]}
+    waf:
+      hosts: {waf01: {zone_gw: 10.77.30.1}}
+      vars:
+        nft_allow:
+          - {proto: tcp, port: 443, src: [10.77.10.0/24, 10.77.20.0/24]}
+          - {proto: tcp, port: 9443, src: [10.77.50.10]}
+    app:
+      hosts: {app01: {zone_gw: 10.77.40.1}}
+      vars:
+        nft_allow:
+          - {proto: tcp, port: 8000, src: [10.77.30.10]}
+    probes:
+      hosts:
+        usr01: {zone_gw: 10.77.20.1}
+        atk01: {zone_gw: 10.77.10.1}
+      vars:
+        nft_allow:
+          - {proto: tcp, port: 9180, src: [10.77.50.10]}

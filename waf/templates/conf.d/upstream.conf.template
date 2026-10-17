@@ -1,0 +1,4 @@
+upstream afw_backend {
+    server ${AFW_BACKEND};
+    keepalive 16;
+}

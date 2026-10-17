@@ -1,0 +1,8 @@
+# Managed by Ansible (AFW): application events -> CTRL01 telemetry receiver
+module(load="imfile")
+input(type="imfile" File="/var/log/afw/app-events.log" Tag="afw-app:" Ruleset="afw_fwd")
+ruleset(name="afw_fwd") {
+  action(type="omfwd" target="{{ ctrl_ip }}" port="{{ telemetry_port }}" protocol="tcp"
+         template="RSYSLOG_TraditionalForwardFormat"
+         queue.type="LinkedList" queue.size="20000" action.resumeRetryCount="-1")
+}

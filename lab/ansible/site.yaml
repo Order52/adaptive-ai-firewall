@@ -1,0 +1,16 @@
+# Deploy all lab services. Run via `afw lab deploy` (ensures host-side secrets first).
+- hosts: all
+  become: true
+  roles: [common]
+- hosts: app
+  become: true
+  roles: [app]
+- hosts: waf
+  become: true
+  roles: [waf]
+- hosts: controller
+  become: true
+  roles: [controller]
+- hosts: probes
+  become: true
+  roles: [probe]

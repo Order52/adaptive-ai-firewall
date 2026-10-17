@@ -1,0 +1,36 @@
+- name: Time from the zone gateway (FW01 runs NTP)
+  ansible.builtin.copy:
+    dest: /etc/chrony/sources.d/afw.sources
+    content: "server {{ zone_gw }} iburst\n"
+    mode: "0644"
+  notify: restart chrony
+- name: Use only lab time sources
+  ansible.builtin.replace:
+    path: /etc/chrony/chrony.conf
+    regexp: '^(pool|server) (?!.*afw).*$'
+    replace: '# \g<0>'
+  notify: restart chrony
+- name: AFW directories
+  ansible.builtin.file: {path: "{{ item }}", state: directory, mode: "0755"}
+  loop: [/etc/afw, /etc/afw/tls, /var/log/afw]
+- name: Lab CA (trust store + /etc/afw/tls)
+  ansible.builtin.copy:
+    src: "{{ afw_home }}/pki/lab-ca.pem"
+    dest: "{{ item }}"
+    mode: "0644"
+  loop: [/usr/local/share/ca-certificates/afw-lab-ca.crt, /etc/afw/tls/lab-ca.pem]
+  notify: update ca
+- name: rsyslog accepts large (audit) messages
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    line: 'global(maxMessageSize="64k")'
+    insertbefore: BOF
+  notify: restart rsyslog
+- name: Host firewall (default deny inbound; SSH only from MGMT)
+  ansible.builtin.template: {src: nftables.conf.j2, dest: /etc/nftables.conf, mode: "0644"}
+  notify: reload nftables
+- name: nftables enabled
+  ansible.builtin.systemd: {name: nftables, enabled: true, state: started}
+- ansible.builtin.meta: flush_handlers
+- name: Service name for clients (Host header / SNI)
+  ansible.builtin.lineinfile: {path: /etc/hosts, line: "{{ waf_ip }} rental.lab.afw"}

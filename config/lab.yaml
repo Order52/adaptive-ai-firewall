@@ -1,0 +1,95 @@
+# AI-Adaptive-Firewall lab topology & policy bounds (single source of truth).
+# Addresses mirror lab/inventory.yaml; validate with `afw config check`.
+name: afw-gns3-lab
+
+zones:
+  - {name: ATTACK, network: 10.77.10.0/24, clients: true}
+  - {name: USERS, network: 10.77.20.0/24, clients: true}
+  - {name: DMZ, network: 10.77.30.0/24}
+  - {name: APP, network: 10.77.40.0/24}
+  - {name: MGMT, network: 10.77.50.0/24}
+
+services:
+  - {name: rental_https, app_id: rental, address: 10.77.30.10, port: 443}
+
+applications:
+  - app_id: rental
+    service: rental_https
+    routes:
+      - {route: /health, methods: [GET]}
+      - {route: /, methods: [GET]}
+      - {route: /cars, methods: [GET]}
+      - {route: "/cars/{car_id}", methods: [GET]}
+      - {route: /login, methods: [POST], content_types: [application/json], max_body_bytes: 1024, login: true}
+      - {route: /logout, methods: [POST]}
+      - {route: /bookings, methods: [GET]}
+      - {route: /booking, methods: [POST], content_types: [application/json], max_body_bytes: 4096}
+      - {route: "/booking/{booking_id}", methods: [GET]}
+      # v2 (Scenario C) — declared by the application owner when the release ships
+      - {route: "/cars/{car_id}/reviews", methods: [GET]}
+      - {route: /reviews, methods: [POST], content_types: [application/json], max_body_bytes: 2048}
+
+safety:
+  protected:
+    - {network: 10.77.50.0/24, reason: management network and recovery path}
+    - {network: 10.77.30.0/24, reason: WAF/DMZ infrastructure}
+    - {network: 10.77.40.0/24, reason: application backend}
+    - {network: 10.77.10.1/32, reason: firewall interface}
+    - {network: 10.77.20.1/32, reason: firewall interface}
+    - {network: 10.77.20.250/32, reason: verification probe source}
+    - {network: 10.77.10.250/32, reason: verification probe source}
+  min_duration_s: 30
+  max_auto_duration_s: 300
+  max_duration_s: 3600
+  max_active_policies: 100
+  max_auto_actions_per_minute: 10
+  require_corroboration_for_block: 2
+
+risk:
+  watch: 25
+  rate_limit: 45
+  block: 65
+  escalate: 85
+  history_half_life_s: 900
+  base_block_s: 120
+  escalation_factor: 2.0
+
+window: {length_s: 30, hop_s: 5, min_requests: 3}
+
+telemetry:
+  listen_host: 10.77.50.10
+  listen_port: 5514
+  allowed_senders: [10.77.30.10, 10.77.40.10, 10.77.50.1]
+  waf_sensor_ips: [10.77.30.10]
+  queue_size: 2000
+  max_line_bytes: 65536
+  join_wait_s: 2.0
+
+opnsense:
+  base_url: https://10.77.50.1
+  alias: AFW_BLOCK_WEB
+  key_file: /etc/afw/secrets/opnsense.key
+  secret_file: /etc/afw/secrets/opnsense.secret
+  ca_file: /etc/afw/secrets/opnsense-ca.pem
+  verify_tls: true
+
+waf_helper:
+  base_url: https://10.77.30.10:9443
+  token_file: /etc/afw/secrets/waf-helper.token
+  ca_file: /etc/afw/secrets/lab-ca.pem
+
+probes:
+  legitimate_source: 10.77.20.250
+  agents:
+    - {url: "http://10.77.20.10:9180", owns: 10.77.20.0/24, token_file: /etc/afw/secrets/probe.token}
+    - {url: "http://10.77.10.10:9180", owns: 10.77.10.0/24, token_file: /etc/afw/secrets/probe.token}
+
+initial_mode: monitor
+
+# SIMULATED GeoIP (optional country-policy extension). These are NOT real
+# geographic mappings: fictitious lab assignments of client addresses so that
+# "block incoming traffic from <country>" can be demonstrated. Policies using
+# them must set simulated=true and are labelled SIMULATED everywhere.
+geo_simulation:
+  CN: [10.77.10.10, 10.77.10.11, 10.77.10.12]
+  RU: [10.77.10.20, 10.77.10.21]
