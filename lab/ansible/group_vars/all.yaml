@@ -1,0 +1,13 @@
+repo_root: "{{ playbook_dir }}/../.."
+afw_home: "{{ lookup('env', 'HOME') }}/.config/afw"
+ctrl_ip: 10.77.50.10
+waf_ip: 10.77.30.10
+app_ip: 10.77.40.10
+app_port: 8000
+app_id: rental
+app_version: "1.0.0"
+mgmt_net: 10.77.50.0/24
+client_nets: [10.77.10.0/24, 10.77.20.0/24]
+telemetry_port: 5514
+waf_image: afw/waf:4.25.2-lts
+ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') }}/.config/afw/ssh_config"

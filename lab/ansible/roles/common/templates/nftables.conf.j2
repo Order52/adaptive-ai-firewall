@@ -1,0 +1,18 @@
+#!/usr/sbin/nft -f
+# Managed by Ansible (AFW). Inbound default deny; defence in depth behind FW01.
+flush ruleset
+table inet afw {
+  chain input {
+    type filter hook input priority 0; policy drop;
+    iif lo accept
+    ct state established,related accept
+    ct state invalid drop
+    ip protocol icmp icmp type { echo-request, destination-unreachable, time-exceeded } accept
+    ip saddr {{ mgmt_net }} tcp dport 22 accept
+{% for r in nft_allow | default([]) %}
+    ip saddr { {{ r.src | join(', ') if r.src is not string else r.src }} } {{ r.proto | default('tcp') }} dport {{ r.port }} accept
+{% endfor %}
+    limit rate 5/second log prefix "afw-nft-drop " level info
+  }
+  chain forward { type filter hook forward priority 0; policy drop; }
+}

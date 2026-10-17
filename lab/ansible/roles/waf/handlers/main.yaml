@@ -1,0 +1,8 @@
+- name: apply sysctl
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/91-afw-waf.conf
+- name: restart waf
+  ansible.builtin.systemd: {name: afw-waf, state: restarted, daemon_reload: true}
+- name: restart helper
+  ansible.builtin.systemd: {name: afw-waf-helper, state: restarted, daemon_reload: true}
+- name: restart rsyslog
+  ansible.builtin.systemd: {name: rsyslog, state: restarted}

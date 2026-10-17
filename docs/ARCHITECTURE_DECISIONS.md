@@ -1,0 +1,47 @@
+# Architecture decisions
+
+| ID | Decision | Why | Status |
+|---|---|---|---|
+| ADR-001 | Native GNS3 on the bare-metal Ubuntu host (no GNS3 VM / EVE-NG) | Host is bare metal with working VT-x/EPT; an extra hypervisor layer only costs RAM | Accepted |
+| ADR-002 | GNS3 **2.2.61** from the official PPA, pinned with `apt-mark hold` | Only line packaged for noble with matching ubridge; 3.0.6 is pip-only and API v3 is less supported by tooling | Accepted |
+| ADR-003 | OPNsense 26.7 **nano** image, provisioned over the serial console from its own factory `config.xml` | Pre-installed, serial console → scriptable; transforming the dumped config keeps image keys out of Git and matches the 26.7 schema exactly | Implemented + verified |
+| ADR-004 | Modular monolith, hexagonal: `domain` / `ports` / adapters; SQLAlchemy only under `persistence` (ruff TID251 enforces it) | Clean boundaries without microservice overhead on 16 GB | Implemented |
+| ADR-005 | SQLite (WAL) + Alembic migrations; JSON bodies + indexed columns | Lab-appropriate; portable to PostgreSQL by changing `AFW_DATABASE_URL` | Implemented |
+| ADR-006 | Level-triggered enforcement: backends receive full desired state; ownership-aware expiry | Duplicates, overlaps, restarts and reboots become idempotent | Implemented + tested (memory backend) |
+| ADR-007 | Client identity only from the WAF TCP peer; WAF overwrites XFF/X-Real-IP/X-Request-ID; app trusts headers only from WAF IP | Prevents forged-header bans | Implemented in code/templates |
+| ADR-008 | WAF uses host networking inside WAF01 (`ip_unprivileged_port_start=443` on WAF01 only) | Avoids Docker NAT altering the observed source IP | Verified: true client IP in WAF and app logs |
+| ADR-009 | OPNsense: fixed rules + external alias `AFW_BLOCK_WEB`; heartbeat alias `AFW_HEARTBEAT` + FW-local watchdog flush | Uses documented alias_util API; bounded outage behaviour without a controller | Verified on FW01: flush after 106 s without heartbeat |
+| ADR-010 | ML features exclude WAF/IDS signals, source IP, zone, labels | Keeps ML independent of CRS; avoids leakage | Implemented |
+| ADR-011 | Detectors: robust stats (M1), Isolation Forest (M2), River HST (online/shadow comparator) | Lightweight, explainable via occlusion attribution | Implemented; comparison needs lab data |
+| ADR-012 | Adaptation: frozen trusted profile; reputation-gated shadow stream; candidate rebuilt from raw observations; evaluation gate (source-share cap, sensitive-feature limits, attack-recall regression, FP comparison); human promotion; rollback | Learns legitimate change without letting attackers define "normal" | Implemented; Scenario C not yet run |
+| ADR-013 | Risk = capped additive evidence score, never a probability; ML/stat count as one corroborating category; blocks need ≥2 independent categories | Anomaly alone cannot authorize traffic changes | Implemented + tested |
+| ADR-014 | MCP via official SDK `mcp` 2.3.0 (`MCPServer`) as a client of the REST API with a `channel=mcp` token | Single validation/enforcement path | Implemented + verified with a real MCP client and extended with GNS3 tools (see ADR-025) |
+| ADR-016 | Golden Ubuntu image baked once (QEMU user-net + cloud-init) with all runtimes, WAF image pulled by digest; per-node identity via NoCloud seed ISO; linked clones | Lab guests need no Internet; reproducible; RAM/disk efficient | Implemented |
+| ADR-017 | Least-privilege OPNsense API user for the controller; a separate root "provisioner" key exists only for host-side setup | A stolen controller key can only change alias membership and read/delete states | Verified (filter API → 403) |
+| ADR-018 | Lab PKI: one lab CA (`~/.config/afw/pki`), leaf certs with IP SANs; all controller→device TLS verified | No `verify=False` anywhere in the data path | Implemented |
+| ADR-019 | Ansible (`lab/ansible`, ansible-core as dev dep) for guest configuration; secrets generated on the host and copied, never templated from Git | Idempotent, reviewable; matches the team plan | Implemented (`changed=0` on re-run) |
+| ADR-020 | WAF evidence = CRS-blocked or anomaly ≥ 5 (PL1 threshold); score from rule severities; WAF sensor's own traffic excluded | Live lab showed lone warnings (920350) inflating benign risk | Implemented + tested |
+| ADR-021 | Suricata in IDS (pcap) mode on client-zone interfaces only; HOME_NET = protected zones; EVE via syslog-ng TCP to CTRL01; configured through the OPNsense API with the provisioner key | Inbound signatures apply to client→service traffic; no inline-IPS risk to availability | Verified (ET SCAN 2010937 end to end) |
+| ADR-022 | Country policies: real only with a GeoIP DB (none in the lab); otherwise a config-declared, clearly labelled simulated map; inbound only; expanded to source blocks on OPNsense with read-back of every member | Satisfies the optional MCP extension without fabricating geography | Verified on FW01 |
+| ADR-015 | Dashboard: static HTML/JS served by FastAPI, no CDN, all strings escaped | Offline demo; attacker-controlled strings reach the page | Implemented + rendered in headless Chromium (every panel validated with real backend data, 0 console/page errors); 2 bugs fixed; deployed to CTRL01 |
+| ADR-023 | Controller API TLS: `afw serve` serves HTTPS when `AFW_TLS_CERT`/`AFW_TLS_KEY` are set, using the lab-CA-signed `CTRL01` leaf cert (IP SAN); clients verify against the lab CA (`AFW_API_CA`); plain HTTP kept as a no-cert fallback | Encrypts the bearer-token control plane on the MGMT zone without breaking local/dev HTTP; reuses the existing lab PKI (ADR-018) | Implemented + verified live on CTRL01 (HTTP refused, HTTPS+CA 200) |
+| ADR-024 | Decision explanations are self-contained: full detector outputs (incl. occlusion attributions) are snapshotted onto the `RiskAssessment` at decision time, not re-queried from the retention-pruned detections table | `explain` must stay faithful for audit/viva after the 7-day detection purge; assessments are retained | Implemented + tested (survives a full detection purge) |
+| ADR-025 | One `afw` MCP server with two backends: AI/policy/OPNsense/WAF tools call the controller REST API (`channel=mcp` token, HTTPS, lab-CA verified) so every mutation re-uses the validator/enforcement/audit path; GNS3 lab-infrastructure tools call the host GNS3 API directly. Typed tools only, no raw shell; read / operational / mutation tools separated; CTRL01 never power-cycled via MCP | Natural-language lab management without a second control plane or a shell-exec escape hatch; the safety validator is never bypassed | Implemented + verified with a real MCP client (26 tools) and registered in Claude Code (`.mcp.json`, Connected) |
+| ADR-026 | Professional GNS3 canvas layout + zone annotations applied idempotently from code (`afw lab layout`), not hand-placed in the GUI | Reproducible, readable top-to-bottom traffic-flow canvas that survives reopen; presentation kept separate from the authoritative `topology.yaml` | Implemented (13 nodes, 5 colour-coded zones, role symbols) |
+
+## Reuse register (ADOPT / EXTEND / REFERENCE / REJECT)
+
+| Component | Decision | Note |
+|---|---|---|
+| OPNsense + pf + Suricata | ADOPT | network enforcement, IDS evidence |
+| OWASP CRS ModSecurity nginx image (LTS tag) | ADOPT | pinned by digest |
+| scikit-learn IsolationForest, RobustScaler | ADOPT | |
+| River (HalfSpaceTrees, ADWIN) | ADOPT | shadow learner + drift |
+| Official MCP Python SDK | ADOPT | v2 API |
+| Alembic / SQLAlchemy / FastAPI / Pydantic | ADOPT | |
+| `oxlorg.opnsense` Ansible collection | REJECT (for now) | FW baseline done via console + config transform; controller uses 2 documented endpoints |
+| gns3fy | REFERENCE | own thin client written (`src/afw/lab/gns3.py`, API v2) |
+| `gns3-mcp` 0.54.2 (ChistokhinSV, MIT, community) | REJECT | requires GNS3 **v3** API; we pin 2.2/API v2. Instead we ship our own typed GNS3 MCP tools (`src/afw/mcp/gns3_tools.py`) over our v2 `Gns3Client`, integrated with the controller's AI/policy tools in one server (ADR-025). Re-evaluate on a 3.x migration |
+| go-ftw | ADOPT (planned) | WAF regression tests |
+| CrowdSec | REFERENCE | overlapping control plane; not adopted |
+| Kubernetes / Kafka / ELK / Wazuh | REJECT | resource cost on 16 GB |

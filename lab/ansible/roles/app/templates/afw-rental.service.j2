@@ -1,0 +1,19 @@
+[Unit]
+Description=AFW protected application ({{ app_id }} v{{ app_version }})
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=afwapp
+Environment=APP_VERSION={{ app_version }}
+Environment=TRUSTED_PROXY={{ waf_ip }}
+Environment=EVENT_LOG=/var/log/afw/app-events.log
+ExecStart=/opt/afw/venv/bin/uvicorn rental_app:app --app-dir /opt/afw/rental --host {{ app_ip }} --port {{ app_port }} --no-server-header --no-access-log
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/log/afw
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

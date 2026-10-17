@@ -1,0 +1,52 @@
+# AFW WAF server (overrides the image's default.conf.template).
+# ${VAR} placeholders are rendered by the image entrypoint (envsubst of defined
+# variables only); $nginx_variables are left untouched.
+
+server_tokens off;
+more_set_headers 'Server: waf';
+
+# Dynamic, helper-rendered policy (http context): deny map, rate-limit zones.
+include /etc/nginx/afw/policy/http.conf;
+
+log_format afw_json escape=json
+  '{"ts":"$msec","rid":"$request_id","src":"$remote_addr","sport":"$remote_port",'
+  '"method":"$request_method","uri":"$uri","status":$status,"req_len":$request_length,'
+  '"bytes":$bytes_sent,"rt":$request_time,"upstream_status":"$upstream_status",'
+  '"ua":"$http_user_agent","app":"${AFW_APP_ID}","pol":"$afw_denied",'
+  '"policy_rev":"$afw_policy_rev"}';
+
+server {
+    listen ${AFW_LISTEN_ADDR}:443 ssl default_server;
+    http2 on;
+    server_name ${SERVER_NAME};
+
+    ssl_certificate ${SSL_CERT_FILE};
+    ssl_certificate_key ${SSL_CERT_KEY_FILE};
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:AFW:5m;
+    ssl_session_tickets off;
+
+    access_log /var/log/afw/waf-access.log afw_json;
+    # ModSecurity transaction id == access-log request id == backend X-Request-ID
+    modsecurity_transaction_id "$request_id";
+    client_max_body_size 1m;
+
+    add_header X-AFW-Policy-Rev $afw_policy_rev always;
+
+    # Dynamic per-server policy: source deny, rate limits, route contracts.
+    include /etc/nginx/afw/policy/server.conf;
+
+    location / {
+        include /etc/nginx/afw/proxy_backend.conf;
+    }
+
+    # Helper read-back: proves which policy revision nginx is serving without
+    # proxying to the app or producing client telemetry. Self address only.
+    location = /__afw/selftest {
+        access_log off;
+        modsecurity off;
+        allow ${AFW_LISTEN_ADDR};
+        deny all;
+        return 204;
+    }
+}

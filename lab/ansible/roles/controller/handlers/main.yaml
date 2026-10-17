@@ -1,0 +1,2 @@
+- name: restart controller
+  ansible.builtin.systemd: {name: afw-controller, state: restarted, daemon_reload: true}

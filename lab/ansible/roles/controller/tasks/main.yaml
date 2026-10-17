@@ -1,0 +1,59 @@
+- name: Build the current controller wheel on the host
+  ansible.builtin.command:
+    cmd: uv build --wheel -q -o {{ afw_home }}/dist
+    chdir: "{{ repo_root }}"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: false
+- name: Find the wheel
+  ansible.builtin.find: {paths: "{{ afw_home }}/dist", patterns: "afw-*.whl"}
+  delegate_to: localhost
+  become: false
+  register: wheels
+- name: Copy wheel
+  ansible.builtin.copy:
+    src: "{{ (wheels.files | sort(attribute='mtime') | last).path }}"
+    dest: "/opt/afw/dist/{{ (wheels.files | sort(attribute='mtime') | last).path | basename }}"
+    mode: "0644"
+  register: wheel
+- name: Install wheel into the baked venv when its hash differs (deps already present, offline)
+  ansible.builtin.shell: |
+    set -e
+    want=$(sha256sum "{{ wheel.dest }}" | cut -d' ' -f1)
+    if [ "$(cat /opt/afw/dist/installed.sha256 2>/dev/null)" != "$want" ]; then
+      /opt/afw/venv/bin/pip install -q --no-deps --force-reinstall "{{ wheel.dest }}"
+      echo "$want" > /opt/afw/dist/installed.sha256
+      echo installed
+    fi
+  register: pip_install
+  changed_when: "'installed' in pip_install.stdout"
+  notify: restart controller
+- name: Controller user
+  ansible.builtin.user: {name: afwctl, system: true, shell: /usr/sbin/nologin, home: /var/lib/afw, create_home: false}
+- name: Controller directories
+  ansible.builtin.file: {path: "{{ item.p }}", state: directory, owner: "{{ item.o }}", group: afwctl, mode: "{{ item.m }}"}
+  loop:
+    - {p: /var/lib/afw, o: afwctl, m: "0750"}
+    - {p: /etc/afw/secrets, o: root, m: "0750"}
+- name: Secrets (from the host, never from Git)
+  ansible.builtin.copy: {src: "{{ item.s }}", dest: "/etc/afw/secrets/{{ item.d }}", owner: root, group: afwctl, mode: "0640"}
+  loop:
+    - {s: "{{ afw_home }}/opnsense/controller.key", d: opnsense.key}
+    - {s: "{{ afw_home }}/opnsense/controller.secret", d: opnsense.secret}
+    - {s: "{{ afw_home }}/pki/lab-ca.pem", d: opnsense-ca.pem}
+    - {s: "{{ afw_home }}/pki/lab-ca.pem", d: lab-ca.pem}
+    - {s: "{{ afw_home }}/tokens/waf-helper.token", d: waf-helper.token}
+    - {s: "{{ afw_home }}/tokens/probe.token", d: probe.token}
+    - {s: "{{ afw_home }}/api/api_tokens.yaml", d: api_tokens.yaml}
+    - {s: "{{ afw_home }}/pki/CTRL01.pem", d: ctrl01.pem}
+    - {s: "{{ afw_home }}/pki/CTRL01.key", d: ctrl01.key}
+  notify: restart controller
+- name: Lab configuration
+  ansible.builtin.copy: {src: "{{ repo_root }}/config/lab.yaml", dest: /etc/afw/lab.yaml, mode: "0644"}
+  notify: restart controller
+- name: Controller unit
+  ansible.builtin.template: {src: afw-controller.service.j2, dest: /etc/systemd/system/afw-controller.service, mode: "0644"}
+  notify: restart controller
+- name: Controller running
+  ansible.builtin.systemd: {name: afw-controller, enabled: true, state: started, daemon_reload: true}

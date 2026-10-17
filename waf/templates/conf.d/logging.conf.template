@@ -1,0 +1,3 @@
+# Default access log disabled; the AFW server writes JSON to /var/log/afw.
+access_log off;
+error_log ${ERRORLOG} ${LOGLEVEL};

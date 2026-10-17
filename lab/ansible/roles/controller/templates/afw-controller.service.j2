@@ -1,0 +1,26 @@
+[Unit]
+Description=AFW controller (telemetry, detection, policy, reconciliation, API, dashboard)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=afwctl
+Group=afwctl
+Environment=AFW_CONFIG=/etc/afw/lab.yaml
+Environment=AFW_DATA_DIR=/var/lib/afw
+Environment=AFW_API_TOKENS_FILE=/etc/afw/secrets/api_tokens.yaml
+Environment=AFW_TLS_CERT=/etc/afw/secrets/ctrl01.pem
+Environment=AFW_TLS_KEY=/etc/afw/secrets/ctrl01.key
+WorkingDirectory=/var/lib/afw
+ExecStartPre=/opt/afw/venv/bin/afw db upgrade
+ExecStart=/opt/afw/venv/bin/afw serve --host {{ ctrl_ip }} --port 8080
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/afw
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

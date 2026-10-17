@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+
+# Local runtime state, secrets, and large artifacts (never commit)
+.env
+*.env
+!*.env.example
+secrets/
+var/
+artifacts/
+*.sqlite3
+*.sqlite3-*
+*.db
+*.qcow2
+*.img
+*.iso
+*.bz2
+lab/build/
+models/store/
+datasets/raw/

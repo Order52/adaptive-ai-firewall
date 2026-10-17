@@ -1,0 +1,425 @@
+"""Offline replay experiment runner: compares M0 / M1 / M2 on labeled runs.
+
+This is the reproducible comparison called for in ``docs/AI_RESEARCH.md``. It
+replays one recorded, *labeled* traffic run (a :class:`DatasetManifest` plus its
+observations) through the **exact live pipeline** — the same
+:class:`InferenceEngine`, :class:`CorrelationEngine` and :class:`DecisionEngine`
+the controller uses — under three strategies:
+
+* **M0 (static)**  — firewall + WAF + IDS only; the adaptive controller proposes
+  nothing. The static baseline is still credited with the WAF's own *inline*
+  blocks recorded on the observations, so the comparison is fair.
+* **M1 (statistical)** — M0 plus the robust-statistics behavioural detector.
+* **M2 (ml)** — M1 plus the Isolation Forest.
+
+All three arms replay the *identical* observation stream through the *identical*
+windowing, and every arm's blocking threshold comes from the same trained
+false-positive budget (``target_fpr``), so differences are attributable to the
+detector set alone.
+
+Ground-truth labels are read here (evaluation code) and never reach the
+detectors. No metric is manufactured: a run with no attack windows reports
+``recall = None``, not zero.
+"""
+
+from __future__ import annotations
+
+import time
+from collections.abc import Sequence
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta
+from ipaddress import IPv4Address
+from typing import Any
+
+from afw.config import LabConfig
+from afw.correlation.engine import CorrelationEngine
+from afw.domain.events import HttpObservation, IdsAlert
+from afw.domain.policy import PolicyKind
+from afw.domain.profiles import BehaviorProfile
+from afw.domain.risk import RiskBand
+from afw.features.extract import EndpointCatalog
+from afw.features.windows import replay_windows
+from afw.ml.datasets import DatasetManifest, LabelIndex, Role
+from afw.ml.inference import InferenceEngine, LoadedModel, Strategy
+from afw.policy.decision import DecisionEngine
+
+# A source is "contained" by the adaptive controller when it proposes a policy
+# that actually changes the source's traffic. WATCH is observation only.
+_TRAFFIC_AFFECTING = {PolicyKind.SOURCE_BLOCK, PolicyKind.RATE_LIMIT}
+
+_ARMS: tuple[tuple[str, Strategy], ...] = (
+    ("M0", Strategy.STATIC),
+    ("M1", Strategy.STATISTICAL),
+    ("M2", Strategy.ML),
+)
+
+
+@dataclass
+class _SourceTrack:
+    """Per-source replay state within one arm (mirrors controller bookkeeping)."""
+
+    first_seen: datetime | None = None
+    block_until: datetime | None = None
+    ratelimit_until: datetime | None = None
+    first_contained_at: datetime | None = None
+
+
+@dataclass
+class ArmReport:
+    """Controller-level outcome for one strategy on one dataset."""
+
+    arm: str
+    strategy: str
+    n_windows: int = 0
+    n_benign_windows: int = 0
+    n_attack_windows: int = 0
+    n_unlabeled_windows: int = 0
+    # Window-level confusion on the *adaptive controller's* traffic-affecting action
+    tp: int = 0
+    fp: int = 0
+    fn: int = 0
+    tn: int = 0
+    precision: float | None = None
+    recall: float | None = None
+    fpr: float | None = None
+    f1: float | None = None
+    # Source-level containment (what an operator ultimately cares about)
+    attack_sources: int = 0
+    attack_sources_contained: int = 0
+    benign_sources: int = 0
+    benign_sources_flagged: int = 0
+    # Legitimate-traffic impact
+    benign_requests: int = 0
+    benign_requests_impacted: int = 0
+    legit_request_success: float | None = None
+    # Detection latency: first attack observation -> first traffic-affecting action
+    detection_latency_s: dict[str, float] = field(default_factory=dict)
+    mean_detection_latency_s: float | None = None
+    median_detection_latency_s: float | None = None
+    # Attack requests that reached the app because the source was NOT yet
+    # contained (a real block would have dropped the rest). Lower is better; M0
+    # contains nothing with the behavioural detectors off, so it is exposed to
+    # the full attack volume.
+    attack_requests_exposed: int = 0
+    # Scoring cost of the adaptive detectors in this arm
+    mean_score_latency_us: float | None = None
+    p95_score_latency_us: float | None = None
+    decisions: dict[str, int] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class ExperimentReport:
+    dataset_id: str
+    scenario: str
+    purpose: str
+    app_id: str
+    profile_version: int
+    model_versions: dict[str, str]
+    fp_budget: float
+    window_length_s: int
+    window_hop_s: int
+    n_observations: int
+    duration_s: float
+    # WAF inline blocking is identical across arms (the WAF runs in all of them);
+    # reported once as the static ground floor every arm inherits.
+    waf_inline_blocked_requests: int
+    waf_inline_contained_attack_sources: int
+    arms: list[ArmReport]
+
+    def to_dict(self) -> dict[str, Any]:
+        d = asdict(self)
+        d["arms"] = [a.to_dict() for a in self.arms]
+        return d
+
+    def arm_rows(self) -> list[dict[str, Any]]:
+        """Flat one-row-per-arm records for the dashboard experiments table.
+
+        Keys match the dashboard's `renderExperiments` contract exactly so real
+        runs render without any client change. Shared report-level context
+        (dataset, FP budget, WAF floor) is denormalised onto every row.
+        """
+        rows: list[dict[str, Any]] = []
+        for a in self.arms:
+            rows.append(
+                {
+                    "strategy": f"{a.arm} ({a.strategy})",
+                    "scenario": self.scenario,
+                    "datasets": [self.dataset_id],
+                    "precision": a.precision,
+                    "recall": a.recall,
+                    "fpr": a.fpr,
+                    "attack_sources_blocked": a.attack_sources_contained,
+                    "benign_sources_restricted": a.benign_sources_flagged,
+                    "median_first_attack_to_block_s": a.median_detection_latency_s,
+                    "attack_requests_exposed": a.attack_requests_exposed,
+                    "notes": (
+                        f"{a.attack_sources_contained}/{a.attack_sources} attack src contained; "
+                        f"legit success {a.legit_request_success}; "
+                        f"score µs mean/p95 {a.mean_score_latency_us}/{a.p95_score_latency_us}; "
+                        f"fp_budget {self.fp_budget}; purpose {self.purpose}; "
+                        f"WAF inline floor {self.waf_inline_contained_attack_sources}"
+                        f"/{self.arms[0].attack_sources} attack src"
+                    ),
+                }
+            )
+        return rows
+
+
+def _catalog(cfg: LabConfig, profile: BehaviorProfile) -> EndpointCatalog:
+    return EndpointCatalog(
+        profile.known_routes(),
+        profile.known_methods(),
+        cfg.application(profile.app_id).login_routes(),
+    )
+
+
+def _percentile(values: list[float], pct: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    k = max(0, min(len(ordered) - 1, round((pct / 100.0) * (len(ordered) - 1))))
+    return ordered[k]
+
+
+def _run_arm(
+    arm: str,
+    strategy: Strategy,
+    *,
+    cfg: LabConfig,
+    profile: BehaviorProfile,
+    models: Sequence[LoadedModel],
+    observations: Sequence[HttpObservation],
+    ids_alerts: Sequence[IdsAlert],
+    labels: LabelIndex,
+) -> ArmReport:
+    engine = InferenceEngine()
+    engine.load(profile, list(models))
+    engine.strategy = strategy
+
+    correlation = CorrelationEngine(cfg.risk)
+    for m in models:
+        correlation.set_score_span(m.record.detector, m.record.benign_score_quantiles)
+    for a in sorted(ids_alerts, key=lambda x: x.observed_at):
+        correlation.add_ids(a)
+    decisions = DecisionEngine(cfg)
+
+    tracks: dict[IPv4Address, _SourceTrack] = {}
+    first_attack_obs: dict[IPv4Address, datetime] = {}
+    for o in observations:
+        if labels.label_ip(o.client_ip) is Role.ATTACK and o.client_ip not in first_attack_obs:
+            first_attack_obs[o.client_ip] = o.observed_at
+
+    report = ArmReport(arm=arm, strategy=strategy.value)
+    decision_counts: dict[str, int] = {}
+    score_latencies_us: list[float] = []
+
+    for fv in replay_windows(observations, cfg.window, _catalog(cfg, profile)):
+        now = fv.window_end
+        role = labels.label(fv)
+        track = tracks.setdefault(fv.source_ip, _SourceTrack())
+        if track.first_seen is None:
+            track.first_seen = fv.window_start
+
+        t0 = time.perf_counter_ns()
+        detections = engine.score(fv)
+        score_latencies_us.append((time.perf_counter_ns() - t0) / 1000.0)
+
+        ra = correlation.assess(fv, detections, now)
+
+        block_active = track.block_until is not None and now < track.block_until
+        rl_active = track.ratelimit_until is not None and now < track.ratelimit_until
+
+        intent = None
+        if strategy is not Strategy.STATIC and ra.band is not RiskBand.NONE and not block_active:
+            prior = correlation.prior_enforcements(fv.source_ip, timedelta(hours=6), now)
+            candidate = decisions.decide(ra, prior, now)
+            if candidate is not None and not (
+                candidate.kind is not PolicyKind.SOURCE_BLOCK and rl_active
+            ):
+                intent = candidate
+
+        if intent is not None:
+            decision_counts[intent.kind.value] = decision_counts.get(intent.kind.value, 0) + 1
+            if intent.kind is PolicyKind.SOURCE_BLOCK:
+                track.block_until = now + timedelta(seconds=intent.duration_s or 0)
+                correlation.note_enforcement(fv.source_ip, now)
+            elif intent.kind is PolicyKind.RATE_LIMIT:
+                track.ratelimit_until = now + timedelta(seconds=intent.duration_s or 0)
+
+        contained_now = (
+            block_active or rl_active or (intent is not None and intent.kind in _TRAFFIC_AFFECTING)
+        )
+        if contained_now and track.first_contained_at is None:
+            track.first_contained_at = now
+
+        # ---- window-level confusion (labeled windows only) ----
+        report.n_windows += 1
+        if role is Role.ATTACK:
+            report.n_attack_windows += 1
+            if contained_now:
+                report.tp += 1
+            else:
+                report.fn += 1
+        elif role is Role.BENIGN:
+            report.n_benign_windows += 1
+            report.benign_requests += fv.n_requests
+            if contained_now:
+                report.fp += 1
+                report.benign_requests_impacted += fv.n_requests
+            else:
+                report.tn += 1
+        elif role is None:
+            report.n_unlabeled_windows += 1
+        # Role.PROBE windows are deliberately ignored.
+
+    _finalize_sources(report, tracks, labels, first_attack_obs)
+    report.attack_requests_exposed = _exposed_attack_requests(observations, tracks, labels)
+    _finalize_rates(report)
+    report.decisions = decision_counts
+    if score_latencies_us and strategy is not Strategy.STATIC:
+        report.mean_score_latency_us = round(sum(score_latencies_us) / len(score_latencies_us), 1)
+        report.p95_score_latency_us = round(_percentile(score_latencies_us, 95), 1)
+    return report
+
+
+def _finalize_sources(
+    report: ArmReport,
+    tracks: dict[IPv4Address, _SourceTrack],
+    labels: LabelIndex,
+    first_attack_obs: dict[IPv4Address, datetime],
+) -> None:
+    latencies: list[float] = []
+    for ip, track in tracks.items():
+        role = labels.label_ip(ip)
+        contained = track.first_contained_at is not None
+        if role is Role.ATTACK:
+            report.attack_sources += 1
+            if contained:
+                report.attack_sources_contained += 1
+                first_obs = first_attack_obs.get(ip)
+                if first_obs is not None and track.first_contained_at is not None:
+                    lat = (track.first_contained_at - first_obs).total_seconds()
+                    report.detection_latency_s[str(ip)] = round(lat, 1)
+                    latencies.append(lat)
+        elif role is Role.BENIGN:
+            report.benign_sources += 1
+            if contained:
+                report.benign_sources_flagged += 1
+    if latencies:
+        report.mean_detection_latency_s = round(sum(latencies) / len(latencies), 1)
+        report.median_detection_latency_s = round(_percentile(latencies, 50), 1)
+
+
+def _exposed_attack_requests(
+    observations: Sequence[HttpObservation],
+    tracks: dict[IPv4Address, _SourceTrack],
+    labels: LabelIndex,
+) -> int:
+    """Attack requests that reached the app before the source was contained.
+
+    A request is "exposed" unless the source was already contained strictly
+    before it (a real inline block would have dropped it). Sources never
+    contained (e.g. all of M0's attackers) are exposed for every request.
+    """
+    total = 0
+    for o in observations:
+        if labels.role_at(o.client_ip, o.observed_at) is not Role.ATTACK:
+            continue
+        track = tracks.get(o.client_ip)
+        dropped = (
+            track is not None
+            and track.first_contained_at is not None
+            and o.observed_at > track.first_contained_at
+        )
+        if not dropped:
+            total += 1
+    return total
+
+
+def _finalize_rates(report: ArmReport) -> None:
+    tp, fp, fn = report.tp, report.fp, report.fn
+    if tp + fp > 0:
+        report.precision = round(tp / (tp + fp), 4)
+    if report.n_attack_windows > 0:
+        report.recall = round(tp / (tp + fn), 4) if (tp + fn) else None
+    if report.n_benign_windows > 0:
+        report.fpr = round(fp / report.n_benign_windows, 4)
+    if report.precision is not None and report.recall:
+        p, r = report.precision, report.recall
+        report.f1 = round(2 * p * r / (p + r), 4) if (p + r) else None
+    if report.benign_requests > 0:
+        report.legit_request_success = round(
+            1.0 - report.benign_requests_impacted / report.benign_requests, 4
+        )
+
+
+def _waf_inline(observations: Sequence[HttpObservation], labels: LabelIndex) -> tuple[int, int]:
+    """Containment the static WAF provides on its own (same in every arm)."""
+    blocked_requests = 0
+    attack_sources_hit: set[IPv4Address] = set()
+    for o in observations:
+        if o.waf_blocked:
+            blocked_requests += 1
+            if labels.label_ip(o.client_ip) is Role.ATTACK:
+                attack_sources_hit.add(o.client_ip)
+    return blocked_requests, len(attack_sources_hit)
+
+
+def run_experiment(
+    *,
+    cfg: LabConfig,
+    profile: BehaviorProfile,
+    models: Sequence[LoadedModel],
+    manifest: DatasetManifest,
+    observations: Sequence[HttpObservation],
+    ids_alerts: Sequence[IdsAlert] = (),
+) -> ExperimentReport:
+    """Replay one labeled dataset through M0/M1/M2 and return a comparison."""
+    if not observations:
+        raise ValueError("no observations to replay")
+    labels = LabelIndex(manifest)
+    ordered = sorted(observations, key=lambda o: o.observed_at)
+    duration = (ordered[-1].observed_at - ordered[0].observed_at).total_seconds()
+    waf_requests, waf_sources = _waf_inline(ordered, labels)
+
+    fp_budget = _fp_budget(models)
+    arms = [
+        _run_arm(
+            arm,
+            strategy,
+            cfg=cfg,
+            profile=profile,
+            models=models,
+            observations=ordered,
+            ids_alerts=ids_alerts,
+            labels=labels,
+        )
+        for arm, strategy in _ARMS
+    ]
+    return ExperimentReport(
+        dataset_id=manifest.dataset_id,
+        scenario=manifest.scenario,
+        purpose=manifest.purpose.value,
+        app_id=manifest.app_id,
+        profile_version=profile.version,
+        model_versions={m.record.detector.value: m.record.version for m in models},
+        fp_budget=fp_budget,
+        window_length_s=cfg.window.length_s,
+        window_hop_s=cfg.window.hop_s,
+        n_observations=len(ordered),
+        duration_s=round(duration, 1),
+        waf_inline_blocked_requests=waf_requests,
+        waf_inline_contained_attack_sources=waf_sources,
+        arms=arms,
+    )
+
+
+def _fp_budget(models: Sequence[LoadedModel]) -> float:
+    for m in models:
+        tfpr = m.record.params.get("target_fpr")
+        if isinstance(tfpr, (int, float)):
+            return float(tfpr)
+    return 0.0

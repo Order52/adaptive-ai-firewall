@@ -1,0 +1,47 @@
+- name: Unprivileged low-port start (WAF only)
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/91-afw-waf.conf
+    content: "net.ipv4.ip_unprivileged_port_start=443\n"
+    mode: "0644"
+  notify: apply sysctl
+- name: WAF directories
+  ansible.builtin.file: {path: "{{ item.p }}", state: directory, mode: "0755", owner: "{{ item.o | default('root') }}"}
+  loop:
+    - {p: /srv/afw-waf/templates/conf.d}
+    - {p: /srv/afw-waf/policy}
+    - {p: /opt/afw/waf-helper}
+    - {p: /var/log/afw, o: "101"}
+- name: WAF templates (reviewed, versioned in Git)
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/waf/templates/conf.d/{{ item }}"
+    dest: "/srv/afw-waf/templates/conf.d/{{ item }}"
+    mode: "0644"
+  loop: [default.conf.template, logging.conf.template, upstream.conf.template]
+  notify: restart waf
+- name: Backend proxy include
+  ansible.builtin.copy: {src: "{{ repo_root }}/waf/proxy_backend.conf", dest: /srv/afw-waf/proxy_backend.conf, mode: "0644"}
+  notify: restart waf
+- name: WAF certificate (lab CA, SAN 10.77.30.10)
+  ansible.builtin.copy: {src: "{{ afw_home }}/pki/WAF01.pem", dest: /etc/afw/tls/waf.crt, mode: "0644"}
+  notify: [restart waf, restart helper]
+- name: WAF key (readable by nginx uid 101 and root only)
+  ansible.builtin.copy: {src: "{{ afw_home }}/pki/WAF01.key", dest: /etc/afw/tls/waf.key, owner: "101", group: root, mode: "0440"}
+  notify: [restart waf, restart helper]
+- name: Helper token
+  ansible.builtin.copy: {src: "{{ afw_home }}/tokens/waf-helper.token", dest: /etc/afw/waf-helper.token, mode: "0600"}
+  notify: restart helper
+- name: Helper code
+  ansible.builtin.copy: {src: "{{ repo_root }}/waf/helper/afw_waf_helper.py", dest: /opt/afw/waf-helper/afw_waf_helper.py, mode: "0755"}
+  notify: restart helper
+- name: Units
+  ansible.builtin.template: {src: "{{ item }}.j2", dest: "/etc/systemd/system/{{ item }}", mode: "0644"}
+  loop: [afw-waf.service, afw-waf-helper.service]
+  notify: [restart waf, restart helper]
+- name: Ship WAF logs to CTRL01
+  ansible.builtin.template: {src: 30-afw-waf.conf.j2, dest: /etc/rsyslog.d/30-afw-waf.conf, mode: "0644"}
+  notify: restart rsyslog
+- name: Docker enabled (image preloaded in the golden image)
+  ansible.builtin.systemd: {name: docker, enabled: true, state: started}
+- name: WAF and helper running
+  ansible.builtin.systemd: {name: "{{ item }}", enabled: true, state: started, daemon_reload: true}
+  loop: [afw-waf, afw-waf-helper]

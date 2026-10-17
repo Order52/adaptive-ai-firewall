@@ -1,0 +1,4 @@
+# AFW heartbeat watchdog (see /usr/local/sbin/afw-watchdog.sh)
+SHELL=/bin/sh
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+* * * * * root /usr/local/sbin/afw-watchdog.sh

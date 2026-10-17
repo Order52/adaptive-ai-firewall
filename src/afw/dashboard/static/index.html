@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AFW Control Plane</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">AI-Adaptive-Firewall <span class="muted">control plane</span></div>
+  <div class="chips" id="chips"></div>
+  <button id="token-btn" class="ghost" type="button">API token</button>
+</header>
+
+<main>
+  <section class="tiles" id="tiles" aria-label="Key figures"></section>
+
+  <section class="grid2">
+    <article class="card">
+      <h2>Highest risk per 5 s window</h2>
+      <p class="sub">Additive evidence score 0–100 (not a probability). Dashed lines: rate-limit / block thresholds.</p>
+      <div id="risk-chart" class="chart"></div>
+    </article>
+    <article class="card">
+      <h2>Requests observed per window</h2>
+      <p class="sub">Sum over all tracked sources (WAF access records joined with app events).</p>
+      <div id="req-chart" class="chart"></div>
+    </article>
+  </section>
+
+  <section class="grid2">
+    <article class="card">
+      <h2>Live sources</h2>
+      <p class="sub">Latest window per source, sorted by risk. Select a row to inspect its behavior against the trusted profile.</p>
+      <div class="table-wrap"><table id="sources"><thead><tr>
+        <th>Source</th><th>Risk</th><th>Evidence</th><th class="num">Req/30 s</th><th>Detectors (score / threshold)</th>
+      </tr></thead><tbody></tbody></table></div>
+    </article>
+    <article class="card">
+      <h2 id="detail-title">Baseline vs current behavior</h2>
+      <p class="sub">Bar: benign range of the trusted profile (q05–q99); tick: profile median; dot: this source's latest window.</p>
+      <div id="baseline" class="chart"></div>
+    </article>
+  </section>
+
+  <section class="card">
+    <h2>Adaptive policy decisions</h2>
+    <p class="sub">Lifecycle: proposed → validated → applying → applied_unverified → enforced → expired / rolled_back. “Enforced” needs read-back and traffic verification.</p>
+    <div class="table-wrap"><table id="policies"><thead><tr>
+      <th>Updated</th><th>Kind</th><th>Target</th><th>State</th><th>Origin / mode</th><th>Verification</th><th>Expires</th><th></th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="card" id="explain-card" hidden>
+    <h2>Decision explanation <span class="muted" id="explain-id"></span></h2>
+    <div id="explain"></div>
+  </section>
+
+  <section class="grid2">
+    <article class="card">
+      <h2>Controlled adaptation</h2>
+      <p class="sub">Shadow learning from reputation-gated traffic; drift reports; candidate evaluation gates.</p>
+      <div id="adaptation"></div>
+    </article>
+    <article class="card">
+      <h2>Models &amp; profiles</h2>
+      <p class="sub">Versioned artifacts with validation metrics (thresholds chosen on validation runs only).</p>
+      <div id="models"></div>
+    </article>
+  </section>
+
+  <section class="card">
+    <h2>Static vs statistical vs ML-assisted experiments</h2>
+    <p class="sub">Results recorded by <code>afw experiment</code> from captured lab runs. Empty until experiments are run.</p>
+    <div id="experiments"></div>
+  </section>
+
+  <section class="grid2">
+    <article class="card">
+      <h2>Telemetry health</h2>
+      <div id="telemetry"></div>
+    </article>
+    <article class="card">
+      <h2>Audit trail</h2>
+      <div class="table-wrap short"><table id="audit"><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Subject</th></tr></thead><tbody></tbody></table></div>
+    </article>
+  </section>
+</main>
+<div id="tooltip" role="tooltip" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
