@@ -2,6 +2,21 @@
 
 _Last updated: 2026-10-17 (session 3). Read this first when resuming._
 
+## Session 3 — REAL-DATA AI MILESTONE (2026-10-17)
+
+**First model trained on real lab traffic, with verified live inference.** Built a
+benign user-journey generator (`traffic/benign_personas.py`), drove real traffic from
+6 client source IPs (USR01) through the WAF to APP01, captured real datasets on CTRL01
+(`real-benign-train2` 2464 obs/361 windows, `real-benign-val` 1049/154,
+`real-benign-train` 1306/191 held-out), and trained **trusted profile v2** (6 sources,
+361 windows). Measured on REAL data: **validation FPR ~1.3%** (1% budget); **live
+inference → 0 false positives** on fresh held-out benign traffic (all detector scores
+below threshold; the synthetic profile had falsely flagged the same traffic); M0/M1/M2
+replay on held-out real benign → **FPR 0 / legit 100%**, M1 ~63 µs vs M2 ~11.9 ms
+scoring. recall=null (no attack data — honest). Evidence:
+`artifacts/evidence/real-benign-baseline-2026-10-17.md`. **Attack recall / scenarios
+A,B,E remain BLOCKED on team attack traces** (machinery complete).
+
 ## Session 3 additions (MCP control plane, dashboard, GNS3 layout, TLS)
 
 - **MCP control plane (`afw` server) — built, verified, registered.** One server,
