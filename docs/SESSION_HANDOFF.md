@@ -17,12 +17,23 @@ _Exact state for the next session to resume without rediscovery. Updated
 - Tokens/secrets live in `~/.config/afw/` (never in Git). Dashboard token:
   `~/.config/afw/api/dashboard.token`.
 
-## In-flight work (real-data AI training)
+## Completed this session (real-data AI milestone)
+
+- Real benign traffic captured → **trusted profile v2** (361 win / 6 src) trained on
+  real lab data, promoted over the synthetic demo. Validation FPR ~1.3%; live
+  inference 0 FP on fresh benign; M0/M1/M2 on held-out real benign → FPR 0 / legit
+  100%. Evidence: `artifacts/evidence/real-benign-baseline-2026-10-17.md`.
+- Datasets on CTRL01: `real-benign-train2` (train), `real-benign-val` (validation),
+  `real-benign-train` (held-out). Synthetic `demo-*` remain (labelled, inactive).
+
+## Reusable tooling / next real-data work
 
 - **Benign traffic generator**: `traffic/benign_personas.py` (legitimate journeys,
   stdlib, source-bound). Copied to USR01 `/tmp/benign_personas.py`.
-- **USR01 has source aliases** 10.77.20.11/12/13 added (plus .10) for multi-source
-  benign traffic. _Reversible:_ `ip addr del 10.77.20.1X/24 dev ens3`.
+- **USR01 source aliases removed** (were 10.77.20.11–15, added temporarily for
+  multi-source benign capture; USR01 is back to .10 + .250 probe). To redo a
+  multi-source capture: `ssh usr01 'for i in 11 12 13 14 15; do sudo ip addr add
+  10.77.20.$i/24 dev ens3; done'` then remove with `ip addr del` afterwards.
 - Running a real benign TRAIN capture, then VALIDATION. Then on CTRL01 (as afwctl,
   cwd `/var/lib/afw`): `afw dataset capture <id> --manifest <m.json> --purpose
   train|validation` → `afw train bootstrap --train <t> --val <v>` → promote via API
