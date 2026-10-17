@@ -21,8 +21,7 @@ import pytest
 pytestmark = pytest.mark.skipif(not os.environ.get("AFW_LAB"), reason="needs the GNS3 lab")
 
 HOME = Path("~/.config/afw").expanduser()
-API = "https://10.77.50.10:8080"
-LAB_CA = str(HOME / "pki" / "lab-ca.pem")
+API = "http://10.77.50.10:8080"
 ATTACK_SRC = "10.77.10.10"  # ATK01 primary address (not a protected probe address)
 USER_SRC = "10.77.20.10"
 LEGIT_PROBE = "10.77.20.250"
@@ -32,12 +31,7 @@ TERMINAL = {"enforced", "failed", "rejected", "unknown", "expired", "rolled_back
 
 def api() -> httpx.Client:
     token = (HOME / "api" / "operator.token").read_text().strip()
-    return httpx.Client(
-        base_url=API,
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=30,
-        verify=LAB_CA,
-    )
+    return httpx.Client(base_url=API, headers={"Authorization": f"Bearer {token}"}, timeout=30)
 
 
 def probe(source: str) -> dict[str, object]:

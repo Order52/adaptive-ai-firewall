@@ -9,8 +9,13 @@ Group=afwctl
 Environment=AFW_CONFIG=/etc/afw/lab.yaml
 Environment=AFW_DATA_DIR=/var/lib/afw
 Environment=AFW_API_TOKENS_FILE=/etc/afw/secrets/api_tokens.yaml
+{% if controller_tls | default(false) %}
+# TLS is opt-in. Operator access is normally via an SSH tunnel, which already
+# encrypts transport; a host-pinned self-signed cert breaks tunneled
+# `localhost` access. Set `controller_tls: true` to serve HTTPS directly.
 Environment=AFW_TLS_CERT=/etc/afw/secrets/ctrl01.pem
 Environment=AFW_TLS_KEY=/etc/afw/secrets/ctrl01.key
+{% endif %}
 WorkingDirectory=/var/lib/afw
 ExecStartPre=/opt/afw/venv/bin/afw db upgrade
 ExecStart=/opt/afw/venv/bin/afw serve --host {{ ctrl_ip }} --port 8080

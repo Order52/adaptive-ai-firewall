@@ -73,10 +73,19 @@ for the running detail; this file is the executive view._
    `afw dataset capture …` → `afw train bootstrap` → `afw experiment replay
    --datasets <test>`. The dashboard experiments panel and `experiment_results`
    MCP tool populate immediately with citable numbers.
-2. **Self-signed TLS warns in browsers off-host.** _Bypass:_ the lab CA is in the
-   host trust store and the host browser NSS db. For another device, import
-   `~/.config/afw/pki/lab-ca.pem`, or access from the host. (Plain HTTP remains
-   available by unsetting `AFW_TLS_CERT`/`AFW_TLS_KEY`.)
+2. **Dashboard access over an SSH tunnel.** The dashboard/API is on the host-only
+   MGMT zone (`10.77.50.10:8080`). Reach it from your machine with:
+   ```
+   ssh -N -L 18080:10.77.50.10:8080 -L 13080:127.0.0.1:3080 gns3@<host>
+   ```
+   then open **`http://localhost:18080/`**, click **API token**, and paste a
+   viewer token (`ssh gns3@<host> cat ~/.config/afw/api/dashboard.token`).
+   The controller serves **HTTP by default** because the SSH tunnel already
+   encrypts transport; a host-pinned self-signed cert breaks tunneled `localhost`
+   access. TLS is implemented and opt-in (ADR-023): set `AFW_TLS_CERT`/
+   `AFW_TLS_KEY` (lab leaf cert exists) and `controller_tls: true` in the deploy,
+   then trust `~/.config/afw/pki/lab-ca.pem` on the client and use a SAN that
+   matches how you connect.
 3. **Synthetic demo data on the live controller.** It is labelled
    `synthetic-ui-demo (NOT a lab result)`. _Remove:_ reject the profile
    (`afw train reject 1 …`) and delete the `demo-*` datasets under

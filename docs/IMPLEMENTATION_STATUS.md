@@ -16,17 +16,21 @@ _Last updated: 2026-10-17 (session 3). Read this first when resuming._
 - **Dashboard — fixed and populated on the live lab.** Rendered in headless
   Chromium; fixed ML-tile overflow + telemetry empty state; **explanation
   durability fixed** (detector outputs snapshotted onto the assessment, ADR-024).
-  Root-caused "doesn't work well": TLS made it HTTPS-only with a self-signed CA
-  → browsers blocked it; **installed the lab CA into the host system + NSS trust
-  stores** so it opens cleanly. Populated the live controller with a clearly
-  labelled `synthetic-ui-demo (NOT a lab result)` profile + M0/M1/M2 experiments
-  via the supported train→promote→replay workflow, so every panel shows real
-  backend data.
+  Root-caused "doesn't work well": TLS made it HTTPS-only with a host-pinned
+  self-signed cert, which breaks SSH-tunnelled `localhost:PORT` access. Reverted
+  the live controller to **HTTP** (operator access is via SSH tunnel, already
+  encrypted; TLS is now opt-in, ADR-023). Populated the live controller with a
+  clearly labelled `synthetic-ui-demo (NOT a lab result)` profile + M0/M1/M2
+  experiments via the supported train→promote→replay workflow, so every panel
+  shows real backend data. Access: `ssh -N -L 18080:10.77.50.10:8080 …` →
+  `http://localhost:18080/`.
 - **GNS3 canvas — professionally reorganised** (`afw lab layout`, idempotent):
   top-to-bottom traffic-flow layout, 5 colour-coded zones, role-appropriate
   symbols, title/subnet labels. See `docs/GNS3_TOPOLOGY.md`.
-- **Controller API TLS — done and live** (ADR-023): CTRL01 serves HTTPS on 8080;
-  dashboard URL is now `https://10.77.50.10:8080/`.
+- **Controller API TLS — implemented, opt-in** (ADR-023): `afw serve` serves
+  HTTPS when `AFW_TLS_CERT`/`AFW_TLS_KEY` are set (lab leaf cert + MCP/client CA
+  verification wired and tested). The lab **defaults to HTTP** because operator
+  access is via SSH tunnel; forcing HTTPS broke tunnelled `localhost` access.
 - Tests: **54 passed, 9 lab-skipped**, mypy strict clean (81 files), ruff clean.
 
 ## Verified host facts (Phase 0)
