@@ -2,6 +2,8 @@
 
 _Last updated: 2026-10-17 (session 3). Read this first when resuming._
 
+**Cold-restart recovery verified (2026-10-18):** full `afw lab stop`→`start` power cycle — 13/13 nodes, profile v2+models auto-restored, isolation 26/26, canvas+annotations persisted, MCP reconnected. Evidence: `artifacts/evidence/cold-restart-2026-10-18.md`.
+
 ## Session 3 — REAL-DATA AI MILESTONE (2026-10-17)
 
 **First model trained on real lab traffic, with verified live inference.** Built a
