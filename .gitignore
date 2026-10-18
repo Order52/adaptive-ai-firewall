@@ -13,7 +13,11 @@ __pycache__/
 !*.env.example
 secrets/
 var/
-artifacts/
+artifacts/*
+!artifacts/evidence/
+artifacts/evidence/*.png
+artifacts/evidence/*.pcap
+artifacts/evidence/*.gz
 *.sqlite3
 *.sqlite3-*
 *.db
