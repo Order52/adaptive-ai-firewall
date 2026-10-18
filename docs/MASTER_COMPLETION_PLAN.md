@@ -15,8 +15,8 @@ evidence in this environment, not a prior report._
 | **P6** | MCP operational completeness + Claude Code | **PASSED** | 26 typed tools; real MCP client verified GNS3 topology, AI data, safety guards (CTRL01 restart refused, protected-address block rejected); registered via `.mcp.json`, `claude mcp list` → Connected. |
 | **P7** | AI-centered dashboard + API | **PASSED** | Rendered in headless Chromium (zero console/page errors); every panel validated with real backend data; interactive explain works; two bugs fixed; populated live. HTTP over SSH tunnel (TLS opt-in). |
 | **P8** | M0/M1/M2 scientific evaluation | **PARTIAL (benign done, attack BLOCKED)** | M0/M1/M2 run on **held-out real benign**: FPR 0 / legit 100% all arms; M1 ~63µs vs M2 ~11.9ms. Attack recall + scenarios A/B/E + multi-rep variance **BLOCKED** on attack traces (runner ready). |
-| **P9** | Reliability, security, load, recovery | **PARTIAL** | Unit/integration/lab suites pass; restart-recovery, watchdog, isolation verified historically. Fresh cold-restart + soak test pending. |
-| **P10** | Final-year deliverables | **IN PROGRESS** | Docs present: STATUS, ADR, AI_RESEARCH, MCP_GUIDE, GNS3_TOPOLOGY, PROJECT_STATUS_AND_HANDOFF, this plan. EXPERIMENTS/OPERATOR/INSTALL/FINAL_DEMO pending. |
+| **P9** | Reliability, security, load, recovery | **PARTIAL** | 57 tests pass; isolation 26/26 fresh; **controller restart recovery verified this session** (profile v2 + models auto-restored). Full GNS3 cold-restart + ≥60-min soak still pending. |
+| **P10** | Final-year deliverables | **PARTIAL** | Full doc set written: README, INSTALL, OPERATOR_GUIDE, FINAL_DEMO, SECURITY_AND_LIMITATIONS, EXPERIMENTS, MCP_GUIDE, GNS3_TOPOLOGY, AI_RESEARCH, ADR, STATUS, plan, handoff. Remaining: dissertation prose + figures, full GNS3 cold-restart demo rehearsal. |
 
 ## The one true blocker
 
