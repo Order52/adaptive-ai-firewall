@@ -4,6 +4,8 @@ _Last updated: 2026-10-17 (session 3). Read this first when resuming._
 
 **Cold-restart recovery verified (2026-10-18):** full `afw lab stop`→`start` power cycle — 13/13 nodes, profile v2+models auto-restored, isolation 26/26, canvas+annotations persisted, MCP reconnected. Evidence: `artifacts/evidence/cold-restart-2026-10-18.md`.
 
+**60-min benign soak PASSED (2026-10-20):** continuous legitimate traffic for an hour — controller RSS flat (220.9→224.2 MB, no leak), tick p50 ~2.3 ms, **0 policies / 0 false positives**, trusted profile unchanged (shadow learner proposed a single-source candidate that was correctly never promoted), 10 169 telemetry msgs with no new parse errors. Evidence: `artifacts/evidence/soak-2026-10-20.md`. **Dissertation figures A–D** (real evidence only) in `docs/figures/`.
+
 ## Session 3 — REAL-DATA AI MILESTONE (2026-10-17)
 
 **First model trained on real lab traffic, with verified live inference.** Built a

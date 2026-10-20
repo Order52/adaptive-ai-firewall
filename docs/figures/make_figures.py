@@ -113,8 +113,12 @@ def fig_b_zero_fp() -> None:
 
 
 def fig_d_soak(samples_tsv: Path) -> None:
-    """Controller stability over the soak — RSS + tick latency timeseries."""
+    """Controller stability over the soak — RSS and tick latency (small multiples).
+
+    Two stacked panels (each its own y-axis — never a dual-axis chart).
+    """
     rows = list(csv.DictReader(samples_tsv.open(), delimiter="\t"))
+
     def col(k):
         out = []
         for r in rows:
@@ -123,18 +127,42 @@ def fig_d_soak(samples_tsv: Path) -> None:
             except (ValueError, KeyError, TypeError):
                 out.append(None)
         return out
+
     mins = [float(r["elapsed_s"]) / 60 for r in rows]
-    rss = col("ctrl_rss_mb"); tick = col("tick_max_ms")
-    fig, ax1 = plt.subplots(figsize=(6.6, 3.2))
-    ax1.plot(mins, rss, color=BLUE, lw=2, marker="o", ms=4, zorder=3,
-             label="controller RSS (MB)")
-    ax1.set_xlabel("elapsed (minutes)")
-    ax1.set_ylabel("controller RSS (MB)", color=BLUE)
-    ax1.tick_params(axis="y", labelcolor=BLUE)
-    lo = min(v for v in rss if v is not None); hi = max(v for v in rss if v is not None)
-    ax1.set_ylim(lo - 20, hi + 20)
-    ax1.set_title("Controller stability over sustained benign load",
-                  color=INK, fontsize=11, fontweight="bold", loc="left", pad=10)
+    rss = col("ctrl_rss_mb")
+    tp50 = col("tick_p50_ms")
+    tmax = col("tick_max_ms")
+
+    fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(6.6, 4.6), sharex=True,
+        gridspec_kw={"height_ratios": [1, 1], "hspace": 0.28})
+
+    # panel 1: resident memory (leak check)
+    ax1.plot(mins, rss, color=BLUE, lw=2, marker="o", ms=3.5, zorder=3)
+    ax1.set_ylabel("controller RSS (MB)")
+    rss_ok = [v for v in rss if v is not None]
+    lo, hi = min(rss_ok), max(rss_ok)
+    ax1.set_ylim(lo - 14, hi + 14)
+    ax1.text(0.015, 0.90, f"RSS {lo:.0f}→{hi:.0f} MB over 60 min "
+             f"(+{hi - lo:.1f} MB) — no leak",
+             transform=ax1.transAxes, color=INK2, fontsize=8.8, va="top")
+
+    # panel 2: control-loop tick latency (p50 vs max)
+    ax2.plot(mins, tmax, color=ORANGE, lw=1.6, marker="o", ms=3, zorder=3,
+             label="tick max")
+    ax2.plot(mins, tp50, color=BLUE, lw=2, marker="o", ms=3, zorder=4,
+             label="tick p50")
+    ax2.set_ylabel("control-loop tick (ms)")
+    ax2.set_xlabel("elapsed (minutes)")
+    ax2.legend(loc="upper right", frameon=False, fontsize=8.6, ncol=2)
+    p50_ok = [v for v in tp50 if v is not None]
+    ax2.text(0.015, 0.90, f"tick p50 steady ≈{sum(p50_ok) / len(p50_ok):.1f} ms "
+             "(one transient max spike)",
+             transform=ax2.transAxes, color=INK2, fontsize=8.8, va="top")
+
+    ax1.set_title("Controller stability over a 60-min benign soak — "
+                  "zero false positives, zero policies",
+                  color=INK, fontsize=10.5, fontweight="bold", loc="left", pad=12)
     save(fig, "fig-d-soak-stability")
 
 
