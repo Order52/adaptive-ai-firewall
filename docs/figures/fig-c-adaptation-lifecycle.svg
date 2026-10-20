@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 300" font-family="DejaVu Sans, Segoe UI, Helvetica, Arial, sans-serif">
+  <!-- AI-Adaptive-Firewall: Scenario C real adaptation lifecycle (drift -> learn -> recover).
+       Source: artifacts/evidence/real-benign-baseline-2026-10-17.md -->
+  <style>
+    .box{rx:10;ry:10;stroke-width:2;}
+    .t{fill:#0b0b0b;font-weight:700;font-size:15px;}
+    .d{fill:#52514e;font-size:12px;}
+    .n{fill:#8a8982;font-size:11px;font-weight:700;letter-spacing:.5px;}
+    .ar{stroke:#8a8982;stroke-width:2.2;fill:none;}
+  </style>
+  <defs>
+    <marker id="arw" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#8a8982"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1180" height="300" fill="#fcfcfb"/>
+  <text x="24" y="38" fill="#0b0b0b" font-size="19" font-weight="700">Real adaptation lifecycle — legitimate drift becomes controlled learning (Scenario C)</text>
+  <text x="24" y="60" class="d">Observed live on genuine lab traffic: no attacker could define &#8220;normal,&#8221; and promotion stayed human-in-the-loop.</text>
+
+  <!-- phase bands legend -->
+  <rect x="24" y="78" width="14" height="14" rx="3" fill="#2a78d6"/><text x="44" y="90" class="d">detect</text>
+  <rect x="110" y="78" width="14" height="14" rx="3" fill="#eb6834"/><text x="130" y="90" class="d">guard</text>
+  <rect x="190" y="78" width="14" height="14" rx="3" fill="#1baf7a"/><text x="210" y="90" class="d">promote &amp; recover</text>
+
+  <!-- boxes: 6 stages -->
+  <!-- 1 baseline -->
+  <g>
+    <rect class="box" x="24"  y="118" width="168" height="120" fill="#eef4fc" stroke="#2a78d6"/>
+    <text x="40" y="142" class="n" fill="#2a78d6">1 · BASELINE</text>
+    <text x="40" y="168" class="t">Trusted profile v1</text>
+    <text x="40" y="192" class="d">Synthetic baseline</text>
+    <text x="40" y="210" class="d">is the trusted model.</text>
+  </g>
+  <!-- 2 change -->
+  <g>
+    <rect class="box" x="216" y="118" width="168" height="120" fill="#eef4fc" stroke="#2a78d6"/>
+    <text x="232" y="142" class="n" fill="#2a78d6">2 · CHANGE</text>
+    <text x="232" y="168" class="t">New behaviour</text>
+    <text x="232" y="192" class="d">Users exercise new</text>
+    <text x="232" y="210" class="d">routes: /reviews,</text>
+    <text x="232" y="226" class="d">/logout, new rates.</text>
+  </g>
+  <!-- 3 drift -->
+  <g>
+    <rect class="box" x="408" y="118" width="168" height="120" fill="#eef4fc" stroke="#2a78d6"/>
+    <text x="424" y="142" class="n" fill="#2a78d6">3 · DRIFT</text>
+    <text x="424" y="168" class="t">Drift detected</text>
+    <text x="424" y="192" class="d">new_endpoint +</text>
+    <text x="424" y="210" class="d">feature_shift,</text>
+    <text x="424" y="226" class="d">population (6 srcs).</text>
+  </g>
+  <!-- 4 gate -->
+  <g>
+    <rect class="box" x="600" y="118" width="168" height="120" fill="#fdf0e9" stroke="#eb6834"/>
+    <text x="616" y="142" class="n" fill="#eb6834">4 · GATE</text>
+    <text x="616" y="168" class="t">Candidate v2</text>
+    <text x="616" y="192" class="d">Anti-poisoning gate:</text>
+    <text x="616" y="210" class="d">6 independent srcs,</text>
+    <text x="616" y="226" class="d">none dominates.</text>
+  </g>
+  <!-- 5 promote -->
+  <g>
+    <rect class="box" x="792" y="118" width="168" height="120" fill="#e9f7f1" stroke="#1baf7a"/>
+    <text x="808" y="142" class="n" fill="#1baf7a">5 · PROMOTE</text>
+    <text x="808" y="168" class="t">Reviewed promote</text>
+    <text x="808" y="192" class="d">Human-in-the-loop</text>
+    <text x="808" y="210" class="d">admin API; controller</text>
+    <text x="808" y="226" class="d">reloads to v2.</text>
+  </g>
+  <!-- 6 recover -->
+  <g>
+    <rect class="box" x="984" y="118" width="172" height="120" fill="#e9f7f1" stroke="#1baf7a"/>
+    <text x="1000" y="142" class="n" fill="#1baf7a">6 · RECOVER</text>
+    <text x="1000" y="168" class="t">Back to normal</text>
+    <text x="1000" y="192" class="d">Same legit users now</text>
+    <text x="1000" y="210" class="d">score risk 0 /</text>
+    <text x="1000" y="226" class="d">band none.</text>
+  </g>
+
+  <!-- arrows between boxes -->
+  <line class="ar" x1="192" y1="178" x2="214" y2="178" marker-end="url(#arw)"/>
+  <line class="ar" x1="384" y1="178" x2="406" y2="178" marker-end="url(#arw)"/>
+  <line class="ar" x1="576" y1="178" x2="598" y2="178" marker-end="url(#arw)"/>
+  <line class="ar" x1="768" y1="178" x2="790" y2="178" marker-end="url(#arw)"/>
+  <line class="ar" x1="960" y1="178" x2="982" y2="178" marker-end="url(#arw)"/>
+
+  <text x="24" y="276" class="d">Attacker traffic cannot define &#8220;normal&#8221;: the gate requires multiple independent sources (source-share cap) and limits sensitive-feature movement, and every promotion is reviewed.</text>
+</svg>
