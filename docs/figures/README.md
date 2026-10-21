@@ -10,6 +10,8 @@ or fabricated numbers. Each is provided as PDF (for LaTeX `\includegraphics`) an
 | **B** | `fig-b-zero-false-positives` | `real-benign-baseline-2026-10-17.md` (live-inference table) | On **genuine lab traffic**, profile v2 scores every live benign source **below every detector threshold** (score ÷ threshold < 1.0) — zero false positives, unlike the earlier synthetic profile. |
 | **C** | `fig-c-adaptation-lifecycle` | `real-benign-baseline-2026-10-17.md` (Scenario C) | The **real** drift → candidate → anti-poisoning gate → reviewed promotion → recovery loop, observed live. Attacker traffic cannot define "normal" (multi-source gate, human-in-the-loop promote). |
 | **D** | `fig-d-soak-stability` | `soak-*.md` / `samples.tsv` (sustained-load soak) | Controller RSS and tick latency stay flat across a >60-minute continuous benign soak — no leak, no drift, benign traffic never restricted. |
+| **E** | `fig-e-dashboard-live` (PNG) | live dashboard render (`dashboard-live-2026-10-20.md`) | The operator dashboard populated with **real** profile-v2 data: stat tiles, live risk, policy-lifecycle history, model/profile table, candidate-evaluation gates, M0/M1/M2 experiments, telemetry health, audit trail — renders with no console errors. |
+| **F** | `fig-f-explainable-detection` | `dashboard-live-2026-10-20.md` (live assessment `risk-7b3ee514524a`) | **Explainable AI on live traffic**: occlusion feature attributions show *why* the health-probe source scored elevated (unknown route, never logs in, sparse) — in monitor mode, observed not blocked. |
 
 ## Regenerate
 

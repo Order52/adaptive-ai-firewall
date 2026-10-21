@@ -166,10 +166,59 @@ def fig_d_soak(samples_tsv: Path) -> None:
     save(fig, "fig-d-soak-stability")
 
 
+def fig_f_explain() -> None:
+    """Explainable detection — why the live health-probe source scored elevated.
+
+    Occlusion feature attributions for the robust_stats + isolation_forest
+    detections of source 10.77.20.250 (assessment risk-7b3ee514524a,
+    2026-10-21T03:23:58, profile v2, score 59 / band elevated, MONITOR mode).
+    robust_z = deviation from the trusted-profile baseline (positive = above
+    profile, negative = below). Diverging encoding: warm = above, cool = below.
+    """
+    # feature, robust_z, human reason  (from the live detection, real values)
+    feats = [
+        ("unknown_route_frac", 20.0, "100% of requests to a route not in the profile"),
+        ("route_entropy", -10.0, "only one route (no journey variety)"),
+        ("req_rate", -4.86, "far fewer requests/s than a real user"),
+        ("login_rate", -3.37, "never logs in"),
+        ("distinct_usernames", -2.7, "no distinct users"),
+        ("req_bytes_p95", -2.03, "smaller requests than normal"),
+    ]
+    feats = feats[::-1]  # largest driver on top after invert
+    names = [f[0] for f in feats]
+    z = [f[1] for f in feats]
+    WARM, COOL = ORANGE, BLUE  # diverging poles + neutral zero line
+    colors = [WARM if v > 0 else COOL for v in z]
+    fig, ax = plt.subplots(figsize=(7.2, 3.6))
+    y = range(len(names))
+    ax.barh(list(y), z, color=colors, height=0.62, zorder=3)
+    ax.axvline(0, color=INK2, lw=1.2, zorder=4)
+    ax.set_yticks(list(y)); ax.set_yticklabels(names, fontsize=9.5)
+    ax.set_xlim(-14, 24)
+    ax.set_xlabel("deviation from trusted profile (robust z-score)")
+    for yi, (nm, v, why) in zip(y, feats):
+        ha = "left" if v > 0 else "right"
+        off = 0.6 if v > 0 else -0.6
+        ax.text(v + off, yi, f"z={v:+.1f}", va="center", ha=ha,
+                color=INK, fontsize=8.6, fontweight="bold")
+    ax.set_title("Explainable detection — why source 10.77.20.250 scored "
+                 "elevated (59)", color=INK, fontsize=11, fontweight="bold",
+                 loc="left", pad=10)
+    ax.text(0, 1.13, "Live monitor-mode assessment (profile v2). Occlusion "
+            "attributions name the drivers: a single unknown route, never logs "
+            "in, very sparse — the health-probe signature, not a user journey.",
+            transform=ax.transAxes, color=INK2, fontsize=8.4, wrap=True)
+    # warm/cool legend (diverging, not categorical series)
+    ax.text(0.995, 0.06, "warm = above profile   cool = below profile",
+            transform=ax.transAxes, color=INK2, fontsize=8, ha="right")
+    save(fig, "fig-f-explainable-detection")
+
+
 if __name__ == "__main__":
     print("Generating figures from real evidence ->", OUT)
     fig_a_latency()
     fig_b_zero_fp()
+    fig_f_explain()
     soak = sorted(OUT.parent.parent.glob("artifacts/evidence/soak-*/samples.tsv"))
     arg_tsv = Path(sys.argv[1]) if len(sys.argv) > 1 else None
     tsv = arg_tsv or (soak[-1] if soak else None)
