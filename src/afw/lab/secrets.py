@@ -40,6 +40,10 @@ def ensure_lab_secrets(base: Path = BASE) -> list[str]:
         if not p.exists():
             _write_secret(p, secrets.token_urlsafe(32))
             created.append(str(p))
+    db_pw = base / "db" / "password"
+    if not db_pw.exists():
+        _write_secret(db_pw, secrets.token_urlsafe(24))
+        created.append(str(db_pw))
     hashes_file = base / "api" / "api_tokens.yaml"
     entries = yaml.safe_load(hashes_file.read_text()) if hashes_file.exists() else []
     known = {e["name"] for e in entries or []}

@@ -4,9 +4,13 @@
   ansible.builtin.user: {name: afwapp, system: true, shell: /usr/sbin/nologin, create_home: false}
 - name: App code
   ansible.builtin.copy:
-    src: "{{ repo_root }}/apps/rental/rental_app.py"
-    dest: /opt/afw/rental/rental_app.py
+    src: "{{ repo_root }}/apps/rental/{{ item }}"
+    dest: "/opt/afw/rental/{{ item }}"
     mode: "0644"
+  loop: [rental_app.py, store.py]
+  notify: restart app
+- name: App DB connection (DATABASE_URL -> DB tier; password from host secrets)
+  ansible.builtin.template: {src: rental.env.j2, dest: /etc/afw/rental.env, owner: afwapp, mode: "0600"}
   notify: restart app
 - name: Event log ownership
   ansible.builtin.file: {path: /var/log/afw, state: directory, owner: afwapp, mode: "0755"}

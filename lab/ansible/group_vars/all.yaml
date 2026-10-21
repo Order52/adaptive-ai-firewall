@@ -6,6 +6,11 @@ app_ip: 10.77.40.10
 app_port: 8000
 app_id: rental
 app_version: "1.0.0"
+db_ip: 10.77.60.10
+db_port: 5432
+db_name: rental
+db_user: rental
+db_image: afw/postgres:16
 mgmt_net: 10.77.50.0/24
 client_nets: [10.77.10.0/24, 10.77.20.0/24]
 telemetry_port: 5514

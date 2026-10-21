@@ -43,14 +43,17 @@ LAYOUT: dict[str, tuple[int, int, str]] = {
     "WAF01": (-30, 120, _SRV),
     "SW-APP": (-20, 260, _SW),
     "APP01": (-30, 400, _SRV),
+    "SW-DB": (-20, 540, _SW),
+    "DB01": (-30, 680, _SRV),
 }
 
-_BLUE, _RED, _GREEN, _AMBER, _TEAL, _GREY, _INK = (
+_BLUE, _RED, _GREEN, _AMBER, _TEAL, _VIOLET, _GREY, _INK = (
     "#2a78d6",
     "#d03b3b",
     "#0ca30c",
     "#e08a1e",
     "#1b9e9e",
+    "#6250d6",
     "#555555",
     "#0b0b0b",
 )
@@ -80,6 +83,7 @@ _ZONES = [
     (240, -270, 360, 185, _GREEN),
     (-170, -90, 320, 300, _AMBER),
     (-170, 215, 320, 260, _TEAL),
+    (-170, 505, 320, 250, _VIOLET),
 ]
 # (x, y, text, color, size, weight) labels
 _LABELS = [
@@ -87,7 +91,7 @@ _LABELS = [
     (
         -360,
         -650,
-        "Flow: clients -> FW01 -> WAF (DMZ) -> APP. Management plane isolated (top).",
+        "Flow: clients -> FW01 -> WAF (DMZ) -> APP -> DB. Management plane isolated (top).",
         _GREY,
         12,
         "normal",
@@ -98,6 +102,7 @@ _LABELS = [
     (248, -266, "USERS ZONE (10.77.20.0/24)", _GREEN, 14, "bold"),
     (-162, -86, "DMZ (10.77.30.0/24) — WAF01 / OWASP CRS", _AMBER, 13, "bold"),
     (-162, 219, "APPLICATION (10.77.40.0/24) — APP01", _TEAL, 13, "bold"),
+    (-162, 509, "DATABASE (10.77.60.0/24) — DB01 (PostgreSQL)", _VIOLET, 13, "bold"),
     (80, -176, "FW01 — OPNsense (pf + Suricata)", _GREY, 13, "bold"),
 ]
 

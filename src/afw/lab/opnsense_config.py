@@ -6,7 +6,7 @@ Works on the config dumped from the running image so image-specific defaults
 
 Zone ↔ interface map (GNS3 adapter order):
   lan=vtnet0 MGMT · wan=vtnet1 maintenance uplink · opt1=vtnet2 ATTACK
-  opt2=vtnet3 USERS · opt3=vtnet4 DMZ · opt4=vtnet5 APP
+  opt2=vtnet3 USERS · opt3=vtnet4 DMZ · opt4=vtnet5 APP · opt5=vtnet6 DB
 """
 
 from __future__ import annotations
@@ -23,10 +23,12 @@ ZONES = {  # key: (if, descr, address)
     "opt2": ("vtnet3", "USERS", "10.77.20.1"),
     "opt3": ("vtnet4", "DMZ", "10.77.30.1"),
     "opt4": ("vtnet5", "APP", "10.77.40.1"),
+    "opt5": ("vtnet6", "DB", "10.77.60.1"),
 }
 CLIENT_ZONES = ("opt1", "opt2")
 WAF = "10.77.30.10"
 APP = "10.77.40.10"
+DB = "10.77.60.10"
 CTRL = "10.77.50.10"
 
 
@@ -133,7 +135,7 @@ def lab_rules(template: ET.Element) -> list[ET.Element]:
             destination_port="443",
             description=f"AFW: {ZONES[z][1]} to WAF HTTPS",
         )
-    for z in ("opt1", "opt2", "opt3", "opt4"):
+    for z in ("opt1", "opt2", "opt3", "opt4", "opt5"):
         add(
             interface=z,
             protocol="UDP",
@@ -156,6 +158,14 @@ def lab_rules(template: ET.Element) -> list[ET.Element]:
         destination_net=APP,
         destination_port="8000",
         description="AFW: WAF to APP (only path to the app)",
+    )
+    add(
+        interface="opt4",
+        protocol="TCP",
+        source_net=APP,
+        destination_net=DB,
+        destination_port="5432",
+        description="AFW: APP to DB (only path to the database tier)",
     )
     for src, z in ((WAF, "opt3"), (APP, "opt4")):
         add(

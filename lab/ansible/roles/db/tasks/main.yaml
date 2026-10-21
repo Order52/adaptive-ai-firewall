@@ -1,0 +1,15 @@
+- name: DB data + config dirs
+  ansible.builtin.file: {path: "{{ item }}", state: directory, mode: "0750"}
+  loop: [/var/lib/afw-db, /etc/afw]
+- name: DB environment (password from host secrets, never in Git)
+  ansible.builtin.template: {src: db.env.j2, dest: /etc/afw/db.env, mode: "0600"}
+  notify: restart db
+- name: DB unit
+  ansible.builtin.template: {src: afw-db.service.j2, dest: /etc/systemd/system/afw-db.service, mode: "0644"}
+  notify: restart db
+- name: Docker enabled (postgres image preloaded in the golden image)
+  ansible.builtin.systemd: {name: docker, enabled: true, state: started}
+- name: DB running
+  ansible.builtin.systemd: {name: afw-db, enabled: true, state: started, daemon_reload: true}
+- name: Wait for PostgreSQL to accept TCP on the DB interface
+  ansible.builtin.wait_for: {host: "{{ db_ip }}", port: "{{ db_port }}", timeout: 90}
