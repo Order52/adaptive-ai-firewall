@@ -7,8 +7,7 @@ Requires=docker.service
 ExecStartPre=-/usr/bin/docker rm -f afw-db
 ExecStart=/usr/bin/docker run --rm --name afw-db --network host \
   --env-file /etc/afw/db.env \
-  -e PGDATA=/var/lib/postgresql/data/pgdata \
-  -v /var/lib/afw-db:/var/lib/postgresql/data \
+  -v afw-db-data:/var/lib/postgresql/data \
   {{ db_image }} -c listen_addresses={{ db_ip }},127.0.0.1
 ExecStop=/usr/bin/docker stop -t 10 afw-db
 Restart=on-failure

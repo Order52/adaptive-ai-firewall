@@ -1,6 +1,5 @@
-- name: DB data + config dirs
-  ansible.builtin.file: {path: "{{ item }}", state: directory, mode: "0750"}
-  loop: [/var/lib/afw-db, /etc/afw]
+- name: Config dir (data lives in the 'afw-db-data' docker volume, postgres-owned)
+  ansible.builtin.file: {path: /etc/afw, state: directory, mode: "0755"}
 - name: DB environment (password from host secrets, never in Git)
   ansible.builtin.template: {src: db.env.j2, dest: /etc/afw/db.env, mode: "0600"}
   notify: restart db
