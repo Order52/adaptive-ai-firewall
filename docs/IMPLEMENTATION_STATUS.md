@@ -2,6 +2,14 @@
 
 _Last updated: 2026-10-17 (session 3). Read this first when resuming._
 
+**Operator desktop + Internet egress (2026-10-22):** added **DESK01**, a graphical
+XFCE workstation (VNC) in the MGMT zone (10.77.50.20) — Firefox + Claude CLI + the
+afw MCP tooling; verified live reaching the dashboard and listing 26 MCP tools. The
+lab is **no longer air-gapped**: each zone has Internet egress (NAT) with DNS, for
+real tests, while **inter-zone segmentation is preserved (isolation 35/35)**.
+Evidence: `artifacts/evidence/desktop-internet-2026-10-22.md`. AI generalization
+checked: train/val/test system FPR all 0 (no over/underfit on benign).
+
 **Real 3-tier architecture (2026-10-21):** added an isolated **database tier** —
 DB zone 10.77.60.0/24, DB01 running PostgreSQL 16 (container) on a 7th OPNsense NIC.
 The rental app now persists catalogue/users/bookings/reviews to PostgreSQL
