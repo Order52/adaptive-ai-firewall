@@ -5,6 +5,7 @@ project: AI-Adaptive-Firewall
 images:
   ubuntu: afw-ubuntu-24.04-golden.qcow2
   opnsense: opnsense-26.7-nano.qcow2
+  desktop: afw-ubuntu-desktop.qcow2
 switches:            # one L2 segment per zone
   SW-ATTACK: {x: -450, y: -250}
   SW-USERS:  {x: -450, y: 150}
@@ -21,6 +22,7 @@ nodes:
     x: 0
     y: 0
   CTRL01: {kind: ubuntu, ram: 2048, cpus: 2, zone: MGMT,   ip: 10.77.50.10/24, gw: 10.77.50.1, x: 450,  y: 350}
+  DESK01: {kind: desktop, ram: 3072, cpus: 2, zone: MGMT,  ip: 10.77.50.20/24, gw: 10.77.50.1, x: 700,  y: 500}
   WAF01:  {kind: ubuntu, ram: 1024, cpus: 1, zone: DMZ,    ip: 10.77.30.10/24, gw: 10.77.30.1, x: 250,  y: -450}
   APP01:  {kind: ubuntu, ram: 768,  cpus: 1, zone: APP,    ip: 10.77.40.10/24, gw: 10.77.40.1, x: 700,  y: 0}
   DB01:   {kind: ubuntu, ram: 768,  cpus: 1, zone: DB,     ip: 10.77.60.10/24, gw: 10.77.60.1, x: 950,  y: 250}
@@ -38,6 +40,7 @@ links:               # [node, adapter, port] pairs
   - [[FW01, 6, 0], [SW-DB, 0, 0]]
   - [[CTRL01, 0, 0], [SW-MGMT, 0, 1]]
   - [[HOST-MGMT, 0, 0], [SW-MGMT, 0, 2]]
+  - [[DESK01, 0, 0], [SW-MGMT, 0, 3]]
   - [[WAF01, 0, 0], [SW-DMZ, 0, 1]]
   - [[APP01, 0, 0], [SW-APP, 0, 1]]
   - [[DB01, 0, 0], [SW-DB, 0, 1]]

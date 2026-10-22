@@ -26,6 +26,7 @@ ZONES = {  # key: (if, descr, address)
     "opt5": ("vtnet6", "DB", "10.77.60.1"),
 }
 CLIENT_ZONES = ("opt1", "opt2")
+LAB_SUPERNET = "10.77.0.0/16"  # internal supernet: block inter-zone, allow Internet
 WAF = "10.77.30.10"
 APP = "10.77.40.10"
 DB = "10.77.60.10"
@@ -175,6 +176,27 @@ def lab_rules(template: ET.Element) -> list[ET.Element]:
             destination_net=CTRL,
             destination_port="5514",
             description=f"AFW: {ZONES[z][1]} telemetry to CTRL01",
+        )
+    # Internet egress ("real-test" mode): the lab is no longer air-gapped. Each zone
+    # may reach the Internet (NATed out the MAINT uplink), but inter-zone traffic
+    # stays blocked — the specific allows above (quick) match first, then a block of
+    # the lab supernet, then a pass to anywhere else (the Internet). Segmentation
+    # (WAF bypass, DB isolation, telemetry integrity, mgmt isolation) is preserved;
+    # only the previous "no egress" property is intentionally removed.
+    for z in ("opt1", "opt2", "opt3", "opt4", "opt5"):
+        add(
+            interface=z,
+            action="block",
+            source_net=z,
+            destination_net=LAB_SUPERNET,
+            log="1",
+            description=f"AFW: {ZONES[z][1]} deny inter-zone (keep segmentation)",
+        )
+        add(
+            interface=z,
+            source_net=z,
+            destination_net="any",
+            description=f"AFW: {ZONES[z][1]} Internet egress (real-test mode)",
         )
     return rules
 

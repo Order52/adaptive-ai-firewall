@@ -31,6 +31,7 @@ _CLOUD = ":/symbols/cloud.svg"
 # name -> (x, y, symbol); origin centre, y grows downward.
 LAYOUT: dict[str, tuple[int, int, str]] = {
     "CTRL01": (-30, -540, _SRV),
+    "DESK01": (230, -540, _PC),
     "SW-MGMT": (-20, -360, _SW),
     "HOST-MGMT": (-250, -360, _CLOUD),
     "MAINT-NAT": (190, -360, _CLOUD),
@@ -78,7 +79,7 @@ def _text_svg(text: str, color: str, size: int, weight: str) -> str:
 
 # (x, y, w, h, color) zone boxes
 _ZONES = [
-    (-360, -600, 640, 320, _BLUE),
+    (-360, -600, 760, 320, _BLUE),
     (-640, -270, 360, 185, _RED),
     (240, -270, 360, 185, _GREEN),
     (-170, -90, 320, 300, _AMBER),
