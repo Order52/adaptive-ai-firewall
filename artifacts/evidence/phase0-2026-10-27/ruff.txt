@@ -1,0 +1,177 @@
+E702 Multiple statements on one line (semicolon)
+  --> docs/figures/make_figures.py:62:27
+   |
+60 |     ax.set_xscale("log")
+61 |     ax.set_xlim(5, 30000)
+62 |     ax.set_yticks(list(y)); ax.set_yticklabels(names)
+   |                           ^
+63 |     ax.invert_yaxis()
+64 |     ax.set_xlabel("scoring latency per window (µs, log scale)")
+   |
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> docs/figures/make_figures.py:67:18
+   |
+65 |     ax.xaxis.set_major_formatter(FuncFormatter(
+66 |         lambda v, _: f"{v:.0f}µs" if v < 1000 else f"{v/1000:.0f}ms"))
+67 |     for yi, v in zip(y, micros):
+   |                  ^^^^^^^^^^^^^^
+68 |         lab = f"{v:.0f} µs" if v < 1000 else f"{v/1000:.1f} ms"
+69 |         ax.text(v * 1.15, yi, lab, va="center", ha="left",
+   |
+help: Add explicit value for parameter `strict=`
+   |
+66 |         lambda v, _: f"{v:.0f}µs" if v < 1000 else f"{v/1000:.0f}ms"))
+   -     for yi, v in zip(y, micros):
+67 +     for yi, v in zip(y, micros, strict=False):
+68 |         lab = f"{v:.0f} µs" if v < 1000 else f"{v/1000:.1f} ms"
+   |
+note: This is an unsafe fix and may change runtime behavior
+
+RUF001 String contains ambiguous `×` (MULTIPLICATION SIGN). Did you mean `x` (LATIN SMALL LETTER X)?
+  --> docs/figures/make_figures.py:73:68
+   |
+71 |     ax.set_title("Detector scoring cost — all at 1.30% validation FPR (1% budget)",
+72 |                  color=INK, fontsize=11, fontweight="bold", loc="left", pad=10)
+73 |     ax.text(0, 1.14, "The ML detector (Isolation Forest) costs ~800× the statistical "
+   |                                                                    ^
+74 |             "detector for the same false-positive budget.",
+75 |             transform=ax.transAxes, color=INK2, fontsize=8.7)
+   |
+
+E702 Multiple statements on one line (semicolon)
+  --> docs/figures/make_figures.py:83:38
+   |
+81 |     # from real-benign-baseline "Live inference verification" table
+82 |     srcs = ["10.77.20.10", "10.77.20.11", "10.77.20.12", "10.77.20.13"]
+83 |     rs = [1.449, 0.417, 2.023, 1.390]; rs_thr = 3.528
+   |                                      ^
+84 |     iforest = [0.456, 0.375, 0.506, 0.505]; if_thr = 0.627
+85 |     # normalise each score as a fraction of its own threshold (1.0 = threshold)
+   |
+
+E702 Multiple statements on one line (semicolon)
+  --> docs/figures/make_figures.py:84:43
+   |
+82 |     srcs = ["10.77.20.10", "10.77.20.11", "10.77.20.12", "10.77.20.13"]
+83 |     rs = [1.449, 0.417, 2.023, 1.390]; rs_thr = 3.528
+84 |     iforest = [0.456, 0.375, 0.506, 0.505]; if_thr = 0.627
+   |                                           ^
+85 |     # normalise each score as a fraction of its own threshold (1.0 = threshold)
+86 |     rs_r = [v / rs_thr for v in rs]
+   |
+
+E702 Multiple statements on one line (semicolon)
+  --> docs/figures/make_figures.py:89:25
+   |
+87 |     if_r = [v / if_thr for v in iforest]
+88 |     fig, ax = plt.subplots(figsize=(6.6, 3.4))
+89 |     x = range(len(srcs)); w = 0.38
+   |                         ^
+90 |     b1 = ax.bar([i - w / 2 for i in x], rs_r, w, color=BLUE, zorder=3,
+91 |                 label="robust_stats (M1)")
+   |
+
+E702 Multiple statements on one line (semicolon)
+   --> docs/figures/make_figures.py:98:27
+    |
+ 96 |             ha="right", va="bottom", fontstyle="italic")
+ 97 |     ax.set_ylim(0, 1.15)
+ 98 |     ax.set_xticks(list(x)); ax.set_xticklabels(srcs, fontsize=9)
+    |                           ^
+ 99 |     ax.set_ylabel("detector score ÷ its threshold")
+100 |     ax.set_xlabel("real benign source (USERS zone)")
+    |
+
+N806 Variable `WARM` in function should be lowercase
+   --> docs/figures/make_figures.py:190:5
+    |
+188 |     names = [f[0] for f in feats]
+189 |     z = [f[1] for f in feats]
+190 |     WARM, COOL = ORANGE, BLUE  # diverging poles + neutral zero line
+    |     ^^^^
+191 |     colors = [WARM if v > 0 else COOL for v in z]
+192 |     fig, ax = plt.subplots(figsize=(7.2, 3.6))
+    |
+
+N806 Variable `COOL` in function should be lowercase
+   --> docs/figures/make_figures.py:190:11
+    |
+188 |     names = [f[0] for f in feats]
+189 |     z = [f[1] for f in feats]
+190 |     WARM, COOL = ORANGE, BLUE  # diverging poles + neutral zero line
+    |           ^^^^
+191 |     colors = [WARM if v > 0 else COOL for v in z]
+192 |     fig, ax = plt.subplots(figsize=(7.2, 3.6))
+    |
+
+E702 Multiple statements on one line (semicolon)
+   --> docs/figures/make_figures.py:196:27
+    |
+194 |     ax.barh(list(y), z, color=colors, height=0.62, zorder=3)
+195 |     ax.axvline(0, color=INK2, lw=1.2, zorder=4)
+196 |     ax.set_yticks(list(y)); ax.set_yticklabels(names, fontsize=9.5)
+    |                           ^
+197 |     ax.set_xlim(-14, 24)
+198 |     ax.set_xlabel("deviation from trusted profile (robust z-score)")
+    |
+
+B007 Loop control variable `nm` not used within loop body
+   --> docs/figures/make_figures.py:199:14
+    |
+197 |     ax.set_xlim(-14, 24)
+198 |     ax.set_xlabel("deviation from trusted profile (robust z-score)")
+199 |     for yi, (nm, v, why) in zip(y, feats):
+    |              ^^
+200 |         ha = "left" if v > 0 else "right"
+201 |         off = 0.6 if v > 0 else -0.6
+    |
+help: Rename unused `nm` to `_nm`
+    |
+198 |     ax.set_xlabel("deviation from trusted profile (robust z-score)")
+    -     for yi, (nm, v, why) in zip(y, feats):
+199 +     for yi, (_nm, v, why) in zip(y, feats):
+200 |         ha = "left" if v > 0 else "right"
+    |
+note: This is an unsafe fix and may change runtime behavior
+
+B007 Loop control variable `why` not used within loop body
+   --> docs/figures/make_figures.py:199:21
+    |
+197 |     ax.set_xlim(-14, 24)
+198 |     ax.set_xlabel("deviation from trusted profile (robust z-score)")
+199 |     for yi, (nm, v, why) in zip(y, feats):
+    |                     ^^^
+200 |         ha = "left" if v > 0 else "right"
+201 |         off = 0.6 if v > 0 else -0.6
+    |
+help: Rename unused `why` to `_why`
+    |
+198 |     ax.set_xlabel("deviation from trusted profile (robust z-score)")
+    -     for yi, (nm, v, why) in zip(y, feats):
+199 +     for yi, (nm, v, _why) in zip(y, feats):
+200 |         ha = "left" if v > 0 else "right"
+    |
+note: This is an unsafe fix and may change runtime behavior
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> docs/figures/make_figures.py:199:29
+    |
+197 |     ax.set_xlim(-14, 24)
+198 |     ax.set_xlabel("deviation from trusted profile (robust z-score)")
+199 |     for yi, (nm, v, why) in zip(y, feats):
+    |                             ^^^^^^^^^^^^^
+200 |         ha = "left" if v > 0 else "right"
+201 |         off = 0.6 if v > 0 else -0.6
+    |
+help: Add explicit value for parameter `strict=`
+    |
+198 |     ax.set_xlabel("deviation from trusted profile (robust z-score)")
+    -     for yi, (nm, v, why) in zip(y, feats):
+199 +     for yi, (nm, v, why) in zip(y, feats, strict=False):
+200 |         ha = "left" if v > 0 else "right"
+    |
+note: This is an unsafe fix and may change runtime behavior
+
+Found 13 errors.
+4 unsafe fixes available with `--fix --unsafe-fixes`.

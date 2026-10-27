@@ -12,6 +12,7 @@ Run (no project-dependency change needed):
 Outputs PDF (LaTeX) + PNG (Word/preview) into docs/figures/.
 Palette: the validated `dataviz` reference categorical hues, fixed order.
 """
+
 from __future__ import annotations
 
 import csv
@@ -29,15 +30,25 @@ BLUE, ORANGE, AQUA = "#2a78d6", "#eb6834", "#1baf7a"
 INK, INK2, MUTED = "#0b0b0b", "#52514e", "#8a8982"
 SURFACE, GRID = "#fcfcfb", "#e7e6e2"
 
-mpl.rcParams.update({
-    "figure.facecolor": SURFACE, "axes.facecolor": SURFACE,
-    "savefig.facecolor": SURFACE,
-    "font.family": "DejaVu Sans", "font.size": 10.5,
-    "axes.edgecolor": MUTED, "axes.labelcolor": INK2, "text.color": INK,
-    "xtick.color": INK2, "ytick.color": INK2,
-    "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.8,
-    "axes.spines.top": False, "axes.spines.right": False,
-})
+mpl.rcParams.update(
+    {
+        "figure.facecolor": SURFACE,
+        "axes.facecolor": SURFACE,
+        "savefig.facecolor": SURFACE,
+        "font.family": "DejaVu Sans",
+        "font.size": 10.5,
+        "axes.edgecolor": MUTED,
+        "axes.labelcolor": INK2,
+        "text.color": INK,
+        "xtick.color": INK2,
+        "ytick.color": INK2,
+        "axes.grid": True,
+        "grid.color": GRID,
+        "grid.linewidth": 0.8,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+    }
+)
 
 
 def save(fig, stem: str) -> None:
@@ -50,29 +61,47 @@ def save(fig, stem: str) -> None:
 def fig_a_latency() -> None:
     """Per-detector scoring latency (log) — the cost of ML at equal FP budget."""
     # from real-benign-baseline: thresholds chosen on real validation @1% FP budget
-    names = ["robust_stats\n(M1 statistical)", "half_space_trees\n(streaming)",
-             "isolation_forest\n(M2 ML)"]
-    micros = [14.0, 57.0, 11400.0]          # µs/window scoring latency
+    names = [
+        "robust_stats\n(M1 statistical)",
+        "half_space_trees\n(streaming)",
+        "isolation_forest\n(M2 ML)",
+    ]
+    micros = [14.0, 57.0, 11400.0]  # µs/window scoring latency
     colors = [BLUE, AQUA, ORANGE]
     fig, ax = plt.subplots(figsize=(6.6, 3.1))
     y = range(len(names))
     ax.barh(list(y), micros, color=colors, height=0.6, zorder=3)
     ax.set_xscale("log")
     ax.set_xlim(5, 30000)
-    ax.set_yticks(list(y)); ax.set_yticklabels(names)
+    ax.set_yticks(list(y))
+    ax.set_yticklabels(names)
     ax.invert_yaxis()
     ax.set_xlabel("scoring latency per window (µs, log scale)")
-    ax.xaxis.set_major_formatter(FuncFormatter(
-        lambda v, _: f"{v:.0f}µs" if v < 1000 else f"{v/1000:.0f}ms"))
-    for yi, v in zip(y, micros):
-        lab = f"{v:.0f} µs" if v < 1000 else f"{v/1000:.1f} ms"
-        ax.text(v * 1.15, yi, lab, va="center", ha="left",
-                color=INK, fontsize=9.5, fontweight="bold")
-    ax.set_title("Detector scoring cost — all at 1.30% validation FPR (1% budget)",
-                 color=INK, fontsize=11, fontweight="bold", loc="left", pad=10)
-    ax.text(0, 1.14, "The ML detector (Isolation Forest) costs ~800× the statistical "
-            "detector for the same false-positive budget.",
-            transform=ax.transAxes, color=INK2, fontsize=8.7)
+    ax.xaxis.set_major_formatter(
+        FuncFormatter(lambda v, _: f"{v:.0f}µs" if v < 1000 else f"{v / 1000:.0f}ms")
+    )
+    for yi, v in zip(y, micros, strict=True):
+        lab = f"{v:.0f} µs" if v < 1000 else f"{v / 1000:.1f} ms"
+        ax.text(
+            v * 1.15, yi, lab, va="center", ha="left", color=INK, fontsize=9.5, fontweight="bold"
+        )
+    ax.set_title(
+        "Detector scoring cost — all at 1.30% validation FPR (1% budget)",
+        color=INK,
+        fontsize=11,
+        fontweight="bold",
+        loc="left",
+        pad=10,
+    )
+    ax.text(
+        0,
+        1.14,
+        "The ML detector (Isolation Forest) costs ~800\u00d7 the statistical "
+        "detector for the same false-positive budget.",
+        transform=ax.transAxes,
+        color=INK2,
+        fontsize=8.7,
+    )
     save(fig, "fig-a-detector-latency")
 
 
@@ -80,35 +109,65 @@ def fig_b_zero_fp() -> None:
     """Live inference on real benign: every detector score below its threshold."""
     # from real-benign-baseline "Live inference verification" table
     srcs = ["10.77.20.10", "10.77.20.11", "10.77.20.12", "10.77.20.13"]
-    rs = [1.449, 0.417, 2.023, 1.390]; rs_thr = 3.528
-    iforest = [0.456, 0.375, 0.506, 0.505]; if_thr = 0.627
+    rs = [1.449, 0.417, 2.023, 1.390]
+    rs_thr = 3.528
+    iforest = [0.456, 0.375, 0.506, 0.505]
+    if_thr = 0.627
     # normalise each score as a fraction of its own threshold (1.0 = threshold)
     rs_r = [v / rs_thr for v in rs]
     if_r = [v / if_thr for v in iforest]
     fig, ax = plt.subplots(figsize=(6.6, 3.4))
-    x = range(len(srcs)); w = 0.38
-    b1 = ax.bar([i - w / 2 for i in x], rs_r, w, color=BLUE, zorder=3,
-                label="robust_stats (M1)")
-    b2 = ax.bar([i + w / 2 for i in x], if_r, w, color=ORANGE, zorder=3,
-                label="isolation_forest (M2)")
+    x = range(len(srcs))
+    w = 0.38
+    b1 = ax.bar([i - w / 2 for i in x], rs_r, w, color=BLUE, zorder=3, label="robust_stats (M1)")
+    b2 = ax.bar(
+        [i + w / 2 for i in x], if_r, w, color=ORANGE, zorder=3, label="isolation_forest (M2)"
+    )
     ax.axhline(1.0, color=INK2, lw=1.4, ls="--", zorder=4)
-    ax.text(len(srcs) - 0.5, 1.02, "threshold", color=INK2, fontsize=8.5,
-            ha="right", va="bottom", fontstyle="italic")
+    ax.text(
+        len(srcs) - 0.5,
+        1.02,
+        "threshold",
+        color=INK2,
+        fontsize=8.5,
+        ha="right",
+        va="bottom",
+        fontstyle="italic",
+    )
     ax.set_ylim(0, 1.15)
-    ax.set_xticks(list(x)); ax.set_xticklabels(srcs, fontsize=9)
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(srcs, fontsize=9)
     ax.set_ylabel("detector score ÷ its threshold")
     ax.set_xlabel("real benign source (USERS zone)")
     for bars in (b1, b2):
         for b in bars:
-            ax.text(b.get_x() + b.get_width() / 2, b.get_height() + 0.015,
-                    f"{b.get_height():.2f}", ha="center", va="bottom",
-                    color=INK2, fontsize=7.8)
+            ax.text(
+                b.get_x() + b.get_width() / 2,
+                b.get_height() + 0.015,
+                f"{b.get_height():.2f}",
+                ha="center",
+                va="bottom",
+                color=INK2,
+                fontsize=7.8,
+            )
     ax.legend(loc="upper left", frameon=False, fontsize=8.8, ncol=2)
-    ax.set_title("Zero false positives on real traffic — all scores below threshold",
-                 color=INK, fontsize=11, fontweight="bold", loc="left", pad=10)
-    ax.text(0, 1.14, "Profile v2 (trained on 361 real benign windows) scores every "
-            "live benign source below every detector threshold.",
-            transform=ax.transAxes, color=INK2, fontsize=8.7)
+    ax.set_title(
+        "Zero false positives on real traffic — all scores below threshold",
+        color=INK,
+        fontsize=11,
+        fontweight="bold",
+        loc="left",
+        pad=10,
+    )
+    ax.text(
+        0,
+        1.14,
+        "Profile v2 (trained on 361 real benign windows) scores every "
+        "live benign source below every detector threshold.",
+        transform=ax.transAxes,
+        color=INK2,
+        fontsize=8.7,
+    )
     save(fig, "fig-b-zero-false-positives")
 
 
@@ -134,8 +193,8 @@ def fig_d_soak(samples_tsv: Path) -> None:
     tmax = col("tick_max_ms")
 
     fig, (ax1, ax2) = plt.subplots(
-        2, 1, figsize=(6.6, 4.6), sharex=True,
-        gridspec_kw={"height_ratios": [1, 1], "hspace": 0.28})
+        2, 1, figsize=(6.6, 4.6), sharex=True, gridspec_kw={"height_ratios": [1, 1], "hspace": 0.28}
+    )
 
     # panel 1: resident memory (leak check)
     ax1.plot(mins, rss, color=BLUE, lw=2, marker="o", ms=3.5, zorder=3)
@@ -143,26 +202,41 @@ def fig_d_soak(samples_tsv: Path) -> None:
     rss_ok = [v for v in rss if v is not None]
     lo, hi = min(rss_ok), max(rss_ok)
     ax1.set_ylim(lo - 14, hi + 14)
-    ax1.text(0.015, 0.90, f"RSS {lo:.0f}→{hi:.0f} MB over 60 min "
-             f"(+{hi - lo:.1f} MB) — no leak",
-             transform=ax1.transAxes, color=INK2, fontsize=8.8, va="top")
+    ax1.text(
+        0.015,
+        0.90,
+        f"RSS {lo:.0f}→{hi:.0f} MB over 60 min (+{hi - lo:.1f} MB) — no leak",
+        transform=ax1.transAxes,
+        color=INK2,
+        fontsize=8.8,
+        va="top",
+    )
 
     # panel 2: control-loop tick latency (p50 vs max)
-    ax2.plot(mins, tmax, color=ORANGE, lw=1.6, marker="o", ms=3, zorder=3,
-             label="tick max")
-    ax2.plot(mins, tp50, color=BLUE, lw=2, marker="o", ms=3, zorder=4,
-             label="tick p50")
+    ax2.plot(mins, tmax, color=ORANGE, lw=1.6, marker="o", ms=3, zorder=3, label="tick max")
+    ax2.plot(mins, tp50, color=BLUE, lw=2, marker="o", ms=3, zorder=4, label="tick p50")
     ax2.set_ylabel("control-loop tick (ms)")
     ax2.set_xlabel("elapsed (minutes)")
     ax2.legend(loc="upper right", frameon=False, fontsize=8.6, ncol=2)
     p50_ok = [v for v in tp50 if v is not None]
-    ax2.text(0.015, 0.90, f"tick p50 steady ≈{sum(p50_ok) / len(p50_ok):.1f} ms "
-             "(one transient max spike)",
-             transform=ax2.transAxes, color=INK2, fontsize=8.8, va="top")
+    ax2.text(
+        0.015,
+        0.90,
+        f"tick p50 steady ≈{sum(p50_ok) / len(p50_ok):.1f} ms (one transient max spike)",
+        transform=ax2.transAxes,
+        color=INK2,
+        fontsize=8.8,
+        va="top",
+    )
 
-    ax1.set_title("Controller stability over a 60-min benign soak — "
-                  "zero false positives, zero policies",
-                  color=INK, fontsize=10.5, fontweight="bold", loc="left", pad=12)
+    ax1.set_title(
+        "Controller stability over a 60-min benign soak — zero false positives, zero policies",
+        color=INK,
+        fontsize=10.5,
+        fontweight="bold",
+        loc="left",
+        pad=12,
+    )
     save(fig, "fig-d-soak-stability")
 
 
@@ -187,30 +261,58 @@ def fig_f_explain() -> None:
     feats = feats[::-1]  # largest driver on top after invert
     names = [f[0] for f in feats]
     z = [f[1] for f in feats]
-    WARM, COOL = ORANGE, BLUE  # diverging poles + neutral zero line
-    colors = [WARM if v > 0 else COOL for v in z]
+    warm, cool = ORANGE, BLUE  # diverging poles + neutral zero line
+    colors = [warm if v > 0 else cool for v in z]
     fig, ax = plt.subplots(figsize=(7.2, 3.6))
     y = range(len(names))
     ax.barh(list(y), z, color=colors, height=0.62, zorder=3)
     ax.axvline(0, color=INK2, lw=1.2, zorder=4)
-    ax.set_yticks(list(y)); ax.set_yticklabels(names, fontsize=9.5)
+    ax.set_yticks(list(y))
+    ax.set_yticklabels(names, fontsize=9.5)
     ax.set_xlim(-14, 24)
     ax.set_xlabel("deviation from trusted profile (robust z-score)")
-    for yi, (nm, v, why) in zip(y, feats):
+    for yi, (_nm, v, _why) in zip(y, feats, strict=True):
         ha = "left" if v > 0 else "right"
         off = 0.6 if v > 0 else -0.6
-        ax.text(v + off, yi, f"z={v:+.1f}", va="center", ha=ha,
-                color=INK, fontsize=8.6, fontweight="bold")
-    ax.set_title("Explainable detection — why source 10.77.20.250 scored "
-                 "elevated (59)", color=INK, fontsize=11, fontweight="bold",
-                 loc="left", pad=10)
-    ax.text(0, 1.13, "Live monitor-mode assessment (profile v2). Occlusion "
-            "attributions name the drivers: a single unknown route, never logs "
-            "in, very sparse — the health-probe signature, not a user journey.",
-            transform=ax.transAxes, color=INK2, fontsize=8.4, wrap=True)
+        ax.text(
+            v + off,
+            yi,
+            f"z={v:+.1f}",
+            va="center",
+            ha=ha,
+            color=INK,
+            fontsize=8.6,
+            fontweight="bold",
+        )
+    ax.set_title(
+        "Explainable detection — why source 10.77.20.250 scored elevated (59)",
+        color=INK,
+        fontsize=11,
+        fontweight="bold",
+        loc="left",
+        pad=10,
+    )
+    ax.text(
+        0,
+        1.13,
+        "Live monitor-mode assessment (profile v2). Occlusion "
+        "attributions name the drivers: a single unknown route, never logs "
+        "in, very sparse — the health-probe signature, not a user journey.",
+        transform=ax.transAxes,
+        color=INK2,
+        fontsize=8.4,
+        wrap=True,
+    )
     # warm/cool legend (diverging, not categorical series)
-    ax.text(0.995, 0.06, "warm = above profile   cool = below profile",
-            transform=ax.transAxes, color=INK2, fontsize=8, ha="right")
+    ax.text(
+        0.995,
+        0.06,
+        "warm = above profile   cool = below profile",
+        transform=ax.transAxes,
+        color=INK2,
+        fontsize=8,
+        ha="right",
+    )
     save(fig, "fig-f-explainable-detection")
 
 

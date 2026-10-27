@@ -186,8 +186,7 @@ class PostgresStore:
                 (username,),
             ).fetchall()
         return [
-            {"id": r[0], "user": username, "car_id": r[1], "days": r[2], "city": r[3]}
-            for r in rows
+            {"id": r[0], "user": username, "car_id": r[1], "days": r[2], "city": r[3]} for r in rows
         ]
 
     def booking(self, booking_id: int, username: str) -> dict[str, Any] | None:
