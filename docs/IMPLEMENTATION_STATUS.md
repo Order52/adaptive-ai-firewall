@@ -1,5 +1,13 @@
 # Implementation status
 
+> **2026-10-27 — Engineering directive in progress (branch `engineering-directive`).**
+> Start with `docs/audit/PHASE0_AUDIT_2026-10-27.md`: independent audit, verified vs
+> unverified claims, findings and the M0–M9 roadmap. Done: **M0** (hygiene, baseline
+> tag `baseline-2026-10-27`, host backup `~/afw-backups/phase0-20261027T171307Z/`) and
+> **M1** (provenance-aware corroboration, ADR-027; deployed; live suite 9/9). Next: **M2**,
+> a real online (prequential) challenger. Key audit finding: Half-Space-Trees is never
+> updated at runtime, so the system does **not** yet learn online (Gate C not met).
+
 _Last updated: 2026-10-17 (session 3). Read this first when resuming._
 
 **Operator desktop + Internet egress (2026-10-22):** added **DESK01**, a graphical
