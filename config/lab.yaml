@@ -60,8 +60,19 @@ window: {length_s: 30, hop_s: 5, min_requests: 3}
 
 telemetry:
   listen_host: 10.77.50.10
-  listen_port: 5514
-  allowed_senders: [10.77.30.10, 10.77.40.10, 10.77.50.1]
+  # Plaintext listener: FW01 Suricata only. Its lines are UNVERIFIED and can only
+  # ever *exclude* sources from learning (forging them cannot poison it).
+  listen_port: 5515
+  allowed_senders: [10.77.50.1]
+  # Mutually authenticated TLS (ADR-029): WAF/APP client certs -> sensor role.
+  tls_port: 5514
+  tls_allowed_senders: [10.77.30.10, 10.77.40.10]
+  tls_cert: /etc/afw/secrets/ctrl01.pem
+  tls_key: /etc/afw/secrets/ctrl01.key
+  tls_ca: /etc/afw/secrets/lab-ca.pem
+  tls_identities:
+    waf01-telemetry.lab.afw: waf
+    app01-telemetry.lab.afw: app
   waf_sensor_ips: [10.77.30.10]
   queue_size: 2000
   max_line_bytes: 65536

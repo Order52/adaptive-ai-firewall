@@ -13,6 +13,6 @@ db_user: rental
 db_image: afw/postgres:16
 mgmt_net: 10.77.50.0/24
 client_nets: [10.77.10.0/24, 10.77.20.0/24]
-telemetry_port: 5514
+telemetry_port: 5514  # mutually authenticated TLS (ADR-029)
 waf_image: afw/waf:4.25.2-lts
 ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') }}/.config/afw/ssh_config"

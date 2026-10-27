@@ -354,6 +354,43 @@ def create_app(c: Container) -> FastAPI:
                 for e in c.adaptation.evaluations(app_id)
             ],
             "feedback": [f.model_dump(mode="json") for f in c.adaptation.feedback(app_id)][:100],
+            "shadow_learner": c.controller.shadow.snapshot() if c.controller.shadow else None,
+        }
+
+    @app.get("/api/learning/shadow")
+    def shadow_learning(_: Viewer, app_id: str = "rental", limit: int = 200) -> dict[str, Any]:
+        """Online challenger (shadow only): state, gate outcomes, champion-vs-challenger."""
+        sh = c.controller.shadow
+        repo = sh.repo if sh else None
+        scores = repo.shadow(app_id, min(limit, 1000)) if repo else []
+        valid = [s for s in scores if s.challenger_warm]
+        return {
+            "status": sh.snapshot() if sh else None,
+            "agreement": None
+            if not valid
+            else {
+                "windows": len(valid),
+                "both_normal": sum(
+                    1 for s in valid if not s.champion_anomalous and not s.challenger_anomalous
+                ),
+                "champion_only_anomalous": sum(
+                    1 for s in valid if s.champion_anomalous and not s.challenger_anomalous
+                ),
+                "challenger_only_anomalous": sum(
+                    1 for s in valid if s.challenger_anomalous and not s.champion_anomalous
+                ),
+                "both_anomalous": sum(
+                    1 for s in valid if s.champion_anomalous and s.challenger_anomalous
+                ),
+                "note": "challenger flags use the champion threshold; calibration is M3",
+            },
+            "recent_shadow": [s.model_dump(mode="json") for s in scores[:50]],
+            "recent_learned": [w.model_dump(mode="json") for w in repo.learned(app_id, 50)]
+            if repo
+            else [],
+            "checkpoints": [k.model_dump(mode="json") for k in repo.checkpoints(app_id)]
+            if repo
+            else [],
         }
 
     @app.post("/api/feedback")

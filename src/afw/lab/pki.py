@@ -49,8 +49,14 @@ def ensure_ca(d: Path = PKI_DIR) -> Path:
 EXTRA_DNS = {"WAF01": ["rental.lab.afw"]}  # names clients use for the protected service
 
 
-def ensure_leaf(name: str, ips: list[str], d: Path = PKI_DIR) -> tuple[Path, Path]:
-    """Return (cert, key) for ``name`` with the given IP SANs; created once."""
+def ensure_leaf(
+    name: str, ips: list[str], d: Path = PKI_DIR, *, client: bool = False
+) -> tuple[Path, Path]:
+    """Return (cert, key) for ``name`` with the given IP SANs; created once.
+
+    ``client=True`` issues a TLS *client* certificate (extendedKeyUsage
+    clientAuth), used by sensors to authenticate to the telemetry receiver.
+    """
     ensure_ca(d)
     key, crt, csr = d / f"{name}.key", d / f"{name}.pem", d / f"{name}.csr"
     if not crt.exists():
@@ -72,7 +78,7 @@ def ensure_leaf(name: str, ips: list[str], d: Path = PKI_DIR) -> tuple[Path, Pat
         )
         ext = d / f"{name}.ext"
         ext.write_text(
-            f"subjectAltName={san}\nextendedKeyUsage=serverAuth\n"
+            f"subjectAltName={san}\nextendedKeyUsage={'clientAuth' if client else 'serverAuth'}\n"
             "keyUsage=critical,digitalSignature\nbasicConstraints=CA:FALSE\n"
         )
         _run(

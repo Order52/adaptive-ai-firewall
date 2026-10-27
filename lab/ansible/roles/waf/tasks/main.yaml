@@ -37,6 +37,9 @@
   ansible.builtin.template: {src: "{{ item }}.j2", dest: "/etc/systemd/system/{{ item }}", mode: "0644"}
   loop: [afw-waf.service, afw-waf-helper.service]
   notify: [restart waf, restart helper]
+- name: Telemetry TLS (sensor client certificate)
+  ansible.builtin.include_role: {name: sensor_tls}
+  vars: {sensor_cert: WAF01-telemetry}
 - name: Ship WAF logs to CTRL01
   ansible.builtin.template: {src: 30-afw-waf.conf.j2, dest: /etc/rsyslog.d/30-afw-waf.conf, mode: "0644"}
   notify: restart rsyslog

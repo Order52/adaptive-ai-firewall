@@ -1,0 +1,31 @@
+# Mutually authenticated telemetry channel to CTRL01 (ADR-029).
+# Expects: sensor_cert (e.g. WAF01-telemetry), a "restart rsyslog" handler.
+- name: rsyslog TLS driver
+  ansible.builtin.apt: {name: rsyslog-gnutls, state: present, update_cache: true, cache_valid_time: 86400}
+  notify: restart rsyslog
+- name: Telemetry TLS directory
+  ansible.builtin.file: {path: /etc/afw/telemetry, state: directory, owner: root, group: syslog, mode: "0750"}
+- name: Lab CA and sensor client certificate
+  ansible.builtin.copy: {src: "{{ afw_home }}/pki/{{ item.s }}", dest: "/etc/afw/telemetry/{{ item.d }}", owner: root, group: syslog, mode: "{{ item.m }}"}
+  loop:
+    - {s: lab-ca.pem, d: ca.pem, m: "0644"}
+    - {s: "{{ sensor_cert }}.pem", d: client.pem, m: "0644"}
+    - {s: "{{ sensor_cert }}.key", d: client.key, m: "0640"}
+  notify: restart rsyslog
+- name: AppArmor - let rsyslogd read (only) the telemetry TLS material
+  ansible.builtin.copy:
+    dest: /etc/apparmor.d/rsyslog.d/afw-telemetry
+    mode: "0644"
+    content: |
+      # Managed by Ansible (AFW): read-only access to the telemetry TLS files.
+      /etc/afw/telemetry/ r,
+      /etc/afw/telemetry/* r,
+  register: afw_apparmor
+- name: Reload the rsyslogd AppArmor profile
+  ansible.builtin.command: apparmor_parser -r /etc/apparmor.d/usr.sbin.rsyslogd
+  when: afw_apparmor.changed
+  changed_when: true
+  notify: restart rsyslog
+- name: rsyslog TLS defaults
+  ansible.builtin.template: {src: 10-afw-tls.conf.j2, dest: /etc/rsyslog.d/10-afw-tls.conf, mode: "0644"}
+  notify: restart rsyslog

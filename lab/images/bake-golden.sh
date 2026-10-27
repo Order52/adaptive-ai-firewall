@@ -35,7 +35,7 @@ users:
     lock_passwd: true
     ssh_authorized_keys: ["$(cat "$HOME/.config/afw/lab_ed25519.pub")"]
 package_update: true
-packages: [python3-venv, rsyslog, docker.io, nftables, chrony, curl, jq, ca-certificates,
+packages: [python3-venv, rsyslog, rsyslog-gnutls, docker.io, nftables, chrony, curl, jq, ca-certificates,
            tcpdump, iproute2, iputils-ping, netcat-openbsd, openssh-server, qemu-guest-agent, logrotate]
 write_files:
   - path: /opt/afw/dist/requirements.txt

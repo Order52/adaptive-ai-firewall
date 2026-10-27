@@ -118,6 +118,7 @@ class TelemetryConfig(_Cfg):
     # common name maps to the one sensor role allowed to send on it ("waf" or
     # "app"). Lines of another kind on that channel are dropped.
     tls_port: int | None = None
+    tls_allowed_senders: tuple[IPv4Address, ...] = ()
     tls_cert: Path | None = None
     tls_key: Path | None = None
     tls_ca: Path | None = None

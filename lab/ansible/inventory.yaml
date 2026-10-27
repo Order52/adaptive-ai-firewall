@@ -6,7 +6,8 @@ all:
       hosts: {ctrl01: {zone_gw: 10.77.50.1}}
       vars:
         nft_allow:
-          - {proto: tcp, port: 5514, src: [10.77.30.10, 10.77.40.10, 10.77.50.1]}
+          - {proto: tcp, port: 5514, src: [10.77.30.10, 10.77.40.10]}  # mTLS sensors
+          - {proto: tcp, port: 5515, src: [10.77.50.1]}  # plaintext: FW01 Suricata only
           - {proto: tcp, port: 8080, src: [10.77.50.0/24]}
     waf:
       hosts: {waf01: {zone_gw: 10.77.30.1}}

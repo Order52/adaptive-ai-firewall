@@ -61,3 +61,16 @@ def test_auth_roles_and_validated_mutations(settings, tmp_path):
     ex = client.get(f"/api/policies/{pid}/explain", headers=tok["viewer"]).json()
     assert ex["enforcement"]["state"] in ("enforced", "rejected")
     assert client.get("/", headers={}).status_code == 200  # dashboard shell
+
+
+def test_shadow_learning_endpoint_is_read_only_and_reports_state(settings):
+    client, tok, _ = client_with_tokens(settings)
+    assert client.get("/api/learning/shadow").status_code == 401
+    body = client.get("/api/learning/shadow", headers=tok["viewer"]).json()
+    status = body["status"]
+    assert status["mode"].startswith("shadow")
+    assert status["challenger"] is None  # no trusted profile yet -> learner unbound
+    assert body["agreement"] is None and body["checkpoints"] == []
+    assert client.post("/api/learning/shadow", headers=tok["admin"]).status_code == 405
+    adapt = client.get("/api/adaptation", headers=tok["viewer"]).json()
+    assert "shadow_learner" in adapt

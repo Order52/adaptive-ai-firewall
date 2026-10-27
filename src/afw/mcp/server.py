@@ -146,6 +146,14 @@ def adaptation_status() -> dict[str, Any]:
 
 
 @server.tool()
+def shadow_learning() -> dict[str, Any]:
+    """Online challenger (shadow only): learning state, why windows were excluded,
+    checkpoints, and champion-vs-challenger agreement. Read-only; the challenger
+    never affects enforcement."""
+    return _obj(_get("/api/learning/shadow"))
+
+
+@server.tool()
 def active_policies() -> list[dict[str, Any]]:
     """Policies currently owning enforcement state."""
     return _rows(_get("/api/overview")["active_policies"])

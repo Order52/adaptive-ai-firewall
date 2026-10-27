@@ -25,6 +25,9 @@ LEAVES = {
     "CTRL01": ["10.77.50.10"],
     "FW01": ["10.77.50.1"],
 }
+# Sensor client certificates for the mutually authenticated telemetry channel
+# (ADR-029). CN = "<name>.lab.afw"; mapped to a role in config/lab.yaml.
+CLIENT_LEAVES = ("WAF01-telemetry", "APP01-telemetry")
 
 
 def _write_secret(path: Path, value: str) -> None:
@@ -60,4 +63,6 @@ def ensure_lab_secrets(base: Path = BASE) -> list[str]:
     ensure_ca()
     for leaf, ips in LEAVES.items():
         ensure_leaf(leaf, ips)
+    for leaf in CLIENT_LEAVES:
+        ensure_leaf(leaf, [], client=True)
     return created

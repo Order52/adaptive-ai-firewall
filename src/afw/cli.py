@@ -264,6 +264,53 @@ def experiment_replay(
             )
 
 
+@exp_app.command("online-replay")
+def experiment_online_replay(
+    learn: Annotated[str, typer.Option(help="comma-separated dataset ids to learn from")],
+    probe: Annotated[str, typer.Option(help="comma-separated held-out dataset ids to score")],
+    app_id: str = "rental",
+    relax_rate_caps: Annotated[
+        bool,
+        typer.Option(help="lift the per-source hourly cap and tenure (labelled in the report)"),
+    ] = False,
+    out: Annotated[Path | None, typer.Option(help="write the JSON report here")] = None,
+) -> None:
+    """Replay recorded runs through the live online-learning path (shadow challenger)."""
+    import json
+
+    from afw.ml.datasets import assert_disjoint
+    from afw.ml.online_replay import replay_online
+
+    c = _container()
+    loaded = c.learning.load_active(app_id)
+    if loaded is None:
+        typer.echo(f"no trusted profile for {app_id}")
+        raise typer.Exit(1)
+    profile, models = loaded
+    learn_ids = [d for d in learn.split(",") if d]
+    probe_ids = [d for d in probe.split(",") if d]
+    assert_disjoint(learn_ids, probe_ids)
+    lc = c.cfg.learning
+    if relax_rate_caps:
+        lc = lc.model_copy(
+            update={"max_windows_per_source_per_hour": 10_000, "min_source_tenure_s": 0}
+        )
+    report = replay_online(
+        cfg=c.cfg,
+        profile=profile,
+        models=models,
+        catalog=c.learning.catalog(app_id, profile),
+        learn=[o for d in learn_ids for o in c.datasets.observations(d)],
+        probe=[o for d in probe_ids for o in c.datasets.observations(d)],
+        learning=lc,
+    )
+    report = {"learn_datasets": learn_ids, "probe_datasets": probe_ids, **report}
+    text = json.dumps(report, indent=2, default=str)
+    if out:
+        out.write_text(text)
+    typer.echo(text)
+
+
 def _f(x: float | None) -> str:
     return "-" if x is None else f"{x:g}"
 

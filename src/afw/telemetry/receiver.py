@@ -66,28 +66,28 @@ class SyslogReceiver:
         self._thread: threading.Thread | None = None
         self._servers: list[asyncio.base_events.Server] = []
 
-    def _sender(self, writer: asyncio.StreamWriter) -> IPv4Address | None:
+    def _sender(
+        self, writer: asyncio.StreamWriter, allowed: tuple[IPv4Address, ...]
+    ) -> IPv4Address | None:
         peer = writer.get_extra_info("peername")
         try:
             addr = ip_address(peer[0])
         except (TypeError, ValueError):
             return None
-        if not isinstance(addr, IPv4Address) or (
-            self.cfg.allowed_senders and addr not in self.cfg.allowed_senders
-        ):
+        if not isinstance(addr, IPv4Address) or (allowed and addr not in allowed):
             self.stats.inc("sender_rejected")
             return None
         return addr
 
     async def _handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        addr = self._sender(writer)
+        addr = self._sender(writer, self.cfg.allowed_senders)
         if addr is None:
             writer.close()
             return
         await self._pump(reader, writer, addr, None)
 
     async def _handle_tls(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        addr = self._sender(writer)
+        addr = self._sender(writer, self.cfg.tls_allowed_senders)
         ssl_obj = writer.get_extra_info("ssl_object")
         role = peer_role(ssl_obj.getpeercert() if ssl_obj else None, self.cfg.tls_identities)
         if addr is None or role is None:

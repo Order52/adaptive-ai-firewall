@@ -3,7 +3,13 @@ module(load="imfile")
 input(type="imfile" File="/var/log/afw/waf-access.log" Tag="afw-waf-access:" Ruleset="afw_fwd")
 input(type="imfile" File="/var/log/afw/waf-audit.log" Tag="afw-waf-audit:" Ruleset="afw_fwd")
 ruleset(name="afw_fwd") {
+  # Mutually authenticated TLS to CTRL01 (server identity pinned by name).
+  # Disk-assisted queue: buffered lines survive a sender restart.
   action(type="omfwd" target="{{ ctrl_ip }}" port="{{ telemetry_port }}" protocol="tcp"
+         StreamDriver="gtls" StreamDriverMode="1" StreamDriverAuthMode="x509/name"
+         StreamDriverPermittedPeers="ctrl01.lab.afw"
          template="RSYSLOG_TraditionalForwardFormat"
-         queue.type="LinkedList" queue.size="20000" action.resumeRetryCount="-1")
+         queue.type="LinkedList" queue.size="20000" queue.filename="afw_waf_fwd"
+         queue.saveOnShutdown="on" queue.maxDiskSpace="100m"
+         action.resumeRetryCount="-1")
 }

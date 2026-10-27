@@ -7,7 +7,7 @@ The controller's own key cannot change these settings (ADR-017).
   opt2 USERS). HOME_NET is the protected side (DMZ, APP, MGMT) so client zones
   are EXTERNAL_NET and inbound signatures apply to client → WAF traffic.
 - ET Open categories relevant to an HTTPS-fronted web service.
-- EVE alerts → local syslog (program ``suricata``) → TCP to CTRL01:5514.
+- EVE alerts → local syslog (program ``suricata``) → TCP to CTRL01:5515 (plaintext, FW01 only).
   Only Suricata is forwarded.
 """
 
@@ -38,7 +38,7 @@ DESTINATION = {
     "facility": "",
     "hostname": "10.77.50.10",
     "certificate": "",
-    "port": "5514",
+    "port": "5515",
     "rfc5424": "0",
     "description": "AFW controller telemetry (Suricata EVE alerts)",
 }
@@ -98,7 +98,7 @@ def provision(c: httpx.Client, log: Callable[[str], None] = print) -> None:
     else:
         _post(c, "/syslog/settings/add_destination", {"destination": DESTINATION})
     _post(c, "/syslog/service/reconfigure")
-    log("syslog destination CTRL01:5514 (suricata only) applied")
+    log("syslog destination CTRL01:5515 (suricata only) applied")
 
     _post(c, "/ids/service/update_rules")
     log("rule download started")

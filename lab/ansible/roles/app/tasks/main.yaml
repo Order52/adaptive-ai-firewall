@@ -17,6 +17,9 @@
 - name: App unit
   ansible.builtin.template: {src: afw-rental.service.j2, dest: /etc/systemd/system/afw-rental.service, mode: "0644"}
   notify: restart app
+- name: Telemetry TLS (sensor client certificate)
+  ansible.builtin.include_role: {name: sensor_tls}
+  vars: {sensor_cert: APP01-telemetry}
 - name: Ship app events to CTRL01
   ansible.builtin.template: {src: 30-afw-app.conf.j2, dest: /etc/rsyslog.d/30-afw-app.conf, mode: "0644"}
   notify: restart rsyslog

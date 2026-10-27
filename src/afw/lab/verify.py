@@ -47,6 +47,10 @@ CHECKS: list[Check] = [
     Check("waf01", "1.1.1.1", 443, True, "WAF to Internet (egress allowed)"),
     # APP
     Check("app01", "10.77.50.10", 5514, True, "APP telemetry to CTRL01"),
+    # Sensors must use the authenticated channel only (ADR-029): plaintext 5515
+    # accepts FW01 alone.
+    Check("waf01", "10.77.50.10", 5515, False, "WAF plaintext telemetry (mTLS only)"),
+    Check("app01", "10.77.50.10", 5515, False, "APP plaintext telemetry (mTLS only)"),
     Check("app01", "10.77.30.10", 443, False, "APP to WAF"),
     Check("app01", "10.77.50.10", 22, False, "APP to CTRL01 SSH"),
     Check("app01", "1.1.1.1", 443, True, "APP to Internet (egress allowed)"),
