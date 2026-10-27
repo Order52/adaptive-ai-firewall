@@ -1,0 +1,92 @@
+{
+  "learn_datasets": [
+    "real-benign-train"
+  ],
+  "probe_datasets": [
+    "real-benign-val"
+  ],
+  "provenance_assertion": "learn set replayed as CURATED (operator-curated recorded runs)",
+  "learning_config": {
+    "enabled": true,
+    "admission_delay_s": 600,
+    "min_source_tenure_s": 1800,
+    "max_windows_per_source_per_hour": 20,
+    "max_source_share": 0.25,
+    "share_window": 200,
+    "min_distinct_sources": 3,
+    "population_window_s": 3600,
+    "anomaly_min_sources": 3,
+    "taint_ttl_s": 86400,
+    "quarantine_max": 5000,
+    "queue_max": 2000,
+    "checkpoint_every": 50,
+    "checkpoint_interval_s": 300,
+    "keep_checkpoints": 3,
+    "retention_days": 7
+  },
+  "champion": {
+    "model": "half_space_trees-p2-20261017190622",
+    "threshold": 0.8064672290072192
+  },
+  "windows": {
+    "learn": 191,
+    "probe": 154
+  },
+  "gate": {
+    "counts": {
+      "windows": 191,
+      "quarantined": 33
+    },
+    "excluded": {
+      "sensitive_range": 19,
+      "overlap": 139,
+      "tenure": 33
+    }
+  },
+  "state_before": {
+    "n_learned": 0,
+    "counter": 1,
+    "warm": 1,
+    "window_size": 180,
+    "l_mass_total": 275.0,
+    "r_mass_total": 49500.0
+  },
+  "state_after": {
+    "n_learned": 0,
+    "counter": 1,
+    "warm": 1,
+    "window_size": 180,
+    "l_mass_total": 275.0,
+    "r_mass_total": 49500.0
+  },
+  "state_changed": false,
+  "pivots": 0,
+  "probe_scores": {
+    "champion_frozen": {
+      "mean": 0.55946,
+      "p50": 0.54915,
+      "p95": 0.70235,
+      "anomalous_at_champion_threshold": 0.013
+    },
+    "challenger_before": {
+      "mean": 0.55946,
+      "p50": 0.54915,
+      "p95": 0.70235,
+      "anomalous_at_champion_threshold": 0.013
+    },
+    "challenger_after": {
+      "mean": 0.55946,
+      "p50": 0.54915,
+      "p95": 0.70235,
+      "anomalous_at_champion_threshold": 0.013
+    },
+    "mean_abs_change": 0.0
+  },
+  "checkpoint": null,
+  "restart_restores_exact_state": null,
+  "cost": {
+    "seconds": 1.495,
+    "ms_per_window": 7.829,
+    "max_rss_mb": 264.0
+  }
+}

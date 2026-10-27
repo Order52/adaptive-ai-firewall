@@ -36,6 +36,7 @@ class Candidate:
     release_at: datetime
     anomalous: bool  # a trusted (enforcing) detector flagged the window
     signature: frozenset[str] = field(default_factory=frozenset)  # top anomaly drivers
+    scaled: tuple[float, ...] = ()  # champion-HST feature space, for behavioural similarity
 
 
 def anomaly_signature(ra: RiskAssessment) -> frozenset[str]:

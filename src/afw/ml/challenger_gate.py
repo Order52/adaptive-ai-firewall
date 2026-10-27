@@ -79,6 +79,18 @@ def sensitive_probes(
     return out
 
 
+def _conditional(
+    det: object, base: Sequence[FeatureVector], probes: Sequence[FeatureVector], thr: float, k: int
+) -> tuple[float, int]:
+    """(flag rate, n) over probes whose base window ``det`` scores normal; probes are
+    ``k`` per base window, in order."""
+    if not base:
+        return 0.0, 0
+    normal = np.asarray(det.score(_rows(base))) < thr  # type: ignore[attr-defined]
+    keep = [p for i, p in enumerate(probes) if normal[i // k]]
+    return (_rate(det, keep, thr), len(keep)) if keep else (0.0, 0)
+
+
 def _rows(windows: Sequence[FeatureVector]) -> np.ndarray:
     return np.array([w.as_row() for w in windows], dtype=float)
 
@@ -217,22 +229,39 @@ def evaluate_challenger(
             "champion_recall": round(champ_rec, 4),
         }
 
+    # Conditional sensitivity: of the probes built on base windows the *same model*
+    # scores normal, how many does it flag? Raw probe rates are confounded by drift
+    # (a champion that flags most drifted benign windows also "flags" their probes).
+    k = len(SENSITIVE)
     probes = sensitive_probes(test, profile)
-    ch_sens = _rate(ch_det, probes, thr)
-    champ_sens = _rate(champ_det, probes, champ_thr)
+    ch_cond, ch_n = _conditional(ch_det, test, probes, thr, k)
+    champ_cond, champ_n = _conditional(champ_det, test, probes, champ_thr, k)
+    champ_raw = _rate(champ_det, probes, champ_thr)
+    # If the drifted holdout leaves the champion too few normal bases, its raw probe
+    # rate (>= its conditional rate in practice) is the stricter reference.
+    ref, ref_kind = (
+        (champ_cond, "conditional")
+        if champ_n >= pc.min_holdout_windows
+        else (champ_raw, "raw (champion has too few normal bases)")
+    )
+    enough = ch_n >= pc.min_holdout_windows
     checks.append(
         GateCheck(
             name="sensitive_invariance",
-            passed=ch_sens >= champ_sens - pc.sensitive_tolerance,
-            value=round(ch_sens, 4),
-            limit=round(champ_sens - pc.sensitive_tolerance, 4),
-            detail="anomalous rate on counterfactual attack-like probes "
-            f"(champion {champ_sens:.4f}, {len(probes)} probes)",
+            passed=enough and ch_cond >= ref - pc.sensitive_tolerance,
+            value=round(ch_cond, 4),
+            limit=round(ref - pc.sensitive_tolerance, 4),
+            detail=f"flag rate on attack-like probes of windows the model scores normal; "
+            f"champion reference {ref_kind} {ref:.4f}; probes {ch_n}/{champ_n}; raw "
+            f"{_rate(ch_det, probes, thr):.4f}/{champ_raw:.4f}"
+            + ("" if enough else "; too few challenger-normal base windows"),
         )
     )
     metrics |= {
-        "sensitive_challenger": round(ch_sens, 4),
-        "sensitive_champion": round(champ_sens, 4),
+        "sensitive_challenger": round(ch_cond, 4),
+        "sensitive_champion": round(champ_cond, 4),
+        "sensitive_raw_challenger": round(_rate(ch_det, probes, thr), 4),
+        "sensitive_raw_champion": round(champ_raw, 4),
     }
     test_scores = np.asarray(ch_det.score(_rows(test)))
     return GateResult(tuple(checks), thr, benign_quantiles(test_scores), metrics)

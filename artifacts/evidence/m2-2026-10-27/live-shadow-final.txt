@@ -1,0 +1,43 @@
+2026-10-27T19:18:22Z
+{
+ "status": {
+  "enabled": true,
+  "mode": "shadow (no influence on enforcement; promotion requires M3)",
+  "champion_model": "half_space_trees-p2-20261017190622",
+  "challenger": {
+   "n_learned": 0,
+   "counter": 1,
+   "warm": true,
+   "window_size": 180,
+   "l_mass_total": 275.0,
+   "r_mass_total": 49500.0
+  },
+  "last_checkpoint": null,
+  "quarantine": 0,
+  "unflushed_learned": 0,
+  "counts": {
+   "windows": 1219,
+   "quarantined": 35
+  },
+  "excluded": {
+   "sensitive_range": 257,
+   "overlap": 49,
+   "tainted": 878,
+   "late_taint": 24,
+   "tenure": 11
+  }
+ },
+ "agreement": {
+  "windows": 200,
+  "both_normal": 100,
+  "champion_only_anomalous": 0,
+  "challenger_only_anomalous": 0,
+  "both_anomalous": 100,
+  "note": "challenger flags use the champion threshold; calibration is M3"
+ },
+ "checkpoints": []
+}
+learned_recent 0
+## live-run policies (monitor mode, not enforced)
+89 {('rate_limit', 'monitor'): 46, ('watch', 'monitor'): 43}
+{'10.77.20.12': 15, '10.77.20.16': 12, '10.77.20.11': 15, '10.77.20.14': 13, '10.77.20.15': 19, '10.77.20.13': 15}

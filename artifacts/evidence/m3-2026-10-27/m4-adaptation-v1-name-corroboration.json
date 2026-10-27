@@ -1,0 +1,349 @@
+{
+  "datasets": {
+    "learn": [
+      "real-drift-learn-20261027"
+    ],
+    "holdout": [
+      "real-drift-hold-20261027"
+    ]
+  },
+  "provenance_assertion": "recorded benign runs replayed as CURATED (operator-curated)",
+  "experiment_config": {
+    "relaxed_overrides": {
+      "max_windows_per_source_per_hour": 10000,
+      "min_source_tenure_s": 0
+    },
+    "reason": "default caps cannot reach a reference pivot within one 45-min run"
+  },
+  "holdout_frozen_detectors": {
+    "robust_stats": {
+      "rate": 0.1295,
+      "ci95": [
+        0.1026,
+        0.1627
+      ],
+      "n_sources": 6,
+      "n_windows": 193,
+      "per_source": {
+        "10.77.20.11": 0.1852,
+        "10.77.20.12": 0.1111,
+        "10.77.20.13": 0.0909,
+        "10.77.20.14": 0.1935,
+        "10.77.20.15": 0.1026,
+        "10.77.20.16": 0.1111
+      }
+    },
+    "isolation_forest": {
+      "rate": 0.715,
+      "ci95": [
+        0.6441,
+        0.7931
+      ],
+      "n_sources": 6,
+      "n_windows": 193,
+      "per_source": {
+        "10.77.20.11": 0.8519,
+        "10.77.20.12": 0.6111,
+        "10.77.20.13": 0.8182,
+        "10.77.20.14": 0.7419,
+        "10.77.20.15": 0.6154,
+        "10.77.20.16": 0.7037
+      }
+    },
+    "half_space_trees": {
+      "rate": 0.6373,
+      "ci95": [
+        0.5602,
+        0.7166
+      ],
+      "n_sources": 6,
+      "n_windows": 193,
+      "per_source": {
+        "10.77.20.11": 0.8148,
+        "10.77.20.12": 0.6667,
+        "10.77.20.13": 0.697,
+        "10.77.20.14": 0.6452,
+        "10.77.20.15": 0.4872,
+        "10.77.20.16": 0.5556
+      }
+    }
+  },
+  "A_legitimate_drift": {
+    "default": {
+      "windows": 751,
+      "gate": {
+        "counts": {
+          "windows": 751,
+          "quarantined": 268,
+          "learned": 45,
+          "learned_anomalous_corroborated": 15
+        },
+        "excluded": {
+          "sensitive_range": 130,
+          "overlap": 353,
+          "tenure": 182,
+          "champion_anomalous": 41
+        }
+      },
+      "n_learned": 45,
+      "window_size": 180,
+      "pivots": 0,
+      "state_changed": true,
+      "ms_per_window": 25.356
+    },
+    "experiment_relaxed": {
+      "windows": 751,
+      "gate": {
+        "counts": {
+          "windows": 751,
+          "quarantined": 268,
+          "learned": 227,
+          "learned_anomalous_corroborated": 156
+        },
+        "excluded": {
+          "sensitive_range": 130,
+          "overlap": 353,
+          "champion_anomalous": 41
+        }
+      },
+      "n_learned": 227,
+      "window_size": 180,
+      "pivots": 1,
+      "state_changed": true,
+      "ms_per_window": 29.652
+    },
+    "gate_checks": [
+      {
+        "name": "min_learning",
+        "passed": true,
+        "value": 227.0,
+        "limit": 180.0,
+        "detail": "HST predictions change only after a full reference window (pivot)"
+      },
+      {
+        "name": "holdout_not_learned",
+        "passed": true,
+        "value": 0.0,
+        "limit": 0.0,
+        "detail": "learned windows overlapping a labelled holdout source's activity"
+      },
+      {
+        "name": "ledger_clean",
+        "passed": true,
+        "value": 0.0,
+        "limit": 0.0,
+        "detail": "learned sources tainted after admission: none"
+      },
+      {
+        "name": "holdout_size",
+        "passed": true,
+        "value": 96.0,
+        "limit": 30.0,
+        "detail": "non-overlapping benign holdout windows per half (193 total)"
+      },
+      {
+        "name": "benign_fpr_not_worse",
+        "passed": true,
+        "value": 0.0309,
+        "limit": 0.6495,
+        "detail": "champion FPR on the same holdout = 0.6495"
+      },
+      {
+        "name": "attack_recall_regression",
+        "passed": false,
+        "value": null,
+        "limit": null,
+        "detail": "no labelled attack runs supplied (team-supplied scenarios required)"
+      },
+      {
+        "name": "sensitive_invariance",
+        "passed": false,
+        "value": 0.1622,
+        "limit": 0.3691,
+        "detail": "flag rate on attack-like probes of windows the model scores normal; champion reference conditional 0.4191; probes 376/136; raw 0.1881/0.7938"
+      }
+    ],
+    "gate_passed": false,
+    "holdout_test_half": {
+      "champion_hst_at_champion_threshold": {
+        "rate": 0.6495,
+        "ci95": [
+          0.566,
+          0.7263
+        ],
+        "n_sources": 6,
+        "n_windows": 97,
+        "per_source": {
+          "10.77.20.11": 0.7692,
+          "10.77.20.12": 0.7222,
+          "10.77.20.13": 0.7222,
+          "10.77.20.14": 0.5385,
+          "10.77.20.15": 0.5,
+          "10.77.20.16": 0.6667
+        }
+      },
+      "challenger_at_champion_threshold": {
+        "rate": 0.0619,
+        "ci95": [
+          0.0206,
+          0.1087
+        ],
+        "n_sources": 6,
+        "n_windows": 97,
+        "per_source": {
+          "10.77.20.11": 0.0769,
+          "10.77.20.12": 0.0,
+          "10.77.20.13": 0.0556,
+          "10.77.20.14": 0.0769,
+          "10.77.20.15": 0.15,
+          "10.77.20.16": 0.0
+        }
+      },
+      "challenger_at_calibrated_threshold": {
+        "rate": 0.0309,
+        "ci95": [
+          0.0,
+          0.0673
+        ],
+        "n_sources": 6,
+        "n_windows": 97,
+        "per_source": {
+          "10.77.20.11": 0.0,
+          "10.77.20.12": 0.0,
+          "10.77.20.13": 0.0,
+          "10.77.20.14": 0.0769,
+          "10.77.20.15": 0.1,
+          "10.77.20.16": 0.0
+        }
+      },
+      "calibrated_threshold": 0.836583,
+      "champion_threshold": 0.806467
+    }
+  },
+  "B_poisoning": {
+    "note": "synthetic feature-space poison windows (no traffic sent)",
+    "in_distribution/concentrated_2_sources": {
+      "windows": 931,
+      "gate": {
+        "counts": {
+          "windows": 931,
+          "quarantined": 448,
+          "learned": 367,
+          "learned_anomalous_corroborated": 296
+        },
+        "excluded": {
+          "sensitive_range": 130,
+          "overlap": 353,
+          "champion_anomalous": 81
+        }
+      },
+      "n_learned": 367,
+      "window_size": 180,
+      "pivots": 2,
+      "state_changed": true,
+      "ms_per_window": 31.309,
+      "poison_windows_offered": 180,
+      "poison_windows_learned": 140,
+      "poison_share_of_learned": 0.3815,
+      "fresh_poison_flagged_by_champion": 0.0,
+      "fresh_poison_flagged_by_challenger": 0.0,
+      "fresh_poison_flagged_by_clean_challenger": 0.0
+    },
+    "in_distribution/distributed_4_sources": {
+      "windows": 1111,
+      "gate": {
+        "counts": {
+          "windows": 1111,
+          "quarantined": 628,
+          "learned": 507,
+          "learned_anomalous_corroborated": 436
+        },
+        "excluded": {
+          "sensitive_range": 130,
+          "overlap": 353,
+          "champion_anomalous": 121
+        }
+      },
+      "n_learned": 507,
+      "window_size": 180,
+      "pivots": 2,
+      "state_changed": true,
+      "ms_per_window": 33.692,
+      "poison_windows_offered": 360,
+      "poison_windows_learned": 280,
+      "poison_share_of_learned": 0.5523,
+      "fresh_poison_flagged_by_champion": 0.0,
+      "fresh_poison_flagged_by_challenger": 0.0,
+      "fresh_poison_flagged_by_clean_challenger": 0.0
+    },
+    "detectable/concentrated_2_sources": {
+      "windows": 931,
+      "gate": {
+        "counts": {
+          "windows": 931,
+          "quarantined": 448,
+          "learned": 367,
+          "learned_anomalous_corroborated": 296
+        },
+        "excluded": {
+          "sensitive_range": 130,
+          "overlap": 353,
+          "champion_anomalous": 81
+        }
+      },
+      "n_learned": 367,
+      "window_size": 180,
+      "pivots": 2,
+      "state_changed": true,
+      "ms_per_window": 25.617,
+      "poison_windows_offered": 180,
+      "poison_windows_learned": 140,
+      "poison_share_of_learned": 0.3815,
+      "fresh_poison_flagged_by_champion": 1.0,
+      "fresh_poison_flagged_by_challenger": 0.0,
+      "fresh_poison_flagged_by_clean_challenger": 1.0
+    },
+    "detectable/distributed_4_sources": {
+      "windows": 1111,
+      "gate": {
+        "counts": {
+          "windows": 1111,
+          "quarantined": 628,
+          "learned": 507,
+          "learned_anomalous_corroborated": 436
+        },
+        "excluded": {
+          "sensitive_range": 130,
+          "overlap": 353,
+          "champion_anomalous": 121
+        }
+      },
+      "n_learned": 507,
+      "window_size": 180,
+      "pivots": 2,
+      "state_changed": true,
+      "ms_per_window": 24.114,
+      "poison_windows_offered": 360,
+      "poison_windows_learned": 280,
+      "poison_share_of_learned": 0.5523,
+      "fresh_poison_flagged_by_champion": 1.0,
+      "fresh_poison_flagged_by_challenger": 0.0,
+      "fresh_poison_flagged_by_clean_challenger": 1.0
+    }
+  },
+  "C_injected_regression": {
+    "note": "regressed model = champion HST with threshold at the benign holdout median; verdicts are the real holdout windows in event-time order",
+    "rolled_back": true,
+    "windows_until_rollback": 100,
+    "event_time_to_rollback_s": 945.0,
+    "reason": "anomalous rate 0.500 > 0.060 over 100 windows",
+    "active_after": [
+      "half_space_trees-p2-20261017190622"
+    ],
+    "regressed_status_after": "rejected",
+    "audit": [
+      "challenger.promote",
+      "challenger.auto_rollback"
+    ]
+  }
+}

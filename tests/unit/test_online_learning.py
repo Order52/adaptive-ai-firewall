@@ -387,6 +387,28 @@ def test_concentrated_anomalous_pattern_never_learned(lab_cfg, tmp_path, champio
     assert env.learner.excluded["champion_anomalous"] == 40
 
 
+def test_benign_drift_cannot_vouch_for_poison_sharing_a_driver_name(lab_cfg, tmp_path, champion):
+    """M4 finding (real-data experiment B): corroboration by shared anomaly-driver
+    *names* let 4 legitimately drifting sources vouch for poison from 2 sources.
+    Corroboration must require behavioural similarity."""
+    env = Env(lab_cfg, tmp_path, champion)
+    shifted = {**BENIGN, **SHIFT}
+    poison = {**BENIGN, "route_count": 9.0, "unknown_route_frac": 0.6, "novel_method_frac": 0.3}
+    items = []
+    for src in ("10.77.20.21", "10.77.20.22", "10.77.20.23", "10.77.20.24"):
+        for v, _ in tumbling(src, 10, base=shifted):
+            items.append((v, ra_for(v, anomalous=("req_rate", "route_count"))))
+    for src in ("10.77.10.66", "10.77.10.67"):
+        for v, _ in tumbling(src, 10, base=poison):
+            items.append((v, ra_for(v, anomalous=("route_count", "unknown_route_frac"))))
+    env.feed(items)
+    env.learner.process(T0 + timedelta(hours=3))  # hold expiry passes
+    learned = {w.source_ip for w in env.learner.unflushed}
+    assert IPv4Address("10.77.10.66") not in learned and IPv4Address("10.77.10.67") not in learned
+    assert env.learner.challenger.n_learned == 40  # the legitimate drift is still learned
+    assert env.learner.excluded["champion_anomalous"] == 20
+
+
 def test_population_level_legitimate_change_is_eventually_learned(lab_cfg, tmp_path, champion):
     env = Env(lab_cfg, tmp_path, champion)
     shifted = {**BENIGN, **SHIFT}

@@ -42,9 +42,12 @@ class HalfSpaceTreesDetector(Detector):
             n_trees=n_trees, height=height, window_size=window_size, seed=seed
         )
 
+    def scaled(self, row: np.ndarray) -> np.ndarray:
+        """Features in the detector's own [0, 1] space (benign q01..q99 spans ~1/3)."""
+        return np.asarray(np.clip((transform(row) - self.lo) / self.span, 0.0, 1.0))
+
     def _dict(self, row: np.ndarray) -> dict[str, float]:
-        scaled = np.clip((transform(row) - self.lo) / self.span, 0.0, 1.0)
-        return dict(zip(FEATURE_NAMES, scaled.tolist(), strict=True))
+        return dict(zip(FEATURE_NAMES, self.scaled(row).tolist(), strict=True))
 
     def fit(self, x: np.ndarray) -> None:
         for row in np.atleast_2d(x):

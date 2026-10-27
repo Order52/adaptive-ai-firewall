@@ -117,10 +117,13 @@ blocks, policies, operator feedback.
 5. **population**: at least `min_distinct_sources` distinct sources released in the
    last hour: else held back (`population`)
 6. **anomalous windows need corroboration**: at least `anomaly_min_sources` (default 3)
-   distinct ready sources showing the same anomaly drivers, with no source above
-   `2 x max_source_share` of them; else held until quarantine expiry, then
+   distinct sources with anomalous windows that are **behaviourally close** (L∞ <=
+   `anomaly_max_distance` 0.35 in the champion HST's scaled feature space), with no
+   source above `2 x max_source_share` of them; else held until quarantine expiry, then
    `champion_anomalous`. A concentrated attack from one or two sources therefore never
-   becomes "normal" (tested).
+   becomes "normal" (tested on synthetic and real-data experiments). *Revised after M4:*
+   the first version matched shared anomaly-driver **names**, which let legitimately
+   drifting sources vouch for poison (`docs/engineering/M4_ADAPTATION_EXPERIMENTS.md` §3).
 
 Admitted windows are learned prequentially: **score the window with the challenger
 (and the frozen champion HST) first, then `learn_one`**. The pre-learning scores are
@@ -139,6 +142,9 @@ restart.
   population requirement, champion isolation, and (M3) promotion only after
   validation against an independent attack benchmark and benign holdout. This is a
   residual risk, not solved.
+- **Collusion.** At least 3 authenticated sources with consistent behaviour are treated as
+  a population change and can be learned (M4 §3, measured). In-distribution poison is
+  bounded only by per-source caps.
 - **Absence of evidence.** No WAF, IDS or AUTH evidence and a low champion score do
   **not** prove benign. The gate only removes what is demonstrably suspicious.
 - **Sensor compromise.** A compromised WAF01 or APP01 host holds a valid TLS key and can

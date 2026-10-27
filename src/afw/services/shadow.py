@@ -47,6 +47,7 @@ class _Admitted:
     at: datetime  # window_end
     source: IPv4Address
     signature: frozenset[str]
+    scaled: tuple[float, ...] = ()  # set for corroborated anomalous windows only
 
 
 class ShadowLearner:
@@ -221,6 +222,7 @@ class ShadowLearner:
                 release_at=fv.window_end + timedelta(seconds=self.lc.admission_delay_s),
                 anomalous=anomalous,
                 signature=anomaly_signature(ra) if anomalous else frozenset(),
+                scaled=self._scaled(fv) if anomalous else (),
             )
         )
         self.candidate_end[src] = fv.window_end  # tumbling: next candidate starts after
@@ -316,15 +318,25 @@ class ShadowLearner:
         cap = math.ceil(self.lc.max_source_share * self.lc.share_window)
         return sum(1 for a in self.admitted if a.source == src) >= cap
 
+    def _scaled(self, fv: FeatureVector) -> tuple[float, ...]:
+        det = self.champion.detector if self.champion else None
+        if not isinstance(det, HalfSpaceTreesDetector):
+            return ()
+        return tuple(float(x) for x in det.scaled(np.array(fv.as_row(), dtype=float)))
+
+    def _close(self, a: tuple[float, ...], b: tuple[float, ...]) -> bool:
+        if not a or not b:
+            return False  # unknown position (e.g. restored ledger entry): never a peer
+        return max(abs(x - y) for x, y in zip(a, b, strict=True)) <= self.lc.anomaly_max_distance
+
     def _anomaly_corroborated(self, c: Candidate, horizon: datetime) -> bool:
-        """Same anomaly drivers shown by enough distinct clean sources (no one dominating)."""
-        if not c.signature:
-            return False
+        """The same anomalous *behaviour* (not merely the same driver names) shown by
+        enough distinct clean sources, none dominating."""
         peers = [
             q.fv.source_ip
             for q in self.quarantine
-            if q.anomalous and q.signature & c.signature and q.fv.window_end >= horizon
-        ] + [a.source for a in self.admitted if a.signature & c.signature and a.at >= horizon]
+            if q.anomalous and q.fv.window_end >= horizon and self._close(q.scaled, c.scaled)
+        ] + [a.source for a in self.admitted if a.at >= horizon and self._close(a.scaled, c.scaled)]
         if not peers:
             return False
         top = Counter(peers).most_common(1)[0][1] / len(peers)
@@ -338,7 +350,7 @@ class ShadowLearner:
         before, warm = self.challenger.score_then_learn(fv)
         src = str(fv.source_ip)
         self.watermarks[src] = max(fv.window_end, self.watermarks.get(src, fv.window_end))
-        self.admitted.append(_Admitted(fv.window_end, fv.source_ip, c.signature))
+        self.admitted.append(_Admitted(fv.window_end, fv.source_ip, c.signature, c.scaled))
         self.unflushed.append(
             LearnedWindow(
                 fingerprint=c.fingerprint,

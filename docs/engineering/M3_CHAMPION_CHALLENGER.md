@@ -63,7 +63,7 @@ never be trusted just because it disagrees with the champion.
 | `holdout_size` | >= 30 non-overlapping benign windows in each half | small or overlapping samples overstate confidence (Phase 0 finding) |
 | `benign_fpr_not_worse` | challenger FPR (calibrated threshold) <= max(champion FPR, 2 x target) on the test half | adaptation must not add false alarms |
 | `attack_recall_regression` | challenger recall >= champion recall - 0.05 on labelled **real** attack runs | **fails** with no attack runs, and **fails** if any attack run is synthetic |
-| `sensitive_invariance` | challenger anomalous rate on counterfactual attack-like probes >= champion rate - 0.05 | learning must never make high auth failure, login rate, usernames or client errors normal |
+| `sensitive_invariance` | challenger flag rate on attack-like probes of windows *it* scores normal >= the champion's same conditional rate - 0.05 (the champion's raw probe rate if it has too few normal bases) | learning must never make high auth failure, login rate, usernames or client errors normal. Conditional because raw rates are confounded by drift (M4 §2) |
 
 Calibration: threshold = (1 - target_fpr) quantile of challenger scores on the
 chronologically first half of the benign holdout; FPR is measured on the second half.

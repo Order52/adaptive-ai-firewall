@@ -342,6 +342,46 @@ def experiment_online_replay(
     typer.echo(text)
 
 
+@exp_app.command("adaptation")
+def experiment_adaptation(
+    learn: Annotated[str, typer.Option(help="comma-separated recorded benign drift runs")],
+    hold: Annotated[str, typer.Option(help="comma-separated later, disjoint benign runs")],
+    app_id: str = "rental",
+    seed: int = 0,
+    out: Annotated[Path | None, typer.Option(help="write the JSON report here")] = None,
+) -> None:
+    """M4: drift adaptation, poisoning resistance and injected-regression rollback."""
+    import json
+
+    from afw.ml.adaptation_experiment import run_adaptation
+    from afw.ml.datasets import assert_disjoint
+
+    c = _container()
+    loaded = c.learning.load_active(app_id)
+    if loaded is None:
+        typer.echo(f"no trusted profile for {app_id}")
+        raise typer.Exit(1)
+    profile, models = loaded
+    learn_ids = [d for d in learn.split(",") if d]
+    hold_ids = [d for d in hold.split(",") if d]
+    assert_disjoint(learn_ids, hold_ids)
+    report = run_adaptation(
+        cfg=c.cfg,
+        profile=profile,
+        models=models,
+        catalog=c.learning.catalog(app_id, profile),
+        learn=[o for d in learn_ids for o in c.datasets.observations(d)],
+        hold=[o for d in hold_ids for o in c.datasets.observations(d)],
+        learn_ids=learn_ids,
+        hold_ids=hold_ids,
+        seed=seed,
+    )
+    text = json.dumps(report, indent=2, default=str)
+    if out:
+        out.write_text(text)
+    typer.echo(text)
+
+
 def _f(x: float | None) -> str:
     return "-" if x is None else f"{x:g}"
 

@@ -1,0 +1,98 @@
+{
+  "learn_datasets": [
+    "real-drift-learn-20261027"
+  ],
+  "probe_datasets": [
+    "real-drift-hold-20261027"
+  ],
+  "provenance_assertion": "learn set replayed as CURATED (operator-curated recorded runs)",
+  "learning_config": {
+    "enabled": true,
+    "admission_delay_s": 600,
+    "min_source_tenure_s": 0,
+    "max_windows_per_source_per_hour": 10000,
+    "max_source_share": 0.25,
+    "share_window": 200,
+    "min_distinct_sources": 3,
+    "population_window_s": 3600,
+    "anomaly_min_sources": 3,
+    "taint_ttl_s": 86400,
+    "quarantine_max": 5000,
+    "queue_max": 2000,
+    "checkpoint_every": 50,
+    "checkpoint_interval_s": 300,
+    "keep_checkpoints": 3,
+    "retention_days": 7
+  },
+  "champion": {
+    "model": "half_space_trees-p2-20261017190622",
+    "threshold": 0.8064672290072192
+  },
+  "windows": {
+    "learn": 751,
+    "probe": 480
+  },
+  "gate": {
+    "counts": {
+      "windows": 751,
+      "quarantined": 268,
+      "learned": 227,
+      "learned_anomalous_corroborated": 156
+    },
+    "excluded": {
+      "sensitive_range": 130,
+      "overlap": 353,
+      "champion_anomalous": 41
+    }
+  },
+  "state_before": {
+    "n_learned": 0,
+    "counter": 1,
+    "warm": 1,
+    "window_size": 180,
+    "l_mass_total": 275.0,
+    "r_mass_total": 49500.0
+  },
+  "state_after": {
+    "n_learned": 227,
+    "counter": 48,
+    "warm": 1,
+    "window_size": 180,
+    "l_mass_total": 13200.0,
+    "r_mass_total": 49500.0
+  },
+  "state_changed": true,
+  "pivots": 1,
+  "probe_scores": {
+    "champion_frozen": {
+      "mean": 0.77433,
+      "p50": 0.80556,
+      "p95": 0.88002,
+      "anomalous_at_champion_threshold": 0.5
+    },
+    "challenger_before": {
+      "mean": 0.77433,
+      "p50": 0.80556,
+      "p95": 0.88002,
+      "anomalous_at_champion_threshold": 0.5
+    },
+    "challenger_after": {
+      "mean": 0.63898,
+      "p50": 0.65655,
+      "p95": 0.81655,
+      "anomalous_at_champion_threshold": 0.0667
+    },
+    "mean_abs_change": 0.18039
+  },
+  "checkpoint": {
+    "seq": 8,
+    "sha256": "cde564ba87ae3355f48defa9cf46928e9f7feb62c95a152baaf27ab17713544a",
+    "bytes": 391862
+  },
+  "restart_restores_exact_state": true,
+  "cost": {
+    "seconds": 21.945,
+    "ms_per_window": 29.221,
+    "max_rss_mb": 281.6
+  }
+}

@@ -15,10 +15,11 @@ from __future__ import annotations
 import resource
 import tempfile
 import time
-from collections.abc import Sequence
-from datetime import timedelta
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -35,6 +36,9 @@ from afw.ml.online import CheckpointStore
 from afw.persistence.db import make_engine, upgrade
 from afw.persistence.repositories import SqlLearningRepository
 
+if TYPE_CHECKING:
+    from afw.services.shadow import ShadowLearner
+
 
 class _Audit:
     def record(self, actor: str, action: str, subject: str, detail: dict[str, object]) -> None:
@@ -50,17 +54,33 @@ def _scores(det: Any, windows: Sequence[FeatureVector]) -> np.ndarray:
     return np.asarray(det.score(np.array([w.as_row() for w in windows], dtype=float)))
 
 
-def replay_online(
+@dataclass
+class Stream:
+    """A shadow learner driven through recorded windows by event time."""
+
+    learner: ShadowLearner
+    champion: LoadedModel
+    windows: list[FeatureVector]
+    before_blob: bytes
+    before_state: dict[str, float | int]
+    elapsed_s: float
+    end: datetime
+    new_learner: Callable[[], ShadowLearner]
+
+
+def learn_stream(
     *,
     cfg: LabConfig,
     profile: BehaviorProfile,
     models: list[LoadedModel],
     catalog: EndpointCatalog,
     learn: Sequence[HttpObservation],
-    probe: Sequence[HttpObservation],
     learning: OnlineLearningConfig | None = None,
     work_dir: Path | None = None,
-) -> dict[str, Any]:
+    inject: Sequence[FeatureVector] = (),
+) -> Stream:
+    """Window ``learn`` (as CURATED) plus pre-built ``inject`` windows, score them with
+    the trusted detectors and correlation, and feed the gate + shadow learner."""
     from afw.services.shadow import ShadowLearner  # service layer; avoid import cycle
 
     hst = next((m for m in models if m.record.detector is DetectorKind.HALF_SPACE_TREES), None)
@@ -75,7 +95,7 @@ def replay_online(
     store = CheckpointStore(work / "challengers", repo, keep=lc.keep_checkpoints)
     now_ref: list[Any] = [None]
 
-    def learner() -> ShadowLearner:
+    def new_learner() -> ShadowLearner:
         sl = ShadowLearner(
             cfg,
             repo,
@@ -98,39 +118,77 @@ def replay_online(
         o.model_copy(update={"provenance": Provenance.CURATED})
         for o in sorted(learn, key=lambda o: o.observed_at)
     ]
-    probe_windows = list(replay_windows(probe, cfg.window, catalog))
-    learn_windows = list(replay_windows(curated, cfg.window, catalog))
-    if not learn_windows:
+    windows = sorted(
+        [*replay_windows(curated, cfg.window, catalog), *inject], key=lambda w: w.window_end
+    )
+    if not windows:
         raise ValueError("no learning windows")
-    now_ref[0] = learn_windows[0].window_start
-    sl = learner()
+    now_ref[0] = windows[0].window_start
+    sl = new_learner()
     assert sl.challenger is not None
-    before_state = sl.challenger.state()
-    before_blob = sl.challenger.blob()
-    champion_probe = _scores(hst.detector, probe_windows)
-    challenger_probe_before = _scores(sl.challenger.detector, probe_windows)
-    thr = hst.record.threshold
-
+    before_state, before_blob = sl.challenger.state(), sl.challenger.blob()
     t0 = time.perf_counter()
-    for fv in learn_windows:
+    for fv in windows:
         now_ref[0] = fv.window_end
-        ra = correlation.assess(fv, inference.score(fv), fv.window_end)
-        sl.submit(fv, ra)
+        sl.submit(fv, correlation.assess(fv, inference.score(fv), fv.window_end))
         sl.process(fv.window_end)
-    end = learn_windows[-1].window_end + timedelta(
+    end = windows[-1].window_end + timedelta(
         seconds=lc.admission_delay_s + lc.population_window_s + 1
     )
     now_ref[0] = end
     sl.process(end)
-    elapsed = time.perf_counter() - t0
-    ckpt = sl.checkpoint_now(end) or sl.checkpoint  # may already be flushed on interval
+    return Stream(
+        learner=sl,
+        champion=hst,
+        windows=windows,
+        before_blob=before_blob,
+        before_state=before_state,
+        elapsed_s=time.perf_counter() - t0,
+        end=end,
+        new_learner=new_learner,
+    )
+
+
+def replay_online(
+    *,
+    cfg: LabConfig,
+    profile: BehaviorProfile,
+    models: list[LoadedModel],
+    catalog: EndpointCatalog,
+    learn: Sequence[HttpObservation],
+    probe: Sequence[HttpObservation],
+    learning: OnlineLearningConfig | None = None,
+    work_dir: Path | None = None,
+) -> dict[str, Any]:
+    lc = learning or cfg.learning
+    probe_windows = list(replay_windows(probe, cfg.window, catalog))
+    st = learn_stream(
+        cfg=cfg,
+        profile=profile,
+        models=models,
+        catalog=catalog,
+        learn=learn,
+        learning=lc,
+        work_dir=work_dir,
+    )
+    sl, hst = st.learner, st.champion
+    assert sl.challenger is not None
+    champion_probe = _scores(hst.detector, probe_windows)
+    # the challenger starts as a deep copy of the champion: identical scores
+    challenger_probe_before = champion_probe
+    thr = hst.record.threshold
+    elapsed = st.elapsed_s
+    learn_windows = st.windows
+    before_state, before_blob = st.before_state, st.before_blob
+    ckpt = sl.checkpoint_now(st.end) or sl.checkpoint  # may already be flushed on interval
     after_state = sl.challenger.state()
     challenger_probe_after = _scores(sl.challenger.detector, probe_windows)
 
-    restarted = learner()
-    restore_exact = (
-        restarted.challenger is not None
-        and ckpt is not None
+    restarted = st.new_learner()
+    restore_exact = (  # None: nothing learned, no checkpoint to restore
+        None
+        if ckpt is None
+        else restarted.challenger is not None
         and restarted.challenger.blob() == sl.challenger.blob()
         and restarted.challenger.n_learned == sl.challenger.n_learned
     )

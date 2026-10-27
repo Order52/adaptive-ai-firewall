@@ -10,3 +10,4 @@ fp-rollback -> FAILED tests/unit/test_challenger_lifecycle.py::test_operator_fal
 champion-changed -> FAILED tests/unit/test_challenger_lifecycle.py::test_promotion_refused_when_stale_or_champion_changed_or_artifact_tampered 
 probation-persistence -> FAILED tests/unit/test_challenger_lifecycle.py::test_probation_counts_survive_restart 
 restored -> ....................                                                     [100%]
+similarity-check disabled (any anomalous peer counts) -> FAILED tests/unit/test_online_learning.py::test_benign_drift_cannot_vouch_for_poison_sharing_a_driver_name

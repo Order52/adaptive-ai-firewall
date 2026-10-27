@@ -139,6 +139,10 @@ class OnlineLearningConfig(_Cfg):
     # A window the trusted detectors call anomalous is learnable only if the
     # same anomaly signature is shown by this many distinct clean sources.
     anomaly_min_sources: int = Field(default=3, ge=2)
+    # ...and "same" means behaviourally close: L-infinity distance in the champion
+    # HST's scaled space (a benign q01..q99 range spans ~1/3 of it). Sharing anomaly
+    # driver *names* is not enough (M4 finding: benign drift vouched for poison).
+    anomaly_max_distance: float = Field(default=0.35, gt=0, le=1)
     taint_ttl_s: int = Field(default=86_400, ge=60)
     quarantine_max: int = Field(default=5000, ge=10)
     queue_max: int = Field(default=2000, ge=10)
