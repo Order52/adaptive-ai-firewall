@@ -9,7 +9,7 @@ from datetime import datetime
 
 import numpy as np
 
-from afw.domain.events import AuthOutcome, HttpObservation
+from afw.domain.events import AuthOutcome, HttpObservation, Provenance
 from afw.domain.features import FeatureVector, WindowSpec
 from afw.telemetry.routes import is_unknown
 
@@ -113,6 +113,10 @@ def compute_features(
         "login_attempts": float(len(logins)),
         "app_unjoined": float(sum(1 for o in obs if not o.app_joined and o.reached_backend)),
         "backend_requests": float(sum(1 for o in obs if o.reached_backend)),
+        # Provenance (ADR-029): online learning needs every observation trusted
+        # and confirmed by the application.
+        "untrusted_obs": float(sum(1 for o in obs if o.provenance is Provenance.UNVERIFIED)),
+        "unjoined_obs": float(sum(1 for o in obs if not o.app_joined)),
     }
     families: Counter[str] = Counter()
     for o in obs:

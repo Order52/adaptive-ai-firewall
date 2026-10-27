@@ -14,7 +14,7 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 
 from afw.domain.common import new_id
-from afw.domain.events import HttpObservation, IdsAlert
+from afw.domain.events import HttpObservation, IdsAlert, Provenance
 from afw.telemetry.parsers.records import AppRecord, SuricataAlert, WafAccess, WafAudit
 from afw.telemetry.routes import RouteMatcher
 from afw.telemetry.stats import TelemetryStats
@@ -102,6 +102,14 @@ class RequestCorrelator:
             else (matcher.match(access.path) if matcher else access.path[:128])
         )
         reached = app is not None or (access.upstream_status is not None)
+        # ADR-029: authenticated only if every contributing record came over an
+        # authenticated sensor channel and the application confirmed the request.
+        authenticated = (
+            access.authenticated
+            and app is not None
+            and app.authenticated
+            and (audit is None or audit.authenticated)
+        )
         return HttpObservation(
             event_id=new_id("obs"),
             request_id=access.request_id,
@@ -124,6 +132,7 @@ class RequestCorrelator:
             username_hash=app.username_hash if app else None,
             app_version=app.app_version if app else None,
             reached_backend=reached,
+            provenance=Provenance.AUTHENTICATED if authenticated else Provenance.UNVERIFIED,
         )
 
     @property

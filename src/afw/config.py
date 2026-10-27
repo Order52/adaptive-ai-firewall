@@ -114,6 +114,14 @@ class TelemetryConfig(_Cfg):
     max_line_bytes: int = 65536
     join_wait_s: float = 2.0
     waf_sensor_ips: tuple[IPv4Address, ...] = ()
+    # Mutually authenticated TLS channel (ADR-029). Each client certificate
+    # common name maps to the one sensor role allowed to send on it ("waf" or
+    # "app"). Lines of another kind on that channel are dropped.
+    tls_port: int | None = None
+    tls_cert: Path | None = None
+    tls_key: Path | None = None
+    tls_ca: Path | None = None
+    tls_identities: dict[str, str] = {}
 
 
 class ProbeAgentConfig(_Cfg):

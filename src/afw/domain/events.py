@@ -22,6 +22,19 @@ class Sensor(StrEnum):
     FIREWALL = "firewall"
 
 
+class Provenance(StrEnum):
+    """How far an observation's origin can be trusted (ADR-029).
+
+    Only AUTHENTICATED (mutually authenticated sensor channels, role-checked) and
+    CURATED (operator-asserted dataset replay, audited) observations may ever be
+    used for online learning. UNVERIFIED is the safe default.
+    """
+
+    UNVERIFIED = "unverified"
+    AUTHENTICATED = "authenticated"
+    CURATED = "curated"
+
+
 class AuthOutcome(StrEnum):
     SUCCESS = "success"
     FAILURE = "failure"
@@ -56,6 +69,7 @@ class HttpObservation(DomainModel):
     username_hash: str | None = None
     app_version: str | None = None
     reached_backend: bool = False
+    provenance: Provenance = Provenance.UNVERIFIED
 
 
 class IdsAlert(DomainModel):

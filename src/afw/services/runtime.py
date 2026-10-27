@@ -47,11 +47,13 @@ from afw.telemetry.parsers.lines import (
     parse_waf_access,
     parse_waf_audit,
 )
+from afw.telemetry.receiver import Line
 from afw.telemetry.routes import RouteMatcher
 from afw.telemetry.stats import TelemetryStats
 
 log = structlog.get_logger(__name__)
 WATCH_RETENTION = timedelta(days=7)
+_ROLE_OF_KIND = {"afw-waf-access": "waf", "afw-waf-audit": "waf", "afw-app": "app"}
 
 
 @dataclass
@@ -102,7 +104,7 @@ class Controller:
         self.drift: DriftMonitor | None = None
         self.live: dict[IPv4Address, LiveSource] = {}
         self.timeline: deque[dict[str, object]] = deque(maxlen=720)
-        self.lines: queue.Queue[tuple[IPv4Address, str]] | None = None
+        self.lines: queue.Queue[Line] | None = None
         self._stop = threading.Event()
         self._threads: list[threading.Thread] = []
         self.policies.on_enforced = self._on_enforced
@@ -134,18 +136,25 @@ class Controller:
         self.inference.strategy = strategy
 
     # ---------------------------------------------------------------- ingest
-    def ingest_line(self, sender: IPv4Address, line: str) -> None:
+    def ingest_line(self, sender: IPv4Address, line: str, role: str | None = None) -> None:
+        """``role`` is the mTLS-authenticated sensor role of the channel, if any."""
         try:
             kind, payload = classify(line)
+            if role is not None and _ROLE_OF_KIND.get(kind) != role:
+                # An authenticated sensor may only speak for itself (ADR-029).
+                self.stats.inc("role_mismatch")
+                return
+            authed = {"authenticated": role is not None}
             match kind:
                 case "afw-waf-access":
-                    self.correlator.add_access(parse_waf_access(payload, sender))
+                    rec = parse_waf_access(payload, sender).model_copy(update=authed)
+                    self.correlator.add_access(rec)
                     self.stats.seen("waf")
                 case "afw-waf-audit":
-                    self.correlator.add_audit(parse_waf_audit(payload))
+                    self.correlator.add_audit(parse_waf_audit(payload).model_copy(update=authed))
                     self.stats.seen("waf_audit")
                 case "afw-app":
-                    self.correlator.add_app(parse_app(payload))
+                    self.correlator.add_app(parse_app(payload).model_copy(update=authed))
                     self.stats.seen("app")
                 case "suricata":
                     alert = to_ids_alert(parse_suricata(payload, sensor_id=str(sender)))
@@ -160,8 +169,7 @@ class Controller:
 
     def ingest_observations(self, obs: list[HttpObservation]) -> None:
         """Feed already-normalized observations (offline replay of recorded runs)."""
-        self.events.add_observations(obs)
-        for o in obs:
+        for o in self.events.add_observations(obs):
             self.windows.add(o)
 
     def degraded(self) -> bool:
@@ -192,8 +200,12 @@ class Controller:
                 self.stats.inc("sensor_self", len(own))
                 obs = [o for o in obs if o.client_ip not in sensors]
         if obs:
-            self.events.add_observations(obs)
-            for o in obs:
+            # Only observations the store accepted (request_id is UNIQUE): a
+            # replayed request id must not be windowed twice.
+            accepted = self.events.add_observations(obs)
+            if len(accepted) < len(obs):
+                self.stats.inc("duplicate_request_id", len(obs) - len(accepted))
+            for o in accepted:
                 self.windows.add(o)
         out: list[RiskAssessment] = []
         if (
@@ -291,7 +303,7 @@ class Controller:
             log.info("drift_report", signals=report.signals, assessment=report.assessment)
 
     # --------------------------------------------------------------- threads
-    def start(self, lines: queue.Queue[tuple[IPv4Address, str]] | None) -> None:
+    def start(self, lines: queue.Queue[Line] | None) -> None:
         self.lines = lines
         self._spawn("processor", self._process_loop, 1.0)
         self._spawn("reconciler", self.policies.reconcile, 5.0)
@@ -315,10 +327,10 @@ class Controller:
         if self.lines is not None:
             for _ in range(5000):
                 try:
-                    sender, line = self.lines.get_nowait()
+                    sender, line, role = self.lines.get_nowait()
                 except queue.Empty:
                     break
-                self.ingest_line(sender, line)
+                self.ingest_line(sender, line, role)
         self.tick()
 
     def _retention(self) -> None:

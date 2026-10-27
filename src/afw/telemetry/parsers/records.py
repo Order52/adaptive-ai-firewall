@@ -23,6 +23,7 @@ class WafAccess(DomainModel):
     user_agent_hash: str | None
     sensor_ip: IPv4Address | None = None
     app_id: str | None = None
+    authenticated: bool = False  # arrived over mTLS from the WAF sensor identity
 
 
 class WafAudit(DomainModel):
@@ -32,6 +33,7 @@ class WafAudit(DomainModel):
     rule_ids: tuple[int, ...]
     anomaly_score: int
     blocked: bool
+    authenticated: bool = False  # arrived over mTLS from the WAF sensor identity
 
 
 class AppRecord(DomainModel):
@@ -44,6 +46,7 @@ class AppRecord(DomainModel):
     app_version: str
     auth_outcome: AuthOutcome | None
     username_hash: str | None
+    authenticated: bool = False  # arrived over mTLS from the APP sensor identity
 
 
 class SuricataAlert(DomainModel):

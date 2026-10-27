@@ -42,8 +42,9 @@ class _Repo:
 
 
 class SqlEventRepository(_Repo):
-    def add_observations(self, items: Sequence[HttpObservation]) -> int:
-        added = 0
+    def add_observations(self, items: Sequence[HttpObservation]) -> list[HttpObservation]:
+        """Insert observations; return only the ones accepted (new request ids)."""
+        added: list[HttpObservation] = []
         with self.engine.begin() as c:
             for o in items:
                 try:
@@ -58,7 +59,7 @@ class SqlEventRepository(_Repo):
                                 body=o.model_dump_json(),
                             )
                         )
-                    added += 1
+                    added.append(o)
                 except IntegrityError:
                     continue  # duplicate request id: idempotent replay
         return added
