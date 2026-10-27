@@ -13,9 +13,29 @@ from afw.domain.common import new_id
 from afw.domain.detection import DetectionResult, DetectorKind, ModelRecord
 from afw.domain.features import FeatureVector
 from afw.domain.profiles import BehaviorProfile
+from afw.domain.risk import EVIDENCE_FEATURES, EvidenceCategory, independence_key
 from afw.ml.detectors.base import Detector
 from afw.ml.detectors.robust import RobustStatsDetector
 from afw.ml.evaluation import percentile_rank
+
+# Combinations of correlated evidence a behaviour detection is tested against.
+_DEPENDENT_SETS = tuple(
+    {c for c in combo}
+    for combo in (
+        (EvidenceCategory.AUTH,),
+        (EvidenceCategory.WAF,),
+        (EvidenceCategory.AUTH, EvidenceCategory.WAF),
+    )
+)
+
+
+def _independent_of(det: Detector, row: np.ndarray, threshold: float) -> tuple[str, ...]:
+    out = []
+    for cats in _DEPENDENT_SETS:
+        feats = frozenset().union(*(EVIDENCE_FEATURES[c] for c in cats))
+        if det.anomalous_without(row, feats, threshold):
+            out.append(independence_key(cats))
+    return tuple(out)
 
 
 class Strategy(StrEnum):
@@ -92,6 +112,9 @@ class InferenceEngine:
                         contributions=contributions,
                         reason_codes=codes,
                         latency_ms=round(latency, 3),
+                        independent_of=(
+                            _independent_of(det, row, rec.threshold) if anomalous else ()
+                        ),
                     )
                 )
             return results

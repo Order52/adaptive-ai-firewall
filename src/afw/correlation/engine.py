@@ -20,7 +20,13 @@ from afw.domain.common import new_id
 from afw.domain.detection import DetectionResult, DetectorKind
 from afw.domain.events import IdsAlert
 from afw.domain.features import FeatureVector
-from afw.domain.risk import EvidenceCategory, EvidenceItem, RiskAssessment, RiskBand
+from afw.domain.risk import (
+    EvidenceCategory,
+    EvidenceItem,
+    RiskAssessment,
+    RiskBand,
+    independence_key,
+)
 
 CAPS = {
     EvidenceCategory.BEHAVIOR_ML: 35.0,
@@ -83,8 +89,19 @@ class CorrelationEngine:
             totals[it.category] += it.points
         score = min(100.0, sum(min(v, CAPS[k]) for k, v in totals.items()))
         cats = {k for k, v in totals.items() if v > 0 and k is not EvidenceCategory.HISTORY}
+        others = cats - _BEHAVIOR
+        # ADR-027: behaviour counts only if it is anomalous for reasons other than
+        # the events that already produced the AUTH/WAF evidence.
+        key = independence_key(others)
+        behavior_independent = not key or any(
+            d.is_anomalous and key in d.independent_of for d in detections
+        )
+        discounted: tuple[EvidenceCategory, ...] = ()
+        if cats & _BEHAVIOR and not behavior_independent:
+            discounted = (EvidenceCategory.BEHAVIOR_ML,)
         corroborating = sorted(
-            ({EvidenceCategory.BEHAVIOR_ML} if cats & _BEHAVIOR else set()) | (cats - _BEHAVIOR),
+            ({EvidenceCategory.BEHAVIOR_ML} if cats & _BEHAVIOR and not discounted else set())
+            | others,
             key=str,
         )
         band = self._band(score)
@@ -107,6 +124,7 @@ class CorrelationEngine:
             detection_ids=tuple(d.detection_id for d in detections),
             detections=tuple(detections),
             degraded_telemetry=degraded,
+            discounted_categories=discounted,
         )
 
     def _band(self, score: float) -> RiskBand:

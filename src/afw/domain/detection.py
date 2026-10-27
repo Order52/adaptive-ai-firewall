@@ -58,6 +58,12 @@ class DetectionResult(DomainModel):
     contributions: tuple[FeatureContribution, ...] = ()
     reason_codes: tuple[str, ...] = ()
     latency_ms: float = 0.0
+    independent_of: tuple[str, ...] = Field(
+        default=(),
+        description="Evidence-category keys ('auth', 'waf', 'auth+waf') for which the "
+        "detection stays anomalous with the features derived from that evidence "
+        "occluded to the profile median (ADR-027). Empty = never independent.",
+    )
 
 
 class ModelMetrics(DomainModel):

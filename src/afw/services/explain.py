@@ -83,6 +83,7 @@ def explain_policy(
             "model_version": ra.model_version,
             "profile_version": ra.profile_version,
             "independent_evidence_categories": ra.corroborating_categories,
+            "discounted_evidence_categories": ra.discounted_categories,
             "telemetry_degraded": ra.degraded_telemetry,
         },
         "response": {

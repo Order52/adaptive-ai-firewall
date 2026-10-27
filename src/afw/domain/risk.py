@@ -6,6 +6,7 @@ probability and is never presented as one.
 
 from __future__ import annotations
 
+from collections.abc import Set as AbstractSet
 from datetime import datetime
 from enum import StrEnum
 from ipaddress import IPv4Address
@@ -23,6 +24,25 @@ class EvidenceCategory(StrEnum):
     AUTH = "auth"
     IDS = "ids"
     HISTORY = "history"
+
+
+# Behaviour features computed from the same events as non-behaviour evidence
+# (ADR-027). Failed logins drive AUTH evidence *and* these features; failed
+# logins (401) and WAF blocks (403) both land in client_err_frac. A behaviour
+# detection corroborates such evidence only if it stays anomalous with the
+# listed features occluded (see DetectionResult.independent_of). IDS evidence
+# comes from a separate sensor and shares no behaviour features.
+EVIDENCE_FEATURES: dict[EvidenceCategory, frozenset[str]] = {
+    EvidenceCategory.AUTH: frozenset(
+        {"login_rate", "auth_fail_frac", "distinct_usernames", "client_err_frac"}
+    ),
+    EvidenceCategory.WAF: frozenset({"client_err_frac"}),
+}
+
+
+def independence_key(categories: AbstractSet[EvidenceCategory]) -> str:
+    """Key into DetectionResult.independent_of for a set of present categories."""
+    return "+".join(sorted(c.value for c in categories if c in EVIDENCE_FEATURES))
 
 
 class RiskBand(StrEnum):
@@ -62,6 +82,11 @@ class RiskAssessment(DomainModel):
         "detections table is pruned by retention.",
     )
     degraded_telemetry: bool = False
+    discounted_categories: tuple[EvidenceCategory, ...] = Field(
+        default=(),
+        description="Categories present but NOT counted as independent corroboration "
+        "because they derive from the same events as other evidence (ADR-027).",
+    )
 
     @property
     def independent_evidence(self) -> int:
