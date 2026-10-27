@@ -87,6 +87,11 @@ class RiskAssessment(DomainModel):
         description="Categories present but NOT counted as independent corroboration "
         "because they derive from the same events as other evidence (ADR-027).",
     )
+    view: str = Field(
+        default="http",
+        description="'http': a per-source HTTP window; 'ids_only': IDS alerts from a "
+        "source with no HTTP traffic in the window (observe-only, M5)",
+    )
 
     @property
     def independent_evidence(self) -> int:

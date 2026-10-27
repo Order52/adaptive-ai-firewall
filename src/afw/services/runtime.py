@@ -54,6 +54,10 @@ from afw.telemetry.routes import RouteMatcher
 from afw.telemetry.stats import TelemetryStats
 
 log = structlog.get_logger(__name__)
+IDS_ONLY_EVERY = timedelta(seconds=60)
+HEARTBEAT_STALE_S = (
+    150  # sensors send one every 30 s  # re-assess an IDS-only source at most this often
+)
 WATCH_RETENTION = timedelta(days=7)
 _ROLE_OF_KIND = {"afw-waf-access": "waf", "afw-waf-audit": "waf", "afw-app": "app"}
 
@@ -118,6 +122,8 @@ class Controller:
         self.last_tick: datetime | None = None
         self.tick_ms: deque[float] = deque(maxlen=120)
         self._drop_samples: deque[tuple[float, int]] = deque(maxlen=1000)
+        self._ids_only_at: dict[IPv4Address, datetime] = {}
+        self._started_at: float | None = None  # set by start(): heartbeats expected
 
     # ------------------------------------------------------------ model state
     def reload(self) -> bool:
@@ -152,6 +158,13 @@ class Controller:
         """``role`` is the mTLS-authenticated sensor role of the channel, if any."""
         try:
             kind, payload = classify(line)
+            if kind == "afw-heartbeat":
+                # Liveness only counts on an authenticated channel (M5).
+                if role is None:
+                    self.stats.inc("heartbeat_unauthenticated")
+                else:
+                    self.stats.seen(f"heartbeat:{role}")
+                return
             if role is not None and _ROLE_OF_KIND.get(kind) != role:
                 # An authenticated sensor may only speak for itself (ADR-029).
                 self.stats.inc("role_mismatch")
@@ -159,7 +172,9 @@ class Controller:
             authed = {"authenticated": role is not None}
             match kind:
                 case "afw-waf-access":
-                    rec = parse_waf_access(payload, sender).model_copy(update=authed)
+                    rec = parse_waf_access(payload, sender).model_copy(
+                        update={**authed, "received_at": self.clock()}
+                    )
                     self.correlator.add_access(rec)
                     self.stats.seen("waf")
                 case "afw-waf-audit":
@@ -169,11 +184,15 @@ class Controller:
                     self.correlator.add_app(parse_app(payload).model_copy(update=authed))
                     self.stats.seen("app")
                 case "suricata":
-                    alert = to_ids_alert(parse_suricata(payload, sensor_id=str(sender)))
-                    self.events.add_ids_alerts([alert])
+                    alert = to_ids_alert(
+                        parse_suricata(payload, sensor_id=str(sender)), self.clock()
+                    )
+                    self.stats.seen("ids")
+                    if not self.events.add_ids_alerts([alert]):
+                        self.stats.inc("duplicate_ids_event")  # replayed line: count once
+                        return
                     self.correlation.add_ids(alert)
                     self.reputation.taint(alert.src_ip, alert.observed_at, "ids_alert")
-                    self.stats.seen("ids")
                 case _:
                     self.stats.inc("ignored")
         except ParseError as exc:
@@ -197,7 +216,23 @@ class Controller:
         recent_drop = drops > self._drop_samples[0][1]
         waf_age = self.stats.age("waf")
         silent = waf_age is not None and waf_age > 120 and self.windows.tracked_sources > 0
-        return recent_drop or silent
+        return recent_drop or silent or any(h["stale"] for h in self.sensor_health().values())
+
+    def sensor_health(self) -> dict[str, dict[str, object]]:
+        """Heartbeat liveness of each mTLS sensor role, once the receiver is running.
+        A sensor that never (re)connected since start is stale too: after a restart,
+        a stuck sender is otherwise indistinguishable from an idle one (M5 finding)."""
+        if self._started_at is None:
+            return {}
+        uptime = time.monotonic() - self._started_at
+        out: dict[str, dict[str, object]] = {}
+        for role in sorted(set(self.cfg.telemetry.tls_identities.values())):
+            age = self.stats.age(f"heartbeat:{role}")
+            stale = (age is None and uptime > HEARTBEAT_STALE_S) or (
+                age is not None and age > HEARTBEAT_STALE_S
+            )
+            out[role] = {"heartbeat_age_s": None if age is None else round(age, 1), "stale": stale}
+        return out
 
     # ------------------------------------------------------------- processing
     def tick(self, now: datetime | None = None) -> list[RiskAssessment]:
@@ -230,6 +265,7 @@ class Controller:
             for fv in vectors:
                 out.append(self._process_window(fv, now, degraded))
             self._record_timeline(now, vectors, out)
+            out += self._ids_only(now, {fv.source_ip for fv in vectors}, degraded)
             if self.lifecycle is not None and self.lifecycle.check(self.app_id, now):
                 self.reload()  # probation breached: the parent champion is active again
         self.tick_ms.append((time.perf_counter() - t0) * 1000)
@@ -269,6 +305,30 @@ class Controller:
         if self.shadow is not None:
             self.shadow.submit(fv, ra)  # shadow only: never influences the decision above
         return ra
+
+    def _ids_only(
+        self, now: datetime, http_sources: set[IPv4Address], degraded: bool
+    ) -> list[RiskAssessment]:
+        """IDS-only view (M5): sources the IDS reports but with no HTTP window now."""
+        out = []
+        stale = [s for s, at in self._ids_only_at.items() if now - at > 10 * IDS_ONLY_EVERY]
+        for s in stale:
+            del self._ids_only_at[s]
+        protected = [p.network for p in self.cfg.safety.protected]
+        for src in self.correlation.ids_sources(now) - http_sources:
+            last = self._ids_only_at.get(src)
+            if (last and now - last < IDS_ONLY_EVERY) or any(src in n for n in protected):
+                continue
+            ra = self.correlation.assess_ids_only(self.app_id, src, now)
+            if ra is None:
+                continue
+            self._ids_only_at[src] = now
+            self.stats.inc("ids_only_assessment")
+            if ra.score > 0:
+                self.analysis.add_assessment(ra)
+            self._decide(ra, now, degraded)
+            out.append(ra)
+        return out
 
     def _routes_of(self, fv: FeatureVector) -> set[str]:
         recent = self.events.recent_observations(limit=60, source_ip=fv.source_ip)
@@ -325,6 +385,8 @@ class Controller:
     # --------------------------------------------------------------- threads
     def start(self, lines: queue.Queue[Line] | None) -> None:
         self.lines = lines
+        if lines is not None:  # a live receiver: mTLS sensors must heartbeat
+            self._started_at = time.monotonic()
         self._spawn("processor", self._process_loop, 1.0)
         self._spawn("reconciler", self.policies.reconcile, 5.0)
         self._spawn("drift", self.check_drift, 30.0)

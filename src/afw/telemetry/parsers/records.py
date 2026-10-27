@@ -24,6 +24,7 @@ class WafAccess(DomainModel):
     sensor_ip: IPv4Address | None = None
     app_id: str | None = None
     authenticated: bool = False  # arrived over mTLS from the WAF sensor identity
+    received_at: datetime | None = None  # controller receipt time (envelope v2)
 
 
 class WafAudit(DomainModel):

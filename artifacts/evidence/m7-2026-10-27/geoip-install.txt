@@ -1,0 +1,12 @@
+{
+  "source": "https://download.db-ip.com/free/dbip-country-lite-2026-10.csv.gz",
+  "release": "2026-10",
+  "sha256": "097426b8ddae89157d444a59ac1847e873f7943c32d52becc4371c8b0273af80",
+  "installed_at": "2026-10-27T20:44:04.132940+00:00",
+  "license": "IP Geolocation by DB-IP (https://db-ip.com), CC BY 4.0"
+}
+total 4400
+drwxrwxr-x 2 afwctl afwctl    4096 Oct 27 20:44 .
+drwxr-x--- 5 afwctl afwctl    4096 Oct 27 20:44 ..
+-rw-rw-r-- 1 afwctl afwctl 4491785 Oct 27 20:44 country.csv.gz
+-rw-rw-r-- 1 afwctl afwctl     311 Oct 27 20:44 country.meta.json

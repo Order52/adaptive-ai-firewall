@@ -70,9 +70,17 @@ class HttpObservation(DomainModel):
     app_version: str | None = None
     reached_backend: bool = False
     provenance: Provenance = Provenance.UNVERIFIED
+    # Telemetry envelope v2 (M5): records written before v2 load as version 1.
+    schema_version: int = 1
+    received_at: datetime | None = Field(
+        default=None, description="when the controller received the WAF access line"
+    )
 
 
 class IdsAlert(DomainModel):
+    """``event_id`` is derived from the alert's content (v2), so a replayed or
+    duplicated Suricata line maps to the same id and is stored and counted once."""
+
     event_id: str
     observed_at: datetime
     sensor_id: str
@@ -84,6 +92,8 @@ class IdsAlert(DomainModel):
     signature: str
     severity: int = Field(ge=1, le=4)
     flow_id: int | None = None
+    schema_version: int = 1
+    received_at: datetime | None = None
 
 
 class AppEvent(DomainModel):

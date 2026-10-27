@@ -282,8 +282,9 @@ def country_policy(
     simulated: bool = True,
 ) -> dict[str, Any]:
     """OPTIONAL EXTENSION: country-scoped policy, e.g. 'block incoming traffic from China'
-    -> country_code='CN', direction='inbound'. Real geography requires a configured GeoIP
-    database; otherwise only clearly-labelled simulated lab mappings are accepted."""
+    -> country_code='CN', direction='inbound'. Only clearly-labelled simulated lab mappings
+    can be enforced; real-country policies are refused (use geo_preview to see what one
+    would cover)."""
     return _post(
         "/api/policies",
         {
@@ -298,6 +299,21 @@ def country_policy(
             "reason": f"mcp country policy {direction}",
         },
     )
+
+
+@server.tool()
+def geo_preview(
+    country_code: str, direction: Literal["inbound", "outbound", "both"] = "inbound"
+) -> dict[str, Any]:
+    """Read-only: what a REAL country policy would cover (networks, addresses, observed
+    lab sources in that country) from the installed DB-IP database, with its age."""
+    return _obj(_get(f"/api/geo/preview/{country_code}", direction=direction))
+
+
+@server.tool()
+def geo_lookup(ip: IPv4Address) -> dict[str, Any]:
+    """Read-only: country of an IPv4 address (None for private/lab space)."""
+    return _obj(_get(f"/api/geo/lookup/{ip}"))
 
 
 @server.tool()

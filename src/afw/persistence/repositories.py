@@ -9,7 +9,7 @@ from ipaddress import IPv4Address
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
-from sqlalchemy import Engine, Table, delete, desc, insert, select, update
+from sqlalchemy import Engine, Table, delete, desc, insert, select, union, update
 from sqlalchemy.exc import IntegrityError
 
 from afw.domain.adaptation import CandidateEvaluation, DriftReport, Feedback
@@ -74,18 +74,25 @@ class SqlEventRepository(_Repo):
                     continue  # duplicate request id: idempotent replay
         return added
 
-    def add_ids_alerts(self, items: Sequence[IdsAlert]) -> int:
+    def add_ids_alerts(self, items: Sequence[IdsAlert]) -> list[IdsAlert]:
+        """Insert alerts; return only the new ones (content-derived ids, idempotent)."""
+        added: list[IdsAlert] = []
         with self.engine.begin() as c:
             for a in items:
-                c.execute(
-                    insert(t.ids_alerts).values(
-                        event_id=a.event_id,
-                        observed_at=utc_naive(a.observed_at),
-                        src_ip=str(a.src_ip),
-                        body=a.model_dump_json(),
-                    )
-                )
-        return len(items)
+                try:
+                    with c.begin_nested():
+                        c.execute(
+                            insert(t.ids_alerts).values(
+                                event_id=a.event_id,
+                                observed_at=utc_naive(a.observed_at),
+                                src_ip=str(a.src_ip),
+                                body=a.model_dump_json(),
+                            )
+                        )
+                    added.append(a)
+                except IntegrityError:
+                    continue  # duplicate alert line: already stored and counted
+        return added
 
     def recent_observations(
         self, limit: int = 100, source_ip: IPv4Address | None = None
@@ -108,6 +115,18 @@ class SqlEventRepository(_Repo):
         )
         with self.engine.connect() as c:
             return _load(HttpObservation, c.execute(q).all())
+
+    def recent_sources(self, since: datetime) -> list[IPv4Address]:
+        """Distinct HTTP client and IDS source addresses seen since ``since``."""
+        cut = utc_naive(since)
+        q = union(
+            select(t.observations.c.client_ip.label("ip")).where(
+                t.observations.c.observed_at >= cut
+            ),
+            select(t.ids_alerts.c.src_ip.label("ip")).where(t.ids_alerts.c.observed_at >= cut),
+        )
+        with self.engine.connect() as c:
+            return [IPv4Address(r[0]) for r in c.execute(q).all()]
 
     def recent_ids_alerts(self, since: datetime) -> list[IdsAlert]:
         q = select(t.ids_alerts.c.body).where(t.ids_alerts.c.observed_at >= utc_naive(since))

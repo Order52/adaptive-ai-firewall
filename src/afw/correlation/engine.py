@@ -127,6 +127,38 @@ class CorrelationEngine:
             discounted_categories=discounted,
         )
 
+    def ids_sources(self, now: datetime) -> set[IPv4Address]:
+        """Sources with IDS alerts inside the lookback."""
+        lo = now - self.ids_lookback
+        return {src for src, q in self._ids.items() if q and q[-1].observed_at >= lo}
+
+    def assess_ids_only(
+        self, app_id: str, src: IPv4Address, now: datetime
+    ) -> RiskAssessment | None:
+        """Assessment for a source seen only by the IDS (scans, non-HTTP probing)."""
+        items = self._ids_evidence(src, now)
+        if not items:
+            return None
+        items += self._history_evidence(src, now)
+        totals: dict[EvidenceCategory, float] = defaultdict(float)
+        for it in items:
+            totals[it.category] += it.points
+        score = min(100.0, sum(min(v, CAPS[k]) for k, v in totals.items()))
+        return RiskAssessment(
+            assessment_id=new_id("risk"),
+            app_id=app_id,
+            source_ip=src,
+            assessed_at=now,
+            window_end=now,
+            score=round(score, 1),
+            band=self._band(score),
+            evidence=tuple(items),
+            corroborating_categories=(EvidenceCategory.IDS,),
+            model_version=None,
+            profile_version=None,
+            view="ids_only",
+        )
+
     def _band(self, score: float) -> RiskBand:
         c = self.cfg
         if score >= c.escalate:

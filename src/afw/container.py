@@ -13,6 +13,7 @@ from afw.domain.adaptation import FeedbackLabel
 from afw.domain.policy import PolicyKind
 from afw.enforcement.memory import MemoryBackend, MemoryProbe
 from afw.enforcement.probe import LabProbe, ProbeAgent
+from afw.geoip import GeoIpDatabase, load_optional
 from afw.ml.datasets import DatasetStore
 from afw.ml.online import CheckpointStore
 from afw.ml.registry import ArtifactStore
@@ -64,6 +65,8 @@ class Container:
     challenger: ChallengerLifecycle
     backends: list[EnforcementBackend]
     simulated: bool
+    geoip: GeoIpDatabase | None = None
+    geoip_error: str | None = None
 
 
 def _backends(
@@ -133,6 +136,7 @@ def build_container(
         cfg, profiles, models, adaptation, events, datasets, artifacts, audit
     )
     learning_repo = SqlLearningRepository(engine)
+    geoip, geoip_error = load_optional(Path(settings.data_dir) / "geo")
     reputation = PersistentReputation(learning_repo, timedelta(seconds=cfg.learning.taint_ttl_s))
     traffic_affecting = set(PolicyKind) - {PolicyKind.WATCH}
     checkpoints = CheckpointStore(
@@ -198,4 +202,6 @@ def build_container(
         challenger=challenger,
         backends=backends,
         simulated=simulated,
+        geoip=geoip,
+        geoip_error=geoip_error,
     )

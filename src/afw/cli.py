@@ -8,13 +8,16 @@ import sys
 from datetime import datetime
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import structlog
 import typer
 import yaml
 
 from afw.config import get_settings, load_lab_config
+
+if TYPE_CHECKING:
+    from afw.lab.scenarios import Registry, RunJournal
 
 app = typer.Typer(no_args_is_help=True, help="AI-Adaptive-Firewall control plane")
 db_app = typer.Typer(no_args_is_help=True, help="Database migrations")
@@ -32,6 +35,13 @@ app.add_typer(ds_app, name="dataset")
 app.add_typer(train_app, name="train")
 app.add_typer(exp_app, name="experiment")
 app.add_typer(ch_app, name="challenger")
+sc_app = typer.Typer(
+    no_args_is_help=True,
+    help="Attack-evaluation harness: ground truth, limits, kill switch (no traffic generation)",
+)
+app.add_typer(sc_app, name="scenario")
+geo_app = typer.Typer(no_args_is_help=True, help="Real GeoIP (DB-IP Country Lite, CC BY 4.0)")
+app.add_typer(geo_app, name="geoip")
 
 
 def configure_logging(level: str = "INFO", as_json: bool = True) -> None:
@@ -172,6 +182,117 @@ def ds_capture(
     )
     path = c.datasets.write(m, obs)
     typer.echo(f"wrote {len(obs)} observations to {path}")
+
+
+# ------------------------------------------------------------------ scenarios
+SCENARIOS = Path("config/scenarios.yaml")
+
+
+def _harness() -> tuple[Registry, RunJournal]:
+    from afw.lab.scenarios import RunJournal, load_registry
+
+    settings = get_settings()
+    cfg = load_lab_config(settings.config)
+    reg = load_registry(SCENARIOS, cfg)
+    return reg, RunJournal(Path.home() / ".config" / "afw" / "runs")
+
+
+def _kill_atk01() -> list[str]:
+    """Kill switch: stop the attack host through the GNS3 API."""
+    from afw.lab.gns3 import Gns3Client
+
+    c = Gns3Client.from_env()
+    p = c.find_project("AI-Adaptive-Firewall")
+    if p is None:
+        return ["project not found: ATK01 NOT stopped"]
+    out = []
+    for name, n in c.node_by_name(p["project_id"]).items():
+        if name == "ATK01" and n["status"] == "started":
+            c.node_action(p["project_id"], n["node_id"], "stop")
+            out.append("ATK01 stopped")
+    return out or ["ATK01 was not running"]
+
+
+@sc_app.command("list")
+def scenario_list() -> None:
+    reg, journal = _harness()
+    for s in reg.scenarios:
+        typer.echo(f"{s.id:<26} {s.family:<28} {s.purpose.value:<8} max {s.max_duration_s}s")
+    act = journal.active()
+    typer.echo(f"active run: {act.run_id} ({act.scenario_id})" if act else "no active run")
+
+
+@sc_app.command("begin")
+def scenario_begin(scenario_id: str, operator: str, notes: str = "") -> None:
+    """Record ground truth: the team starts scenario SCENARIO_ID now."""
+    from afw.domain.common import utcnow
+
+    reg, journal = _harness()
+    r = journal.begin(reg.get(scenario_id), operator, utcnow(), notes)
+    spec = reg.get(scenario_id)
+    typer.echo(f"{r.run_id} begun at {r.begun_at.isoformat()}; max {spec.max_duration_s}s")
+    typer.echo("allowed targets: " + ", ".join(f"{t.ip}:{t.port}" for t in spec.targets))
+
+
+@sc_app.command("mark")
+def scenario_mark(run_id: str, label: str) -> None:
+    from afw.domain.common import utcnow
+
+    _, journal = _harness()
+    journal.mark(run_id, label, utcnow())
+    typer.echo("marked")
+
+
+@sc_app.command("end")
+def scenario_end(run_id: str) -> None:
+    from afw.domain.common import utcnow
+
+    _, journal = _harness()
+    r = journal.end(run_id, utcnow())
+    typer.echo(f"{r.run_id} ended at {r.ended_at}")
+
+
+@sc_app.command("abort")
+def scenario_abort(run_id: str, reason: str) -> None:
+    """KILL SWITCH: stop ATK01 now, then record the abort."""
+    from afw.domain.common import utcnow
+
+    _, journal = _harness()
+    r = journal.abort(run_id, reason, utcnow(), _kill_atk01)
+    typer.echo(f"{r.run_id} {r.status.value}: {r.kill_result}")
+
+
+@sc_app.command("watchdog")
+def scenario_watchdog(every_s: float = 5.0) -> None:
+    """Keep running during a team run: aborts it (stops ATK01) past its max duration."""
+    import time as _time
+
+    from afw.domain.common import utcnow
+
+    reg, journal = _harness()
+    while journal.active() is not None:
+        r = journal.watchdog(reg, utcnow(), _kill_atk01)
+        if r is not None:
+            typer.echo(f"ABORTED {r.run_id}: {r.abort_reason}: {r.kill_result}")
+            return
+        _time.sleep(every_s)
+    typer.echo("no active run")
+
+
+@sc_app.command("manifest")
+def scenario_manifest(
+    run_id: str,
+    out: Path,
+    benign: Annotated[str, typer.Option(help="comma-separated benign background IPs")] = "",
+) -> None:
+    """Write the capture manifest (ground truth from the journal) for `afw dataset capture`."""
+    from afw.lab.scenarios import manifest_for
+
+    reg, journal = _harness()
+    r = journal.get(run_id)
+    ips = [IPv4Address(x) for x in benign.split(",") if x]
+    out.write_text(json.dumps(manifest_for(r, reg.get(r.scenario_id), ips), indent=2))
+    typer.echo(f"wrote {out}")
 
 
 # ---------------------------------------------------------------- challenger
@@ -342,6 +463,48 @@ def experiment_online_replay(
     typer.echo(text)
 
 
+@exp_app.command("evaluate")
+def experiment_evaluate(
+    datasets: Annotated[str, typer.Option(help="comma-separated labelled attack runs")],
+    app_id: str = "rental",
+    allow_synthetic: Annotated[
+        bool, typer.Option(help="permit synthetic data (output labelled NOT A RESULT)")
+    ] = False,
+    out: Annotated[Path | None, typer.Option(help="write the JSON report here")] = None,
+) -> None:
+    """M6: M0/M1/M2 across labelled attack runs with run-level confidence intervals."""
+    from afw.ml.experiments import run_experiment
+    from afw.ml.run_evaluation import aggregate, is_synthetic
+
+    c = _container()
+    loaded = c.learning.load_active(app_id)
+    if loaded is None:
+        typer.echo(f"no trusted profile for {app_id}")
+        raise typer.Exit(1)
+    profile, models = loaded
+    ids = [d for d in datasets.split(",") if d]
+    manifests = [c.datasets.manifest(d) for d in ids]
+    bad = [m.dataset_id for m in manifests if is_synthetic(m)]
+    if bad and not allow_synthetic:
+        typer.echo(f"refusing synthetic datasets {bad} (use --allow-synthetic for a labelled demo)")
+        raise typer.Exit(2)
+    reports = [
+        run_experiment(
+            cfg=c.cfg,
+            profile=profile,
+            models=models,
+            manifest=m,
+            observations=c.datasets.observations(m.dataset_id),
+        )
+        for m in manifests
+    ]
+    result = aggregate(reports, manifests, allow_synthetic=allow_synthetic)
+    text = json.dumps({**result, "per_run": [r.to_dict() for r in reports]}, indent=2, default=str)
+    if out:
+        out.write_text(text)
+    typer.echo(json.dumps(result, indent=2, default=str))
+
+
 @exp_app.command("adaptation")
 def experiment_adaptation(
     learn: Annotated[str, typer.Option(help="comma-separated recorded benign drift runs")],
@@ -388,6 +551,37 @@ def _f(x: float | None) -> str:
 
 if __name__ == "__main__":
     app()
+
+
+@geo_app.command("install")
+def geoip_install(
+    file: Path,
+    release: Annotated[str, typer.Option(help="DB-IP release month, YYYY-MM")],
+    source: Annotated[str, typer.Option(help="download URL, recorded as provenance")],
+) -> None:
+    """Install a downloaded dbip-country-lite CSV (.csv.gz) into <data_dir>/geo."""
+    from afw.config import get_settings
+    from afw.domain.common import utcnow
+    from afw.geoip import install
+
+    meta = install(file, Path(get_settings().data_dir) / "geo", release, source, utcnow())
+    typer.echo(json.dumps(meta.__dict__, indent=2))
+
+
+@geo_app.command("lookup")
+def geoip_lookup(ip: str) -> None:
+    from ipaddress import IPv4Address
+
+    from afw.config import get_settings
+    from afw.domain.common import utcnow
+    from afw.geoip import load_optional
+
+    db, err = load_optional(Path(get_settings().data_dir) / "geo")
+    if db is None:
+        typer.echo(err)
+        raise typer.Exit(1)
+    typer.echo(json.dumps({"ip": ip, "country": db.lookup(IPv4Address(ip))}))
+    typer.echo(json.dumps(db.status(utcnow())))
 
 
 lab_app = typer.Typer(no_args_is_help=True, help="GNS3 lab automation (API v2)")

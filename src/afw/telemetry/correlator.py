@@ -9,15 +9,19 @@ Identity rules (see docs/ARCHITECTURE_DECISIONS.md ADR-007):
 
 from __future__ import annotations
 
+import hashlib
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from afw.domain.common import new_id
 from afw.domain.events import HttpObservation, IdsAlert, Provenance
 from afw.telemetry.parsers.records import AppRecord, SuricataAlert, WafAccess, WafAudit
 from afw.telemetry.routes import RouteMatcher
 from afw.telemetry.stats import TelemetryStats
+
+SCHEMA_VERSION = 2  # telemetry envelope: content ids for IDS, receipt time (M5)
 
 
 @dataclass
@@ -133,6 +137,8 @@ class RequestCorrelator:
             app_version=app.app_version if app else None,
             reached_backend=reached,
             provenance=Provenance.AUTHENTICATED if authenticated else Provenance.UNVERIFIED,
+            schema_version=SCHEMA_VERSION,
+            received_at=access.received_at,
         )
 
     @property
@@ -140,5 +146,24 @@ class RequestCorrelator:
         return len(self._pending)
 
 
-def to_ids_alert(rec: SuricataAlert) -> IdsAlert:
-    return IdsAlert(event_id=new_id("ids"), **rec.model_dump())
+def to_ids_alert(rec: SuricataAlert, received_at: datetime | None = None) -> IdsAlert:
+    """Content-derived id: the same Suricata alert line always yields the same id."""
+    key = "|".join(
+        str(x)
+        for x in (
+            rec.sensor_id,
+            rec.flow_id,
+            rec.observed_at.isoformat(),
+            rec.signature_id,
+            rec.src_ip,
+            rec.dst_ip,
+            rec.dst_port,
+            rec.proto,
+        )
+    )
+    return IdsAlert(
+        event_id="ids-" + hashlib.sha256(key.encode()).hexdigest()[:32],
+        schema_version=SCHEMA_VERSION,
+        received_at=received_at,
+        **rec.model_dump(),
+    )

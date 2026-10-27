@@ -98,3 +98,44 @@ def test_challenger_lifecycle_endpoints_are_admin_gated_and_refuse_without_a_cha
         "/api/learning/challenger/rollback", json={"note": "undo"}, headers=tok["admin"]
     )
     assert r.status_code == 409
+
+
+def test_geoip_endpoints_lookup_and_preview_without_enforcing(settings, tmp_path):
+    import gzip
+
+    from conftest import T0
+
+    from afw.geoip import install
+
+    settings = settings.model_copy(update={"api_tokens_file": tmp_path / "tokens.yaml"})
+    client, tok, _ = client_with_tokens(settings)
+    assert client.get("/api/geo/status", headers=tok["viewer"]).json()["loaded"] is False
+    assert client.get("/api/geo/lookup/1.0.1.1", headers=tok["viewer"]).status_code == 503
+
+    src = tmp_path / "dl.csv.gz"
+    with gzip.open(src, "wt") as f:
+        f.write("1.0.0.0,1.0.0.255,AU\n1.0.1.0,1.0.3.255,CN\n")
+    install(src, settings.data_dir / "geo", "2026-10", "u", T0, min_ranges=1)
+    client, tok, _ = client_with_tokens(settings)
+    v = tok["viewer"]
+    assert client.get("/api/geo/status", headers=v).json()["release"] == "2026-10"
+    assert client.get("/api/geo/lookup/1.0.1.1", headers=v).json()["country"] == "CN"
+    assert client.get("/api/geo/lookup/10.77.10.10", headers=v).json()["country"] is None
+    p = client.get("/api/geo/preview/cn", params={"direction": "inbound"}, headers=v).json()
+    assert p["networks"] == 2 and p["lab_effect"].startswith("none")
+    assert client.get("/api/geo/preview/XX", headers=v).status_code == 404
+    assert client.get("/api/geo/status").status_code == 401
+    real = {
+        "kind": "geo_block",
+        "target": {
+            "type": "country",
+            "country_code": "CN",
+            "direction": "inbound",
+            "simulated": False,
+        },
+        "duration_s": 600,
+        "reason": "real country",
+    }
+    r = client.post("/api/policies", json=real, headers=tok["admin"])
+    assert r.status_code in (200, 201, 409)
+    assert "not implemented" in r.text

@@ -10,5 +10,6 @@ ruleset(name="afw_fwd") {
          template="RSYSLOG_TraditionalForwardFormat"
          queue.type="LinkedList" queue.size="20000" queue.filename="afw_app_fwd"
          queue.saveOnShutdown="on" queue.maxDiskSpace="100m"
-         action.resumeRetryCount="-1")
+         RebindInterval="2000"
+         action.resumeRetryCount="-1" action.resumeInterval="10")
 }

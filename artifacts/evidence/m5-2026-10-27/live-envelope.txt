@@ -1,0 +1,10 @@
+ids ids-11c62b564acc014a300f48aaa212d5f6 2 2026-10-27T20:01:57.430144Z 10.77.10.10 ET SCAN Suspicious inbound to mySQL port
+ids ids-de0d6e64a70db9976166fa8d4f49ff37 2 2026-10-27T20:01:56.425893Z 10.77.10.10 ET SCAN Suspicious inbound to mySQL port
+ids ids-a6130d6c3eff74fff83249fb1fb7cabe 2 2026-10-27T20:01:55.420854Z 10.77.10.10 ET SCAN Suspicious inbound to mySQL port
+obs None None 2026-10-27T19:18:06.076000Z authenticated
+obs None None 2026-10-27T19:18:06.066000Z authenticated
+obs None None 2026-10-27T19:18:04.986000Z authenticated
+ids_only 10.77.10.10 29.0 low
+{'ids_only_assessment': 2}
+obs None None 2026-10-27T19:18:06.076000Z authenticated 10.77.20.12
+obs None None 2026-10-27T19:18:06.066000Z authenticated 10.77.20.12

@@ -43,6 +43,11 @@ class DecisionEngine:
             )
 
         codes = [e.code for e in ra.evidence if e.points > 0]
+        if ra.view == "ids_only":
+            # IDS alone never authorizes a traffic-affecting change (M5).
+            if ra.score >= r.watch:
+                return intent(PolicyKind.WATCH, [*codes, "ids_only_observe"], duration_s=600)
+            return None
         if ra.score >= r.block and len(cats) >= need:
             level = min(5, prior_blocks + (1 if ra.score >= r.escalate else 0))
             duration = int(r.base_block_s * (r.escalation_factor**level))

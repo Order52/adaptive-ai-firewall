@@ -7,7 +7,7 @@ import time
 from datetime import datetime, timedelta
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import psutil
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -30,6 +30,7 @@ from afw.domain.policy import (
     PolicyTarget,
     RateProfile,
 )
+from afw.geoip import GeoIpDatabase, country_preview
 from afw.ml.inference import Strategy
 from afw.policy.service import PolicyError
 from afw.profiling.builder import diff_profiles
@@ -214,11 +215,43 @@ def create_app(c: Container) -> FastAPI:
             "pending_approval": len(
                 [p for p in c.policies_repo.recent(200) if p.state.value == "pending_approval"]
             ),
-            "telemetry": c.stats.snapshot(),
+            "telemetry": {**c.stats.snapshot(), "sensors": c.controller.sensor_health()},
             "telemetry_degraded": ctl.degraded(),
             "adaptation": ctl.drift.snapshot() if ctl.drift else None,
             "resources": resources(c),
+            "geoip": _geo_status(),
         }
+
+    # -------------------------------------------------------------- geoip
+    def _geo_status() -> dict[str, Any]:
+        if c.geoip is None:
+            return {"loaded": False, "reason": c.geoip_error}
+        return c.geoip.status(utcnow())
+
+    def _geo() -> GeoIpDatabase:
+        if c.geoip is None:
+            raise HTTPException(503, c.geoip_error or "no GeoIP database")
+        return c.geoip
+
+    @app.get("/api/geo/status")
+    def geo_status(_: Viewer) -> dict[str, Any]:
+        return _geo_status()
+
+    @app.get("/api/geo/lookup/{ip}")
+    def geo_lookup(_: Viewer, ip: IPv4Address) -> dict[str, Any]:
+        return {"ip": str(ip), "country": _geo().lookup(ip), "database": _geo_status()}
+
+    @app.get("/api/geo/preview/{country_code}")
+    def geo_preview(
+        _: Viewer,
+        country_code: str,
+        direction: Literal["inbound", "outbound", "both"] = "inbound",
+    ) -> dict[str, Any]:
+        seen = c.events.recent_sources(utcnow() - timedelta(hours=24))
+        try:
+            return country_preview(_geo(), country_code, direction, seen, utcnow())
+        except ValueError as exc:
+            raise HTTPException(404, str(exc)) from exc
 
     # ------------------------------------------------------------ evidence
     @app.get("/api/events")

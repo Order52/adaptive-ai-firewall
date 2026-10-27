@@ -23,7 +23,9 @@ _TOTAL_SCORE = re.compile(r"Total Score: (\d+)")
 _CRS_SEVERITY_POINTS = {2: 5, 3: 4, 4: 3, 5: 2}
 # Scoring/reporting rules carry no detection of their own.
 _CRS_NON_DETECTION = range(949000, 999999)
-_SYSLOG_TAG = re.compile(r"\b(afw-waf-access|afw-waf-audit|afw-app|suricata|filterlog)\b")
+_SYSLOG_TAG = re.compile(
+    r"\b(afw-waf-access|afw-waf-audit|afw-app|afw-heartbeat|suricata|filterlog)\b"
+)
 
 
 class ParseError(ValueError):

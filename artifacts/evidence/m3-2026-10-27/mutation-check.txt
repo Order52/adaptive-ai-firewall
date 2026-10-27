@@ -11,3 +11,5 @@ champion-changed -> FAILED tests/unit/test_challenger_lifecycle.py::test_promoti
 probation-persistence -> FAILED tests/unit/test_challenger_lifecycle.py::test_probation_counts_survive_restart 
 restored -> ....................                                                     [100%]
 similarity-check disabled (any anomalous peer counts) -> FAILED tests/unit/test_online_learning.py::test_benign_drift_cannot_vouch_for_poison_sharing_a_driver_name
+M5 ids-only observe rule disabled -> FAILED tests/unit/test_telemetry_v2.py::test_ids_only_source_is_assessed_but_never_more_than_watched 
+M5 random IDS ids (pre-M5 behaviour) -> FAILED tests/unit/test_telemetry_v2.py::test_ids_ids_are_content_derived - As... FAILED tests/unit/test_telemetry_v2.py::test_replayed_ids_line_is_stored_and_counted_once 

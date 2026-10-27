@@ -32,7 +32,6 @@ class Verdict:
 @dataclass
 class PolicyValidator:
     cfg: LabConfig
-    geoip_available: bool = False
     _auto_log: deque[datetime] = field(default_factory=lambda: deque(maxlen=1000))
 
     def validate(
@@ -81,8 +80,13 @@ class PolicyValidator:
                 if not isinstance(target, CountryTarget):
                     errors.append("geo_block requires a country target")
                 else:
-                    if not target.simulated and not self.geoip_available:
-                        errors.append("real country policy requested but no GeoIP database loaded")
+                    if not target.simulated:
+                        # Real GeoIP is lookup and preview only: enforcement would need
+                        # network-granular aliases and rules that do not exist (ADR-033).
+                        errors.append(
+                            "real-country enforcement is not implemented; "
+                            "use the GeoIP preview (ADR-033)"
+                        )
                     if target.simulated:
                         errors += self._check_simulated_geo(target)
                         notes.append("SIMULATED geography: lab addresses mapped synthetically")
