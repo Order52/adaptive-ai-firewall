@@ -70,6 +70,32 @@
     </article>
   </section>
 
+  <section class="grid2">
+    <article class="card">
+      <h2>Online learning (shadow challenger)</h2>
+      <p class="sub">Learns only from mTLS-authenticated, untainted, corroborated benign windows. Shadow only: never influences enforcement.</p>
+      <div id="shadow"></div>
+    </article>
+    <article class="card">
+      <h2>Promotion gate &amp; probation</h2>
+      <p class="sub">A challenger becomes champion only after a passing gate evaluation and a human admin promotion; probation rolls back automatically.</p>
+      <div id="challenger"></div>
+    </article>
+  </section>
+
+  <section class="grid2">
+    <article class="card">
+      <h2>IDS-only sources</h2>
+      <p class="sub">Sources seen by the IDS without HTTP windows. Single-category evidence: watched at most, never blocked on IDS alone.</p>
+      <div id="ids-only"></div>
+    </article>
+    <article class="card">
+      <h2>GeoIP</h2>
+      <p class="sub">Real country lookup and preview (DB-IP Lite, CC BY 4.0). Real-country enforcement is not implemented; lab policies on countries are SIMULATED.</p>
+      <div id="geo"></div>
+    </article>
+  </section>
+
   <section class="card">
     <h2>Static vs statistical vs ML-assisted experiments</h2>
     <p class="sub">Results recorded by <code>afw experiment</code> from captured lab runs. Empty until experiments are run.</p>

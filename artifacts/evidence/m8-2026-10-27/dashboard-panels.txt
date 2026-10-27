@@ -1,0 +1,58 @@
+--- #shadow
+mode
+shadow (no influence on enforcement; promotion only via gate + admin)
+champion
+half_space_trees-p2-20261017190622
+challenger learned / window
+0 / 180
+last checkpoint
+none
+quarantine
+0
+eligible (by stage)
+none since controller start
+excluded (reason)
+none since controller start
+Champion vs challenger (last 200 warm windows)
+both normal
+94
+both anomalous
+106
+champion only
+0
+challenger only
+0
+challenger flags use the champion threshold; the calibrated threshold is set by a promotion-gate evaluation
+Recently learned windows (provenance fingerprint)
+Nothing learned: no window passed eligibility.
+--- #challenger
+Probation
+No active probation (champion unchanged by online learning).
+Gate evaluations
+No evaluations yet.
+Promotion history
+No promotions.
+--- #ids-only
+Assessed	Source	Score	Evidence
+08:02:05 PM	10.77.10.10	
+29 low	suricata_alert, prior_activity
+08:01:05 PM	10.77.10.10	
+12 none	suricata_alert
+--- #geo
+release
+2026-10
+age (days)
+26
+ranges
+362122
+sha256
+097426b8ddae8915…
+license
+IP Geolocation by DB-IP (https://db-ip.com), CC BY 4.0
+fresh
+--- #telemetry
+sensor app (mTLS heartbeat)
+awaiting first heartbeat
+sensor waf (mTLS heartbeat)
+awaiting first heartbeat
+console/page errors: none

@@ -6,7 +6,7 @@ Status words: **DONE** (implemented, tested, evidence exists), **PARTIAL** (some
 acceptance criteria open, listed), **BLOCKED-EXT** (needs something only the team can
 supply), **TODO**.
 
-Last updated: 2026-10-27 (M3 implemented; live 75-min benign run in progress).
+Last updated: 2026-10-27 ~21:00Z (M4 committed; M5–M8 implemented and live-verified; M9 next).
 
 ## Milestones
 
@@ -14,20 +14,21 @@ Last updated: 2026-10-27 (M3 implemented; live 75-min benign run in progress).
 |---|---|---|---|---|
 | M0 | Phase 0 audit, baseline, hygiene | DONE | `b3c8702`, `d096cc0` | `docs/audit/PHASE0_AUDIT_2026-10-27.md`, `artifacts/evidence/phase0-2026-10-27/` |
 | M1 | Provenance-aware corroboration (ADR-027) | DONE (SV-1 open, see risks) | `9b99947` | `tests/unit/test_evidence_independence.py` |
-| M2 | Online shadow learning, eligibility, provenance, mTLS (ADR-028/029) | PARTIAL: live pivot-level evidence and restart-on-CTRL01 evidence pending | `a5f5d9f`, `673202a`, `f41f6cf` | `artifacts/evidence/m2-2026-10-27/`, `docs/engineering/M2_ONLINE_LEARNING_DESIGN.md` |
-| M3 | Champion/challenger gate, human promotion, probation, auto-rollback (ADR-030) | DONE (code + tests); live gate BLOCKED-EXT (no real labelled attack runs) | pending | `docs/engineering/M3_CHAMPION_CHALLENGER.md`, `artifacts/evidence/m3-2026-10-27/` |
-| M4 | Adaptation experiments (drift, poisoning, replay) | TODO | | |
-| M5 | Telemetry v2 / IDS-only view | TODO | | |
-| M6 | Attack evaluation harness | TODO (gate BLOCKED-EXT on team attack traces) | | |
-| M7 | Real GeoIP (DB-IP Lite, pre-authorised) | TODO | | |
-| M8 | Dashboard (shadow, gate, probation views) | TODO | | |
+| M2 | Online shadow learning, eligibility, provenance, mTLS (ADR-028/029) | PARTIAL: pivot and checkpoint-restore shown on real benign replays (227 learned, 1 pivot, restore true); live challenger learned 0 because every new live source was tainted by champion proposals (fail-closed by design), so no live pivot or live restore yet | `a5f5d9f`, `673202a`, `f41f6cf` | `artifacts/evidence/m2-2026-10-27/`, `docs/engineering/M2_ONLINE_LEARNING_DESIGN.md` |
+| M3 | Champion/challenger gate, human promotion, probation, auto-rollback (ADR-030) | DONE (code + tests + live refusals); live gate BLOCKED-EXT (no real labelled attack runs) | `44031d4` | `docs/engineering/M3_CHAMPION_CHALLENGER.md`, `artifacts/evidence/m3-2026-10-27/` |
+| M4 | Adaptation experiments: real drift, poisoning, regression rollback | DONE: found and fixed a real poisoning flaw (driver-name corroboration); gate still FAILS on attack recall (BLOCKED-EXT) and sensitive invariance (real finding) | `346f9d9` | `docs/engineering/M4_ADAPTATION_EXPERIMENTS.md`, `artifacts/evidence/m3-2026-10-27/m4-adaptation*.json` |
+| M5 | Telemetry v2: envelope, IDS dedup, IDS-only view, heartbeats, liveness (ADR-031) | DONE: live-verified. Found and fixed two live defects (silent ~55 min stall after restart; heartbeat JSON mangled by systemd quoting). Residual: TCP syslog loses lines written into a dead session (≤ about 100 s), RELP not done | `81e8d76` | `docs/engineering/M5_TELEMETRY_V2.md`, `artifacts/evidence/m5-2026-10-27/` |
+| M6 | Attack-evaluation harness: registry, journal, kill switch, watchdog, run-level CIs (ADR-032) | DONE (harness); Gate B BLOCKED-EXT on team attack runs | `81e8d76` | `docs/engineering/M6_ATTACK_EVALUATION.md`, `artifacts/evidence/m6-2026-10-27/` |
+| M7 | Real GeoIP: DB-IP Lite, integrity, freshness, preview (ADR-033) | DONE (lookup + preview, live); real-country *enforcement* deliberately refused (not implemented, documented) | `81e8d76` | `docs/engineering/M7_GEOIP.md`, `artifacts/evidence/m7-2026-10-27/` |
+| M8 | Dashboard: shadow learning (eligibility exclusions, learned-window fingerprints), gate/probation, sensor liveness, IDS-only, GeoIP freshness | DONE: deployed and rendered live (headless Chromium, no console errors); screenshot kept locally (`dashboard-m8.png`, not committed) | this commit | `artifacts/evidence/m8-2026-10-27/dashboard-panels.txt` |
 | M9 | Docs consolidation, validation matrix | TODO | | |
 
 ## Tests (latest full run)
 
 `uv run ruff check . && uv run ruff format --check . && uv run mypy src && uv run pytest -q`
-→ ruff clean, mypy clean (90 files), pytest 121 passed, 9 skipped (lab tests need
-`AFW_LAB=1`). Live: `uv run afw lab verify` 37/37; `AFW_LAB=1 uv run pytest tests/lab` 9 passed.
+→ ruff clean, mypy clean (94 files), pytest 155 passed, 9 skipped (lab tests need
+`AFW_LAB=1`). Mutation checks: M5 (in M5 doc), M6 10/10, M7 7/7 caught.
+Live (M5 run): `uv run afw lab verify` 37/37; `AFW_LAB=1 uv run pytest tests/lab` 9 passed.
 
 ## Acceptance gates (directive A–G)
 
@@ -47,17 +48,27 @@ attack-detection results stays **failed/blocked** until real labelled attack run
   reference pivot (window 180) needs at least 1.5 h of 6 clean tenured sources.
 * No real labelled attack runs: M3 live gate, M6 metrics and every attack-recall claim
   are blocked externally.
+* **Sensitive-feature invariance fails on the real drift experiment** (M4): the adapted
+  challenger flags 0.162 of attack-like probes, against the champion's 0.419 (limit
+  0.369). Learning drift lost sensitivity to high-auth-failure behaviour; a promotion
+  would be refused. A real finding, not hidden.
+* **Residual poisoning risk** (M4): four or more colluding tenured sources with similar
+  behaviour can still corroborate each other. Documented, not solved.
+* **Telemetry loss window** (M5): up to about 100 s of lines written into a dead TCP
+  session are lost; heartbeat staleness makes the gap visible. RELP would close it.
+* **Kill switch** (M6) was verified by unit test and a read-only live lookup of ATK01,
+  not by actually stopping ATK01.
 
 ## Blocked tasks (external)
 
-* Team-supplied attack scenarios as datasets (`afw dataset capture` with a manifest
-  listing `role: attack` sources) → unblocks M3 live gate, M6 evaluation, gate recall checks.
+* Team-run attack scenarios through the M6 harness (`afw scenario begin/mark/end`,
+  `afw scenario manifest`, `afw dataset capture`), at least 3 runs per family →
+  unblocks Gate B, the M3 live gate and `afw experiment evaluate`.
 
 ## Next task
 
-Finish M2 live evidence after the run ends (~19:18Z): capture the run as a dataset,
-redeploy CTRL01 (restart = checkpoint-restore evidence), replay with relaxed caps for
-a pivot, run `afw challenger evaluate` live (expected FAIL: no real attack runs). Then M4.
+M9: consolidate documentation (validation matrix, single project status), then the
+final handoff.
 
 ## Resume commands
 

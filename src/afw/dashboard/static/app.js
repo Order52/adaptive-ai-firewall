@@ -219,12 +219,61 @@ async function renderExperiments() {
 
 function renderTelemetry(o) {
   const t = o.telemetry;
-  if (!Object.keys(t.age_s).length && !Object.keys(t.counts).length) {
+  const sensors = Object.entries(t.sensors || {}).map(([role, s]) => `<dt>sensor ${esc(role)} (mTLS heartbeat)</dt><dd>${badge(s.stale ? "var(--critical)" : s.heartbeat_age_s === null ? "var(--warning)" : "var(--good)", s.stale ? "STALE — evidence degraded" : s.heartbeat_age_s === null ? "awaiting first heartbeat" : `${fmt(s.heartbeat_age_s, 0)} s ago`)}</dd>`).join("");
+  if (!Object.keys(t.age_s).length && !Object.keys(t.counts).length && !sensors) {
     $("#telemetry").innerHTML = `<div class="empty">No telemetry received yet (WAF / app / IDS feeds).</div>`;
     return;
   }
-  $("#telemetry").innerHTML = `<dl class="kv">${Object.entries(t.age_s).map(([k, v]) => `<dt>${esc(k)} last seen</dt><dd>${badge(v < 60 ? "var(--good)" : "var(--warning)", `${fmt(v, 0)} s ago`)}</dd>`).join("")}
+  $("#telemetry").innerHTML = `<dl class="kv">${sensors}${Object.entries(t.age_s).filter(([k]) => !k.startsWith("heartbeat:")).map(([k, v]) => `<dt>${esc(k)} last seen</dt><dd>${badge(v < 60 ? "var(--good)" : "var(--warning)", `${fmt(v, 0)} s ago`)}</dd>`).join("")}
     ${Object.entries(t.counts).sort().map(([k, v]) => `<dt>${esc(k)}</dt><dd class="num">${v}</dd>`).join("")}</dl>`;
+}
+
+const kvList = (o) => `<dl class="kv">${Object.entries(o).map(([k, v]) => `<dt>${esc(k)}</dt><dd class="mono">${esc(typeof v === "object" && v !== null ? JSON.stringify(v) : v ?? "–")}</dd>`).join("")}</dl>`;
+const checks = (cs) => cs.map((c) => `<span class="check">${c.passed ? "✔" : "✘"} ${esc(c.name)}${c.value !== null && c.value !== undefined ? ` = ${fmt(c.value, 4)}` : ""}${c.limit !== null && c.limit !== undefined ? ` (limit ${fmt(c.limit, 4)})` : ""}${c.detail ? ` — ${esc(c.detail)}` : ""}</span>`).join("<br>");
+
+const nz = (o) => (o && Object.keys(o).length ? o : "none since controller start");
+
+async function renderShadow() {
+  let sh;
+  try { sh = await api("/api/learning/shadow?limit=200"); } catch (_) { return; }
+  const st = sh.status;
+  if (!st) { $("#shadow").innerHTML = `<div class="empty">Online learning disabled.</div>`; return; }
+  const ch = st.challenger || {};
+  const ag = sh.agreement;
+  const learned = sh.recent_learned.slice(0, 6).map((w) => `<tr><td>${tShort(w.learned_at)}</td><td class="mono">${esc(w.source_ip)}</td><td class="num">${fmt(w.champion_score, 3)}</td><td class="num">${w.n_learned_after}</td><td class="mono">${esc(w.fingerprint.slice(0, 12))}</td></tr>`).join("");
+  $("#shadow").innerHTML = `${kvList({
+    mode: st.mode, champion: st.champion_model,
+    "challenger learned / window": `${ch.n_learned ?? 0} / ${ch.window_size ?? "–"}${ch.warm ? "" : " (cold)"}`,
+    "last checkpoint": st.last_checkpoint ? `#${st.last_checkpoint.seq} · n=${st.last_checkpoint.n_learned} · ${tShort(st.last_checkpoint.created_at)}` : "none",
+    quarantine: st.quarantine, "eligible (by stage)": nz(st.counts), "excluded (reason)": nz(st.excluded),
+  })}
+  <h3>Champion vs challenger (last ${ag ? ag.windows : 0} warm windows)</h3>${ag ? kvList({ "both normal": ag.both_normal, "both anomalous": ag.both_anomalous, "champion only": ag.champion_only_anomalous, "challenger only": ag.challenger_only_anomalous }) + `<div class="sub">${esc(ag.note)}</div>` : `<div class="empty">No warm shadow scores yet.</div>`}
+  <h3>Recently learned windows (provenance fingerprint)</h3>${learned ? `<div class="table-wrap short"><table><thead><tr><th>Learned</th><th>Source</th><th class="num">Champion</th><th class="num">n</th><th>Fingerprint</th></tr></thead><tbody>${learned}</tbody></table></div>` : `<div class="empty">Nothing learned: no window passed eligibility.</div>`}`;
+}
+
+async function renderChallenger() {
+  let c;
+  try { c = await api("/api/learning/challenger"); } catch (_) { return; }
+  const p = c.probation;
+  const prob = p ? kvList({ status: p.status, model: p.model_id, parent: p.parent_model_id, until: p.until, windows: p.windows, anomalous: p.anomalous, "baseline rate": fmt(p.baseline_rate, 3) }) : `<div class="empty">No active probation (champion unchanged by online learning).</div>`;
+  const evals = c.evaluations.map((e) => `<div class="ev"><b>${tShort(e.evaluated_at)}</b> ${badge(e.passed ? "var(--good)" : "var(--critical)", e.passed ? "gate passed — candidate frozen, awaiting admin" : "gate failed — not promotable")} · learned ${e.n_learned}<br>${checks(e.checks)}</div>`).join("");
+  const hist = c.history.map((h) => `<div class="ev">${badge(h.status === "active" ? "var(--warning)" : h.status === "rolled_back" ? "var(--critical)" : "var(--good)", h.status)} ${esc(h.model_id)} ${h.reason ? `— ${esc(h.reason)}` : ""}</div>`).join("");
+  $("#challenger").innerHTML = `<h3>Probation</h3>${prob}<h3>Gate evaluations</h3>${evals || `<div class="empty">No evaluations yet.</div>`}<h3>Promotion history</h3>${hist || `<div class="empty">No promotions.</div>`}`;
+}
+
+async function renderIdsOnly() {
+  let as;
+  try { as = await api("/api/assessments?limit=400"); } catch (_) { return; }
+  const ids = as.filter((a) => a.view === "ids_only").slice(0, 12);
+  $("#ids-only").innerHTML = ids.length ? `<div class="table-wrap short"><table><thead><tr><th>Assessed</th><th>Source</th><th>Score</th><th>Evidence</th></tr></thead><tbody>${ids.map((a) => { const [c, l] = BAND[a.band] || BAND.none; return `<tr><td>${tShort(a.assessed_at)}</td><td class="mono">${esc(a.source_ip)}</td><td>${badge(c, `${fmt(a.score, 1)} ${l}`)}</td><td>${a.evidence.map((e) => esc(e.code)).join(", ")}</td></tr>`; }).join("")}</tbody></table></div>` : `<div class="empty">No IDS-only assessments in the recent history.</div>`;
+}
+
+function renderGeo(o) {
+  const g = o.geoip;
+  if (!g) return;
+  $("#geo").innerHTML = g.loaded
+    ? `${kvList({ release: g.release, "age (days)": g.age_days, ranges: g.ranges, sha256: g.sha256.slice(0, 16) + "…", license: g.license })}${g.stale ? badge("var(--critical)", "STALE — install a newer release") : badge("var(--good)", "fresh")}`
+    : `<div class="empty">${esc(g.reason || "not loaded")}</div>`;
 }
 
 async function renderAudit() {
@@ -245,9 +294,10 @@ async function refresh() {
   lineChart($("#req-chart"), overview.timeline, { key: "requests", label: "requests" });
   renderSources(overview);
   renderTelemetry(overview);
+  renderGeo(overview);
 }
 
-async function slow() { renderPolicies(); renderAdaptation(); renderModels(); renderExperiments(); renderAudit(); if (selected) renderBaseline(); }
+async function slow() { renderPolicies(); renderAdaptation(); renderShadow(); renderChallenger(); renderIdsOnly(); renderModels(); renderExperiments(); renderAudit(); if (selected) renderBaseline(); }
 
 refresh(); slow();
 setInterval(refresh, 2000);

@@ -410,7 +410,7 @@ class ShadowLearner:
             ch = self.challenger
             return {
                 "enabled": self.lc.enabled,
-                "mode": "shadow (no influence on enforcement; promotion requires M3)",
+                "mode": "shadow (no influence on enforcement; promotion only via gate + admin)",
                 "champion_model": self.champion.record.version if self.champion else None,
                 "challenger": None if ch is None else {**ch.state(), "warm": ch.warm},
                 "last_checkpoint": None
