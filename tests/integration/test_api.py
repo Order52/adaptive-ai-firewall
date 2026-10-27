@@ -74,3 +74,27 @@ def test_shadow_learning_endpoint_is_read_only_and_reports_state(settings):
     assert client.post("/api/learning/shadow", headers=tok["admin"]).status_code == 405
     adapt = client.get("/api/adaptation", headers=tok["viewer"]).json()
     assert "shadow_learner" in adapt
+
+
+def test_challenger_lifecycle_endpoints_are_admin_gated_and_refuse_without_a_challenger(settings):
+    client, tok, _ = client_with_tokens(settings)
+    body = client.get("/api/learning/challenger", headers=tok["viewer"]).json()
+    assert body["probation"] is None and body["evaluations"] == []
+    req = {"benign_dataset_ids": ["hold"], "attack_dataset_ids": []}
+    for role in ("viewer", "op", "claude"):
+        r = client.post("/api/learning/challenger/evaluate", json=req, headers=tok[role])
+        assert r.status_code == 403
+        r = client.post(
+            "/api/learning/challenger/ev-x/promote", json={"note": "ok!"}, headers=tok[role]
+        )
+        assert r.status_code == 403
+    r = client.post("/api/learning/challenger/evaluate", json=req, headers=tok["admin"])
+    assert r.status_code == 409 and "no trusted profile" in r.json()["detail"]
+    r = client.post(
+        "/api/learning/challenger/ev-x/promote", json={"note": "ok!"}, headers=tok["admin"]
+    )
+    assert r.status_code == 409 and "unknown evaluation" in r.json()["detail"]
+    r = client.post(
+        "/api/learning/challenger/rollback", json={"note": "undo"}, headers=tok["admin"]
+    )
+    assert r.status_code == 409

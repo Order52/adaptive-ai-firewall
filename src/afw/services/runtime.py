@@ -37,6 +37,7 @@ from afw.persistence.repositories import (
 from afw.policy.decision import DecisionEngine
 from afw.policy.service import PolicyService
 from afw.profiling.adaptation import DriftMonitor, PersistentReputation, SourceReputation
+from afw.services.challenger import ChallengerLifecycle
 from afw.services.learning import LearningService
 from afw.services.shadow import ShadowLearner
 from afw.telemetry.correlator import RequestCorrelator, to_ids_alert
@@ -80,6 +81,7 @@ class Controller:
         clock: Callable[[], datetime] = utcnow,
         reputation: PersistentReputation | SourceReputation | None = None,
         shadow: ShadowLearner | None = None,
+        lifecycle: ChallengerLifecycle | None = None,
     ) -> None:
         self.cfg = cfg
         self.stats = stats
@@ -102,6 +104,7 @@ class Controller:
         self.decisions = DecisionEngine(cfg)
         self.reputation = reputation or SourceReputation()
         self.shadow = shadow
+        self.lifecycle = lifecycle
         self.windows = SlidingWindows(
             cfg.window, EndpointCatalog(frozenset(), frozenset(), frozenset())
         )
@@ -227,12 +230,16 @@ class Controller:
             for fv in vectors:
                 out.append(self._process_window(fv, now, degraded))
             self._record_timeline(now, vectors, out)
+            if self.lifecycle is not None and self.lifecycle.check(self.app_id, now):
+                self.reload()  # probation breached: the parent champion is active again
         self.tick_ms.append((time.perf_counter() - t0) * 1000)
         return out
 
     def _process_window(self, fv: FeatureVector, now: datetime, degraded: bool) -> RiskAssessment:
         detections = self.inference.score(fv)
         ra = self.correlation.assess(fv, detections, now, degraded=degraded)
+        if self.lifecycle is not None:
+            self.lifecycle.observe(fv.app_id, detections)  # probation counts only
         watched = self.policies.has_active(fv.source_ip, {PolicyKind.WATCH})
         self.analysis.add_features([fv], dataset_id=None)
         for d in detections:

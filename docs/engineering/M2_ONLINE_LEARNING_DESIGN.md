@@ -91,8 +91,12 @@ learning admits nothing.** That is the required safe default.
 3. source not protected, sensor or probe: else `protected`
 4. no positive WAF, IDS or AUTH evidence in this window's assessment: else
    `negative_evidence` (and the source is **tainted**)
-5. no champion detector anomalous: else `champion_anomalous` (and the source is
-   tainted with a shorter TTL). **This is an exclusion, not a proof of benignity**
+5. *(revised during implementation)* a window that a trusted detector flags as
+   anomalous is **not** excluded here and does **not** taint its source; it is marked
+   `anomalous` with its top-2 driver features and must pass the multi-source
+   corroboration check in stage 2. Excluding every champion-anomalous window would make
+   the challenger structurally unable to adapt to exactly the drift the champion
+   mis-scores. Traffic-affecting *policies* (not WATCH) still taint the source.
 6. security-sensitive features (`auth_fail_frac`, `client_err_frac`,
    `distinct_usernames`, `login_rate`) at or below the trusted profile q99: else
    `sensitive_range`
@@ -112,6 +116,11 @@ blocks, policies, operator feedback.
    admitted windows: else `source_share`
 5. **population**: at least `min_distinct_sources` distinct sources released in the
    last hour: else held back (`population`)
+6. **anomalous windows need corroboration**: at least `anomaly_min_sources` (default 3)
+   distinct ready sources showing the same anomaly drivers, with no source above
+   `2 x max_source_share` of them; else held until quarantine expiry, then
+   `champion_anomalous`. A concentrated attack from one or two sources therefore never
+   becomes "normal" (tested).
 
 Admitted windows are learned prequentially: **score the window with the challenger
 (and the frozen champion HST) first, then `learn_one`**. The pre-learning scores are
@@ -135,6 +144,11 @@ restart.
 - **Sensor compromise.** A compromised WAF01 or APP01 host holds a valid TLS key and can
   emit authenticated but false telemetry. mTLS authenticates the channel, not the
   truth of its content.
+- **Champion false positives lock out learning (observed live, 2026-10-27).** The
+  champion flagged benign personas on new source IPs; its traffic-affecting proposals
+  (monitor mode, not enforced) tainted those sources, so the live challenger learned 0
+  windows from them. The gate is fail-closed by design; lifting taint needs a human
+  `FALSE_POSITIVE` decision (M3). Evidence: `artifacts/evidence/m2-2026-10-27/live-shadow-midrun.txt`.
 - **IP identity.** Sources are IPs; a NAT shared by legitimate and malicious users
   mixes them. In the lab each client IP is one host.
 

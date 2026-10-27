@@ -351,6 +351,7 @@ class ShadowLearner:
                 champion_score=round(champ, 6),
                 challenger_warm_before=warm,
                 n_learned_after=self.challenger.n_learned,
+                parent_model_id=self.challenger.parent.model_id,
             )
         )
         self.counts["learned"] += 1

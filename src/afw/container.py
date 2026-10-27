@@ -33,6 +33,7 @@ from afw.policy.service import PolicyService
 from afw.policy.validator import PolicyValidator
 from afw.ports.enforcement import EnforcementBackend, TrafficProbe
 from afw.profiling.adaptation import PersistentReputation
+from afw.services.challenger import ChallengerLifecycle
 from afw.services.learning import LearningService
 from afw.services.runtime import Controller
 from afw.services.shadow import ShadowLearner, checkpoint_root
@@ -60,6 +61,7 @@ class Container:
     policy_service: PolicyService
     learning: LearningService
     controller: Controller
+    challenger: ChallengerLifecycle
     backends: list[EnforcementBackend]
     simulated: bool
 
@@ -133,14 +135,13 @@ def build_container(
     learning_repo = SqlLearningRepository(engine)
     reputation = PersistentReputation(learning_repo, timedelta(seconds=cfg.learning.taint_ttl_s))
     traffic_affecting = set(PolicyKind) - {PolicyKind.WATCH}
+    checkpoints = CheckpointStore(
+        checkpoint_root(Path(settings.data_dir)), learning_repo, keep=cfg.learning.keep_checkpoints
+    )
     shadow = ShadowLearner(
         cfg,
         learning_repo,
-        CheckpointStore(
-            checkpoint_root(Path(settings.data_dir)),
-            learning_repo,
-            keep=cfg.learning.keep_checkpoints,
-        ),
+        checkpoints,
         audit,
         policed=lambda ip: policy_service.has_active(ip, traffic_affecting),
         reported=lambda app_id: {
@@ -148,6 +149,21 @@ def build_container(
             for fb in adaptation.feedback(app_id)
             if fb.label is FeedbackLabel.TRUE_POSITIVE and fb.source_ip is not None
         },
+    )
+    challenger = ChallengerLifecycle(
+        cfg,
+        learning,
+        learning_repo,
+        checkpoints,
+        models,
+        artifacts,
+        datasets,
+        audit,
+        false_positives=lambda app_id, since: sum(
+            1
+            for fb in adaptation.feedback(app_id)
+            if fb.label is FeedbackLabel.FALSE_POSITIVE and fb.created_at >= since
+        ),
     )
     controller = Controller(
         cfg,
@@ -159,6 +175,7 @@ def build_container(
         policy_service,
         reputation=reputation,
         shadow=shadow,
+        lifecycle=challenger,
     )
     return Container(
         settings=settings,
@@ -178,6 +195,7 @@ def build_container(
         policy_service=policy_service,
         learning=learning,
         controller=controller,
+        challenger=challenger,
         backends=backends,
         simulated=simulated,
     )

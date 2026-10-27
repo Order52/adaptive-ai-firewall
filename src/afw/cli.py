@@ -22,11 +22,16 @@ token_app = typer.Typer(no_args_is_help=True, help="API tokens")
 ds_app = typer.Typer(no_args_is_help=True, help="Reproducible datasets")
 train_app = typer.Typer(no_args_is_help=True, help="Training and profile lifecycle")
 exp_app = typer.Typer(no_args_is_help=True, help="Offline M0/M1/M2 replay experiments")
+ch_app = typer.Typer(
+    no_args_is_help=True,
+    help="Online challenger promotion gate (promotion/rollback: admin API only)",
+)
 app.add_typer(db_app, name="db")
 app.add_typer(token_app, name="token")
 app.add_typer(ds_app, name="dataset")
 app.add_typer(train_app, name="train")
 app.add_typer(exp_app, name="experiment")
+app.add_typer(ch_app, name="challenger")
 
 
 def configure_logging(level: str = "INFO", as_json: bool = True) -> None:
@@ -167,6 +172,32 @@ def ds_capture(
     )
     path = c.datasets.write(m, obs)
     typer.echo(f"wrote {len(obs)} observations to {path}")
+
+
+# ---------------------------------------------------------------- challenger
+@ch_app.command("evaluate")
+def challenger_evaluate(
+    benign: Annotated[str, typer.Option(help="comma-separated benign holdout dataset ids")],
+    attack: Annotated[str, typer.Option(help="comma-separated labelled attack dataset ids")] = "",
+    actor: str = "cli",
+    app_id: str = "rental",
+) -> None:
+    """Run the promotion gate on the newest challenger checkpoint (no promotion)."""
+    c = _container()
+    ev = c.challenger.evaluate(
+        app_id, [d for d in benign.split(",") if d], [d for d in attack.split(",") if d], actor
+    )
+    for chk in ev.checks:
+        typer.echo(
+            f"{'PASS' if chk.passed else 'FAIL'}  {chk.name:<26} value={chk.value} "
+            f"limit={chk.limit}  {chk.detail}"
+        )
+    typer.echo(f"evaluation {ev.evaluation_id}: {'PASSED' if ev.passed else 'FAILED'}")
+
+
+@ch_app.command("status")
+def challenger_status(app_id: str = "rental") -> None:
+    typer.echo(json.dumps(_container().challenger.snapshot(app_id), indent=2, default=str))
 
 
 # ------------------------------------------------------------------ training

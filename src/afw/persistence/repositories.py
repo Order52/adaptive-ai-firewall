@@ -19,8 +19,11 @@ from afw.domain.events import HttpObservation, IdsAlert
 from afw.domain.features import FeatureVector
 from afw.domain.learning import (
     ChallengerCheckpoint,
+    ChallengerEvaluation,
     CheckpointStatus,
     LearnedWindow,
+    Probation,
+    ProbationStatus,
     ShadowScore,
     SourceRecord,
 )
@@ -649,6 +652,76 @@ class SqlLearningRepository(_Repo):
         )
         with self.engine.connect() as c:
             return _load(LearnedWindow, c.execute(q).all())
+
+    def lineage(self, app_id: str, parent_model_id: str, n_learned: int) -> list[LearnedWindow]:
+        """Every window learned into a challenger of ``parent_model_id`` up to ``n_learned``."""
+        q = select(t.learned_windows.c.body).where(t.learned_windows.c.app_id == app_id)
+        with self.engine.connect() as c:
+            rows = _load(LearnedWindow, c.execute(q).all())
+        return [
+            w
+            for w in rows
+            if w.parent_model_id == parent_model_id and w.n_learned_after <= n_learned
+        ]
+
+    # ------------------------------------------------- promotion lifecycle
+    def add_evaluation(self, ev: ChallengerEvaluation) -> None:
+        with self.engine.begin() as c:
+            c.execute(
+                insert(t.challenger_evaluations).values(
+                    evaluation_id=ev.evaluation_id,
+                    app_id=ev.app_id,
+                    evaluated_at=utc_naive(ev.evaluated_at),
+                    body=ev.model_dump_json(),
+                )
+            )
+
+    def evaluation(self, evaluation_id: str) -> ChallengerEvaluation | None:
+        q = select(t.challenger_evaluations.c.body).where(
+            t.challenger_evaluations.c.evaluation_id == evaluation_id
+        )
+        with self.engine.connect() as c:
+            rows = _load(ChallengerEvaluation, c.execute(q).all())
+        return rows[0] if rows else None
+
+    def evaluations(self, app_id: str, limit: int = 20) -> list[ChallengerEvaluation]:
+        """Newest first."""
+        q = (
+            select(t.challenger_evaluations.c.body)
+            .where(t.challenger_evaluations.c.app_id == app_id)
+            .order_by(desc(t.challenger_evaluations.c.evaluated_at))
+            .limit(limit)
+        )
+        with self.engine.connect() as c:
+            return _load(ChallengerEvaluation, c.execute(q).all())
+
+    def save_probation(self, p: Probation) -> None:
+        tbl = t.model_probations
+        with self.engine.begin() as c:
+            exists = c.execute(
+                select(tbl.c.probation_id).where(tbl.c.probation_id == p.probation_id)
+            ).first()
+            values = {"status": p.status.value, "body": p.model_dump_json()}
+            if exists:
+                c.execute(update(tbl).where(tbl.c.probation_id == p.probation_id).values(**values))
+            else:
+                c.execute(
+                    insert(tbl).values(
+                        probation_id=p.probation_id,
+                        app_id=p.app_id,
+                        started_at=utc_naive(p.started_at),
+                        **values,
+                    )
+                )
+
+    def probations(self, app_id: str, active_only: bool = False) -> list[Probation]:
+        """Newest first."""
+        tbl = t.model_probations
+        q = select(tbl.c.body).where(tbl.c.app_id == app_id).order_by(desc(tbl.c.started_at))
+        if active_only:
+            q = q.where(tbl.c.status == ProbationStatus.ACTIVE.value)
+        with self.engine.connect() as c:
+            return _load(Probation, c.execute(q).all())
 
     # ---------------------------------------------------------- shadow
     def add_shadow(self, items: Sequence[ShadowScore]) -> None:

@@ -11,6 +11,7 @@ from ipaddress import IPv4Address
 
 from pydantic import Field
 
+from afw.domain.adaptation import GateCheck
 from afw.domain.common import DomainModel
 
 
@@ -62,6 +63,7 @@ class LearnedWindow(DomainModel):
     champion_score: float
     challenger_warm_before: bool
     n_learned_after: int
+    parent_model_id: str = Field(default="", description="champion this lineage descends from")
 
 
 class CheckpointStatus(StrEnum):
@@ -102,3 +104,52 @@ class ShadowScore(DomainModel):
     challenger_warm: bool
     n_learned: int
     threshold: float
+
+
+class ChallengerEvaluation(DomainModel):
+    """Promotion-gate result for one frozen challenger snapshot (ADR-030).
+
+    The evaluated checkpoint is copied into the model registry as a CANDIDATE
+    record at evaluation time, so promotion activates exactly what was evaluated.
+    """
+
+    evaluation_id: str
+    app_id: str
+    evaluated_at: datetime
+    checkpoint_id: str
+    candidate_model_id: str
+    parent_model_id: str
+    n_learned: int
+    threshold: float
+    benign_dataset_ids: tuple[str, ...]
+    attack_dataset_ids: tuple[str, ...]
+    checks: tuple[GateCheck, ...]
+    metrics: dict[str, float | int | None] = Field(default_factory=dict)
+
+    @property
+    def passed(self) -> bool:
+        return bool(self.checks) and all(c.passed for c in self.checks)
+
+
+class ProbationStatus(StrEnum):
+    ACTIVE = "active"
+    PASSED = "passed"
+    ROLLED_BACK = "rolled_back"
+
+
+class Probation(DomainModel):
+    """Live watch on a promoted challenger; breaching it rolls back automatically."""
+
+    probation_id: str
+    app_id: str
+    model_id: str
+    parent_model_id: str
+    evaluation_id: str
+    started_at: datetime
+    until: datetime
+    baseline_rate: float = Field(description="expected live anomalous-window rate")
+    windows: int = 0
+    anomalous: int = 0
+    status: ProbationStatus = ProbationStatus.ACTIVE
+    closed_at: datetime | None = None
+    reason: str = ""

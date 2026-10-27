@@ -148,6 +148,23 @@ class OnlineLearningConfig(_Cfg):
     retention_days: int = Field(default=7, ge=1)  # shadow scores, idle sources
 
 
+class PromotionConfig(_Cfg):
+    """Challenger evaluation, human-approved promotion and probation (ADR-030)."""
+
+    target_fpr: float = Field(default=0.01, gt=0, lt=0.5)  # threshold calibration
+    min_holdout_windows: int = Field(default=30, ge=10)  # per half, non-overlapping
+    recall_tolerance: float = Field(default=0.05, ge=0, le=1)
+    sensitive_tolerance: float = Field(default=0.05, ge=0, le=1)
+    max_evaluation_age_s: int = Field(default=86_400, ge=60)
+    probation_s: int = Field(default=86_400, ge=60)
+    probation_min_windows: int = Field(default=100, ge=10)
+    # roll back when the promoted model's live anomalous rate exceeds
+    # max(rate_factor * baseline, baseline + rate_margin)
+    probation_rate_factor: float = Field(default=2.0, ge=1)
+    probation_rate_margin: float = Field(default=0.05, ge=0)
+    probation_max_false_positives: int = Field(default=3, ge=1)
+
+
 class ProbeAgentConfig(_Cfg):
     url: str
     owns: IPv4Network
@@ -170,6 +187,7 @@ class LabConfig(_Cfg):
     window: WindowSpec = WindowSpec()
     telemetry: TelemetryConfig = TelemetryConfig()
     learning: OnlineLearningConfig = OnlineLearningConfig()
+    promotion: PromotionConfig = PromotionConfig()
     opnsense: OpnsenseConfig | None = None
     waf_helper: WafHelperConfig | None = None
     probes: ProbeConfig | None = None

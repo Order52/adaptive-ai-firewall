@@ -33,6 +33,7 @@ from afw.domain.policy import (
 from afw.ml.inference import Strategy
 from afw.policy.service import PolicyError
 from afw.profiling.builder import diff_profiles
+from afw.services.challenger import PromotionRefused
 from afw.services.explain import explain_policy
 from afw.services.learning import GateFailed
 
@@ -84,6 +85,12 @@ class ReviewRequest(BaseModel):
     note: str = Field(min_length=3, max_length=500)
 
 
+class ChallengerEvalRequest(BaseModel):
+    app_id: str = "rental"
+    benign_dataset_ids: list[str] = Field(min_length=1)
+    attack_dataset_ids: list[str] = []
+
+
 def _intent(c: Container, req: IntentRequest, who: Principal) -> PolicyIntent:
     app = c.cfg.application(req.app_id)
     return PolicyIntent(
@@ -128,6 +135,7 @@ def create_app(c: Container) -> FastAPI:
     @app.exception_handler(PolicyError)
     @app.exception_handler(InvalidTransition)
     @app.exception_handler(GateFailed)
+    @app.exception_handler(PromotionRefused)
     async def _conflict(_: Any, exc: Exception) -> JSONResponse:
         return JSONResponse(status_code=409, content={"detail": str(exc)})
 
@@ -382,7 +390,8 @@ def create_app(c: Container) -> FastAPI:
                 "both_anomalous": sum(
                     1 for s in valid if s.champion_anomalous and s.challenger_anomalous
                 ),
-                "note": "challenger flags use the champion threshold; calibration is M3",
+                "note": "challenger flags use the champion threshold; the calibrated "
+                "threshold is set by a promotion-gate evaluation",
             },
             "recent_shadow": [s.model_dump(mode="json") for s in scores[:50]],
             "recent_learned": [w.model_dump(mode="json") for w in repo.learned(app_id, 50)]
@@ -392,6 +401,34 @@ def create_app(c: Container) -> FastAPI:
             if repo
             else [],
         }
+
+    @app.get("/api/learning/challenger")
+    def challenger_status(_: Viewer, app_id: str = "rental") -> dict[str, Any]:
+        """Promotion-gate evaluations and the probation of a promoted challenger."""
+        return c.challenger.snapshot(app_id)
+
+    @app.post("/api/learning/challenger/evaluate")
+    def challenger_evaluate(req: ChallengerEvalRequest, who: Admin) -> dict[str, Any]:
+        ev = c.challenger.evaluate(
+            req.app_id, req.benign_dataset_ids, req.attack_dataset_ids, who.name
+        )
+        return {**ev.model_dump(mode="json"), "passed": ev.passed}
+
+    @app.post("/api/learning/challenger/{evaluation_id}/promote")
+    def challenger_promote(
+        evaluation_id: str, req: ReviewRequest, who: Admin, app_id: str = "rental"
+    ) -> dict[str, Any]:
+        rec = c.challenger.promote(app_id, evaluation_id, who.name, req.note)
+        c.controller.reload()
+        return {"active_hst": rec.version, "threshold": rec.threshold}
+
+    @app.post("/api/learning/challenger/rollback")
+    def challenger_rollback(
+        req: ReviewRequest, who: Admin, app_id: str = "rental"
+    ) -> dict[str, Any]:
+        rec = c.challenger.rollback(app_id, who.name, req.note)
+        c.controller.reload()
+        return {"active_hst": rec.version, "threshold": rec.threshold}
 
     @app.post("/api/feedback")
     def feedback(req: FeedbackRequest, who: Operator) -> dict[str, str]:

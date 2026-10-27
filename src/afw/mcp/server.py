@@ -154,6 +154,14 @@ def shadow_learning() -> dict[str, Any]:
 
 
 @server.tool()
+def challenger_lifecycle() -> dict[str, Any]:
+    """Promotion-gate evaluations of the online challenger and the probation of any
+    promoted one. Read-only: evaluation, promotion and rollback are admin REST
+    actions reserved for a human reviewer."""
+    return _obj(_get("/api/learning/challenger"))
+
+
+@server.tool()
 def active_policies() -> list[dict[str, Any]]:
     """Policies currently owning enforcement state."""
     return _rows(_get("/api/overview")["active_policies"])
