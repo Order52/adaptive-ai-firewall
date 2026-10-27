@@ -124,6 +124,29 @@ class TelemetryConfig(_Cfg):
     tls_identities: dict[str, str] = {}
 
 
+class OnlineLearningConfig(_Cfg):
+    """Shadow online learner (ADR-028). Defaults are deliberately conservative."""
+
+    enabled: bool = True
+    admission_delay_s: int = Field(default=600, ge=0)  # quarantine before learning
+    min_source_tenure_s: int = Field(default=1800, ge=0)
+    max_windows_per_source_per_hour: int = Field(default=20, ge=1)
+    max_source_share: float = Field(default=0.25, gt=0, le=1)  # of the last share_window
+    share_window: int = Field(default=200, ge=10)
+    min_distinct_sources: int = Field(default=3, ge=1)  # released recently (population)
+    population_window_s: int = Field(default=3600, ge=60)
+    # A window the trusted detectors call anomalous is learnable only if the
+    # same anomaly signature is shown by this many distinct clean sources.
+    anomaly_min_sources: int = Field(default=3, ge=2)
+    taint_ttl_s: int = Field(default=86_400, ge=60)
+    quarantine_max: int = Field(default=5000, ge=10)
+    queue_max: int = Field(default=2000, ge=10)
+    checkpoint_every: int = Field(default=50, ge=1)
+    checkpoint_interval_s: int = Field(default=300, ge=1)
+    keep_checkpoints: int = Field(default=3, ge=1)
+    retention_days: int = Field(default=7, ge=1)  # shadow scores, idle sources
+
+
 class ProbeAgentConfig(_Cfg):
     url: str
     owns: IPv4Network
@@ -145,6 +168,7 @@ class LabConfig(_Cfg):
     risk: RiskConfig = RiskConfig()
     window: WindowSpec = WindowSpec()
     telemetry: TelemetryConfig = TelemetryConfig()
+    learning: OnlineLearningConfig = OnlineLearningConfig()
     opnsense: OpnsenseConfig | None = None
     waf_helper: WafHelperConfig | None = None
     probes: ProbeConfig | None = None

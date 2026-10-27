@@ -21,7 +21,7 @@ import structlog
 from afw.config import LabConfig
 from afw.correlation.engine import CorrelationEngine
 from afw.domain.common import utcnow
-from afw.domain.detection import DetectionResult
+from afw.domain.detection import DetectionResult, DetectorKind
 from afw.domain.events import HttpObservation
 from afw.domain.features import FeatureVector
 from afw.domain.policy import Policy, PolicyKind, SourceTarget
@@ -36,8 +36,9 @@ from afw.persistence.repositories import (
 )
 from afw.policy.decision import DecisionEngine
 from afw.policy.service import PolicyService
-from afw.profiling.adaptation import DriftMonitor, SourceReputation
+from afw.profiling.adaptation import DriftMonitor, PersistentReputation, SourceReputation
 from afw.services.learning import LearningService
+from afw.services.shadow import ShadowLearner
 from afw.telemetry.correlator import RequestCorrelator, to_ids_alert
 from afw.telemetry.parsers.lines import (
     ParseError,
@@ -77,6 +78,8 @@ class Controller:
         learning: LearningService,
         policies: PolicyService,
         clock: Callable[[], datetime] = utcnow,
+        reputation: PersistentReputation | SourceReputation | None = None,
+        shadow: ShadowLearner | None = None,
     ) -> None:
         self.cfg = cfg
         self.stats = stats
@@ -97,7 +100,8 @@ class Controller:
         self.inference = InferenceEngine()
         self.correlation = CorrelationEngine(cfg.risk)
         self.decisions = DecisionEngine(cfg)
-        self.reputation = SourceReputation()
+        self.reputation = reputation or SourceReputation()
+        self.shadow = shadow
         self.windows = SlidingWindows(
             cfg.window, EndpointCatalog(frozenset(), frozenset(), frozenset())
         )
@@ -123,6 +127,11 @@ class Controller:
         self.windows.set_catalog(self.learning.catalog(self.app_id, profile))
         for m in models:
             self.correlation.set_score_span(m.record.detector, m.record.benign_score_quantiles)
+        if self.shadow is not None:
+            hst = next(
+                (m for m in models if m.record.detector is DetectorKind.HALF_SPACE_TREES), None
+            )
+            self.shadow.reload(profile, hst)
         if self.drift is None:
             self.drift = DriftMonitor(profile)
         else:
@@ -250,6 +259,8 @@ class Controller:
             routes = {o for o in self._routes_of(fv)}
             self.drift.observe(fv, ra, routes, self.reputation.is_tainted(fv.source_ip, now))
         self._decide(ra, now, degraded)
+        if self.shadow is not None:
+            self.shadow.submit(fv, ra)  # shadow only: never influences the decision above
         return ra
 
     def _routes_of(self, fv: FeatureVector) -> set[str]:
@@ -269,6 +280,8 @@ class Controller:
             ra.source_ip, {intent.kind}
         ):
             return
+        if intent.kind is not PolicyKind.WATCH:  # observe-only is not suspicion
+            self.reputation.taint(ra.source_ip, now, f"policy:{intent.kind.value}")
         self.policies.submit(intent, degraded=degraded or not self.policies.reconciled_since_start)
 
     def _on_enforced(self, p: Policy) -> None:
@@ -309,6 +322,8 @@ class Controller:
         self._spawn("reconciler", self.policies.reconcile, 5.0)
         self._spawn("drift", self.check_drift, 30.0)
         self._spawn("retention", self._retention, 3600.0)
+        if self.shadow is not None:
+            self.shadow.start()
 
     def _spawn(self, name: str, fn: Callable[[], object], every: float) -> None:
         def loop() -> None:
@@ -338,3 +353,5 @@ class Controller:
 
     def stop(self) -> None:
         self._stop.set()
+        if self.shadow is not None:
+            self.shadow.stop()

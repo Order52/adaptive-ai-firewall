@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from ipaddress import IPv4Address
 from typing import Any, TypeVar
 
@@ -17,6 +17,13 @@ from afw.domain.common import utcnow
 from afw.domain.detection import DetectionResult, ModelRecord, ModelStatus
 from afw.domain.events import HttpObservation, IdsAlert
 from afw.domain.features import FeatureVector
+from afw.domain.learning import (
+    ChallengerCheckpoint,
+    CheckpointStatus,
+    LearnedWindow,
+    ShadowScore,
+    SourceRecord,
+)
 from afw.domain.policy import OperatingMode, Policy, PolicyState
 from afw.domain.profiles import BehaviorProfile, ProfileStatus
 from afw.domain.risk import RiskAssessment
@@ -503,3 +510,188 @@ class SqlExperimentRepository(_Repo):
                 }
                 for r in c.execute(q).all()
             ]
+
+
+class SqlLearningRepository(_Repo):
+    """Persistence for the online shadow learner (ADR-028)."""
+
+    # ---------------------------------------------------------- reputation
+    def source(self, ip: IPv4Address) -> SourceRecord | None:
+        q = select(t.source_reputation).where(t.source_reputation.c.source_ip == str(ip))
+        with self.engine.connect() as c:
+            row = c.execute(q).first()
+        return None if row is None else _source(row)
+
+    def touch(self, ip: IPv4Address, at: datetime) -> SourceRecord:
+        """Record that ``ip`` was seen; ``first_seen`` is never moved forward."""
+        with self.engine.begin() as c:
+            row = c.execute(
+                select(t.source_reputation).where(t.source_reputation.c.source_ip == str(ip))
+            ).first()
+            if row is None:
+                c.execute(
+                    insert(t.source_reputation).values(
+                        source_ip=str(ip), first_seen=utc_naive(at), last_seen=utc_naive(at)
+                    )
+                )
+                return SourceRecord(source_ip=ip, first_seen=at, last_seen=at)
+            rec = _source(row)
+            if at > rec.last_seen:
+                c.execute(
+                    update(t.source_reputation)
+                    .where(t.source_reputation.c.source_ip == str(ip))
+                    .values(last_seen=utc_naive(at))
+                )
+                rec = rec.model_copy(update={"last_seen": at})
+            return rec
+
+    def taint(self, ip: IPv4Address, at: datetime, until: datetime, reason: str) -> None:
+        """Taint for learning until ``until``; an existing longer taint is kept."""
+        rec = self.touch(ip, at)
+        if rec.taint_until is not None and rec.taint_until >= until:
+            return
+        with self.engine.begin() as c:
+            c.execute(
+                update(t.source_reputation)
+                .where(t.source_reputation.c.source_ip == str(ip))
+                .values(taint_until=utc_naive(until), taint_reason=reason[:64])
+            )
+
+    def tainted_sources(self, now: datetime) -> set[IPv4Address]:
+        q = select(t.source_reputation.c.source_ip).where(
+            t.source_reputation.c.taint_until > utc_naive(now)
+        )
+        with self.engine.connect() as c:
+            return {IPv4Address(r.source_ip) for r in c.execute(q)}
+
+    def purge_sources(self, idle_before: datetime, now: datetime) -> int:
+        """Bounded retention: forget idle sources whose taint has expired."""
+        tbl = t.source_reputation
+        q = delete(tbl).where(
+            tbl.c.last_seen < utc_naive(idle_before),
+            (tbl.c.taint_until.is_(None)) | (tbl.c.taint_until <= utc_naive(now)),
+        )
+        with self.engine.begin() as c:
+            return int(c.execute(q).rowcount or 0)
+
+    # --------------------------------------------------- checkpoints/ledger
+    def commit_checkpoint(
+        self, ckpt: ChallengerCheckpoint, learned: Sequence[LearnedWindow]
+    ) -> None:
+        """Checkpoint row and the windows learned since the previous one, atomically."""
+        with self.engine.begin() as c:
+            c.execute(
+                insert(t.challenger_checkpoints).values(
+                    checkpoint_id=ckpt.checkpoint_id,
+                    app_id=ckpt.app_id,
+                    seq=ckpt.seq,
+                    status=ckpt.status.value,
+                    created_at=utc_naive(ckpt.created_at),
+                    body=ckpt.model_dump_json(),
+                )
+            )
+            for w in learned:
+                c.execute(
+                    insert(t.learned_windows).values(
+                        fingerprint=w.fingerprint,
+                        app_id=w.app_id,
+                        source_ip=str(w.source_ip),
+                        window_end=utc_naive(w.window_end),
+                        checkpoint_id=ckpt.checkpoint_id,
+                        body=w.model_dump_json(),
+                    )
+                )
+
+    def checkpoints(self, app_id: str) -> list[ChallengerCheckpoint]:
+        """Newest first."""
+        q = (
+            select(t.challenger_checkpoints.c.body)
+            .where(t.challenger_checkpoints.c.app_id == app_id)
+            .order_by(desc(t.challenger_checkpoints.c.seq))
+        )
+        with self.engine.connect() as c:
+            return _load(ChallengerCheckpoint, c.execute(q).all())
+
+    def mark_checkpoint(self, ckpt: ChallengerCheckpoint, status: CheckpointStatus) -> None:
+        body = ckpt.model_copy(update={"status": status})
+        with self.engine.begin() as c:
+            c.execute(
+                update(t.challenger_checkpoints)
+                .where(t.challenger_checkpoints.c.checkpoint_id == ckpt.checkpoint_id)
+                .values(status=status.value, body=body.model_dump_json())
+            )
+
+    def drop_checkpoints(self, ids: Sequence[str]) -> None:
+        """Remove superseded checkpoint rows (their ledger rows are kept)."""
+        if not ids:
+            return
+        with self.engine.begin() as c:
+            c.execute(
+                delete(t.challenger_checkpoints).where(
+                    t.challenger_checkpoints.c.checkpoint_id.in_(list(ids))
+                )
+            )
+
+    def is_learned(self, fingerprint: str) -> bool:
+        q = select(t.learned_windows.c.fingerprint).where(
+            t.learned_windows.c.fingerprint == fingerprint
+        )
+        with self.engine.connect() as c:
+            return c.execute(q).first() is not None
+
+    def learned(self, app_id: str, limit: int = 1000) -> list[LearnedWindow]:
+        """Ledger entries, newest first."""
+        q = (
+            select(t.learned_windows.c.body)
+            .where(t.learned_windows.c.app_id == app_id)
+            .order_by(desc(t.learned_windows.c.window_end))
+            .limit(limit)
+        )
+        with self.engine.connect() as c:
+            return _load(LearnedWindow, c.execute(q).all())
+
+    # ---------------------------------------------------------- shadow
+    def add_shadow(self, items: Sequence[ShadowScore]) -> None:
+        if not items:
+            return
+        with self.engine.begin() as c:
+            c.execute(
+                insert(t.shadow_scores),
+                [
+                    {
+                        "app_id": s.app_id,
+                        "window_end": utc_naive(s.window_end),
+                        "body": s.model_dump_json(),
+                    }
+                    for s in items
+                ],
+            )
+
+    def shadow(self, app_id: str, limit: int = 500) -> list[ShadowScore]:
+        q = (
+            select(t.shadow_scores.c.body)
+            .where(t.shadow_scores.c.app_id == app_id)
+            .order_by(desc(t.shadow_scores.c.window_end))
+            .limit(limit)
+        )
+        with self.engine.connect() as c:
+            return _load(ShadowScore, c.execute(q).all())
+
+    def purge_shadow(self, before: datetime) -> int:
+        q = delete(t.shadow_scores).where(t.shadow_scores.c.window_end < utc_naive(before))
+        with self.engine.begin() as c:
+            return int(c.execute(q).rowcount or 0)
+
+
+def _source(row: Any) -> SourceRecord:
+    return SourceRecord(
+        source_ip=IPv4Address(row.source_ip),
+        first_seen=_aware(row.first_seen),
+        last_seen=_aware(row.last_seen),
+        taint_until=_aware(row.taint_until) if row.taint_until else None,
+        taint_reason=row.taint_reason,
+    )
+
+
+def _aware(dt: datetime) -> datetime:
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)

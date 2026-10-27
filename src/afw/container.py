@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 
 import structlog
 
 from afw.config import LabConfig, Settings, get_settings, load_lab_config
+from afw.domain.adaptation import FeedbackLabel
+from afw.domain.policy import PolicyKind
 from afw.enforcement.memory import MemoryBackend, MemoryProbe
 from afw.enforcement.probe import LabProbe, ProbeAgent
 from afw.ml.datasets import DatasetStore
+from afw.ml.online import CheckpointStore
 from afw.ml.registry import ArtifactStore
 from afw.persistence.db import make_engine, upgrade
 from afw.persistence.repositories import (
@@ -19,6 +23,7 @@ from afw.persistence.repositories import (
     SqlAuditLog,
     SqlEventRepository,
     SqlExperimentRepository,
+    SqlLearningRepository,
     SqlModelRepository,
     SqlPolicyRepository,
     SqlProfileRepository,
@@ -27,8 +32,10 @@ from afw.persistence.repositories import (
 from afw.policy.service import PolicyService
 from afw.policy.validator import PolicyValidator
 from afw.ports.enforcement import EnforcementBackend, TrafficProbe
+from afw.profiling.adaptation import PersistentReputation
 from afw.services.learning import LearningService
 from afw.services.runtime import Controller
+from afw.services.shadow import ShadowLearner, checkpoint_root
 from afw.telemetry.stats import TelemetryStats
 
 log = structlog.get_logger(__name__)
@@ -123,7 +130,36 @@ def build_container(
     learning = LearningService(
         cfg, profiles, models, adaptation, events, datasets, artifacts, audit
     )
-    controller = Controller(cfg, stats, events, analysis, adaptation, learning, policy_service)
+    learning_repo = SqlLearningRepository(engine)
+    reputation = PersistentReputation(learning_repo, timedelta(seconds=cfg.learning.taint_ttl_s))
+    traffic_affecting = set(PolicyKind) - {PolicyKind.WATCH}
+    shadow = ShadowLearner(
+        cfg,
+        learning_repo,
+        CheckpointStore(
+            checkpoint_root(Path(settings.data_dir)),
+            learning_repo,
+            keep=cfg.learning.keep_checkpoints,
+        ),
+        audit,
+        policed=lambda ip: policy_service.has_active(ip, traffic_affecting),
+        reported=lambda app_id: {
+            fb.source_ip
+            for fb in adaptation.feedback(app_id)
+            if fb.label is FeedbackLabel.TRUE_POSITIVE and fb.source_ip is not None
+        },
+    )
+    controller = Controller(
+        cfg,
+        stats,
+        events,
+        analysis,
+        adaptation,
+        learning,
+        policy_service,
+        reputation=reputation,
+        shadow=shadow,
+    )
     return Container(
         settings=settings,
         cfg=cfg,

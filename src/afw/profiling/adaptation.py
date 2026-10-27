@@ -34,6 +34,7 @@ from afw.domain.common import new_id
 from afw.domain.features import FEATURE_NAMES, FeatureVector
 from afw.domain.profiles import BehaviorProfile
 from afw.domain.risk import EvidenceCategory, RiskAssessment
+from afw.persistence.repositories import SqlLearningRepository
 
 NEGATIVE_EVIDENCE = {EvidenceCategory.WAF, EvidenceCategory.IDS, EvidenceCategory.AUTH}
 SECURITY_SENSITIVE = ("auth_fail_frac", "client_err_frac", "distinct_usernames", "login_rate")
@@ -61,6 +62,26 @@ class SourceReputation:
 
     def tainted_sources(self, now: datetime) -> set[IPv4Address]:
         return {s for s in list(self._tainted) if self.is_tainted(s, now)}
+
+
+class PersistentReputation:
+    """Same contract as ``SourceReputation`` but stored in the database, so a
+    controller restart does not launder a tainted source (Phase 0 finding).
+    Retention is bounded by ``SqlLearningRepository.purge_sources``."""
+
+    def __init__(self, repo: SqlLearningRepository, taint_ttl: timedelta) -> None:
+        self.repo = repo
+        self.taint_ttl = taint_ttl
+
+    def taint(self, src: IPv4Address, at: datetime, reason: str) -> None:
+        self.repo.taint(src, at, at + self.taint_ttl, reason)
+
+    def is_tainted(self, src: IPv4Address, now: datetime) -> str | None:
+        rec = self.repo.source(src)
+        return rec.taint_reason if rec is not None and rec.tainted(now) else None
+
+    def tainted_sources(self, now: datetime) -> set[IPv4Address]:
+        return self.repo.tainted_sources(now)
 
 
 @dataclass
