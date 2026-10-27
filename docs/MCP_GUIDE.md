@@ -4,7 +4,7 @@ The AI-Adaptive-Firewall lab is manageable from Claude Code (or any MCP client)
 through the **`afw` MCP server** — a thin, typed façade over the controller REST
 API (AI / policy / OPNsense enforcement) and the host-side GNS3 API (lab
 infrastructure). It was verified end-to-end with a real MCP client on
-2026-10-17: **26 tools**, real GNS3 topology, real AI data over HTTPS, and the
+2026-10-17: **26 tools** (30 since 2026-10-27: added `shadow_learning`, `challenger_lifecycle`, `geo_preview`, `geo_lookup`), real GNS3 topology, real AI data over HTTPS, and the
 safety guards below.
 
 ## Design

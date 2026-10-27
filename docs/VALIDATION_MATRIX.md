@@ -1,0 +1,96 @@
+# Validation matrix
+
+Each acceptance-gate criterion of the engineering directive is mapped to the tests and
+evidence that support it. Status words:
+
+* **MET**: evidence exists.
+* **PARTIAL**: some evidence exists; the gap is named.
+* **NOT MET**: the criterion fails on the evidence available.
+* **BLOCKED-EXT**: needs something only the team can supply.
+
+Gate definitions are unchanged from the directive. Evidence paths are relative to
+`artifacts/evidence/`. Latest runs (2026-10-27):
+
+* unit/integration: 155 passed, 9 skipped;
+* live lab: `AFW_LAB=1 pytest tests/lab` 9/9 (`m9-2026-10-27/pytest-lab.txt`);
+* isolation: 37/37 (`m9-2026-10-27/lab-verify.txt`).
+
+## Gate A: Infrastructure
+
+| Criterion | Tests / procedure | Evidence | Status |
+|---|---|---|---|
+| Reproducible network deployment | `afw lab build/start/provision-fw/provision-ids/deploy` (idempotent; second run `changed=0`) | `cold-restart-2026-10-18.md`, `m5-2026-10-27/deploy-*.txt`, `m8-2026-10-27/deploy-ctrl01.txt` | MET |
+| Validated zone separation | `afw lab verify` (37 reachability checks, both directions, incl. DB tier and plaintext-port checks) | `m9-2026-10-27/lab-verify.txt` | MET |
+| Application/database connectivity | Functional round trip USR01 → WAF → APP → DB | `dbtier-2026-10-21.md` | MET |
+| Consistent node inventory and configuration | Topology as code (`lab/gns3/topology.yaml`), `afw lab status`, `COMPONENT_INVENTORY.md` | `phase0-2026-10-27/lab-start.txt` | MET |
+
+## Gate B: Detection
+
+| Criterion | Tests / procedure | Evidence | Status |
+|---|---|---|---|
+| Real telemetry from multiple sensor types | WAF access + audit, app events (mTLS), Suricata IDS (FW01); `test_telemetry*.py`, `test_provenance.py` | `m2-2026-10-27/live-provenance.txt`, `m5-2026-10-27/live-envelope.txt` | MET |
+| Demonstrated live inference | Live controller scoring real windows; IDS-only view live | `real-benign-baseline-2026-10-17.md`, `m2-2026-10-27/live-shadow-final.txt` | MET |
+| Reproducible labelled attack evaluation | M6 harness (`test_scenario_harness.py`, 14 tests); `afw experiment evaluate` | Harness only; **no team attack runs exist** | BLOCKED-EXT |
+| Correct false-positive and false-negative measurements | FPR on held-out real benign runs, with source-level CIs (M4); FN requires attack runs | `m3-2026-10-27/m4-adaptation.json`; FN: none | PARTIAL: FPR measured (and high on new benign sources, see RESULTS §3); FN BLOCKED-EXT |
+
+## Gate C: Genuine adaptation
+
+| Criterion | Tests / procedure | Evidence | Status |
+|---|---|---|---|
+| Challenger learns incrementally from eligible new traffic | `test_online_learning.py`; `afw experiment online-replay` on real recorded runs | `m2-2026-10-27/m2-replay-*.json` (227 learned, 1 pivot) | PARTIAL: shown on real recorded traffic in replay. **Live, 0 windows learned** (all new sources tainted by champion proposals, fail-closed) |
+| Drift and adaptation distinguishable and observable | Drift reports vs model lineage; dashboard panels | `dashboard-live-2026-10-20.md`, `m8-2026-10-27/dashboard-panels.txt` | MET |
+| Model state genuinely changes | Pivot detected, mean absolute score change 0.18 | `m2-2026-10-27/m2-replay-drift-relaxed.json` | MET (replay) |
+| Candidate promotion follows documented validation | `test_challenger_lifecycle.py` (20 tests, mutation-checked); live gate refusals (409) | `m3-2026-10-27/live-gate-refusals.txt`, `m3-2026-10-27/mutation-check.txt` | MET |
+| Distribution-shift experiment shows an actual benefit | M4 scenario A on real drift: HST holdout FPR 0.650 → 0.031 (calibrated) | `m3-2026-10-27/m4-adaptation.json` | PARTIAL: benefit shown offline for the HST arm only; IF and robust stats unchanged; gate fails, so no live promotion |
+| Poisoning and regressions do not silently corrupt the trusted model | M4 scenarios B and C; `test_benign_drift_cannot_vouch_for_poison_sharing_a_driver_name` | `m4-adaptation.json` (0/180 poison learned after fix), `m4-adaptation-v1-name-corroboration.json` (140/180 before) | MET, with a documented residual (4+ colluding sources) |
+| Rejected candidates and rollback demonstrated | Gate failure, probation auto-rollback (M4 C, unit tests) | `m4-adaptation.json` (rollback after 100 windows) | MET (replay and unit); no live promotion has been performed |
+
+## Gate D: Enforcement
+
+| Criterion | Tests / procedure | Evidence | Status |
+|---|---|---|---|
+| Real firewall/WAF actions | `tests/lab/test_enforcement_lab.py` (OPNsense alias, WAF deny, rate limit) | `m9-2026-10-27/pytest-lab.txt` | MET |
+| Verified containment and policy state | Read-back + probe verification before `enforced` | same; `real-benign-baseline-2026-10-17.md` | MET |
+| Expiry, revocation, rollback, crash recovery | Lab tests (revoke); restart restore 5 s; FW watchdog flush 106 s; cold restart | `cold-restart-2026-10-18.md`, `docs/archive/IMPLEMENTATION_STATUS.md` (restart restore 5 s, watchdog flush 106 s) | MET |
+| Mandatory protected-infrastructure restrictions | `test_policy.py`; lab safety tests; MCP refusal | `m9-2026-10-27/pytest-lab.txt` | MET |
+
+## Gate E: Independent value
+
+| Criterion | Tests / procedure | Evidence | Status |
+|---|---|---|---|
+| Fair comparisons against static rules and non-adaptive ML | M0/M1/M2 replay through the identical pipeline (`test_experiments.py`) | `real-benign-baseline-2026-10-17.md` (benign only) | PARTIAL: benign-only (equal safety, different cost) |
+| Quantified incremental benefit where demonstrated | `afw experiment evaluate` with run-level CIs | none | BLOCKED-EXT (needs attack runs) |
+| Honest documentation where adaptation does not help | RESULTS §3 (champion FPR on new sources), M4 caveats | `RESULTS.md`, `engineering/M4_ADAPTATION_EXPERIMENTS.md` | MET |
+
+## Gate F: Security and operations
+
+| Criterion | Tests / procedure | Evidence | Status |
+|---|---|---|---|
+| Authenticated and constrained MCP | `tests/lab/test_mcp_lab.py`; channel-scoped tokens; no shell, no promotion tool | `m9-2026-10-27/pytest-lab.txt` | MET |
+| Auditable operations | Audit log for policies, promotions, rollbacks, mode, feedback | API `/api/audit`; dashboard | MET |
+| Secure API and deployment | Role tokens; MGMT-only API; mTLS sensors; host nftables default-deny | `test_api.py`, ADR-023/029 | PARTIAL: API is plain HTTP on MGMT (SSH-tunnel access, TLS opt-in); FW01 IDS feed plaintext |
+| Accurate operator dashboard | Live headless render, no console errors; panels read the API only | `m8-2026-10-27/dashboard-panels.txt` | MET |
+| Tested recovery mechanisms | Cold restart; controller restart; sensor reconnect and staleness | `cold-restart-2026-10-18.md`, `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt` | MET |
+
+## Gate G: Academic defensibility
+
+| Criterion | Where | Status |
+|---|---|---|
+| Clear research question and contribution | `AI_RESEARCH.md` §1–2 | MET |
+| Sound methodology and unbiased evaluation | `EXPERIMENTS.md`; leakage controls in code; run-level CIs; synthetic refusal | MET for the benign/adaptation half; attack half BLOCKED-EXT |
+| Reproducible results | Commands, dataset ids, timestamps and versions in each evidence file | PARTIAL: datasets live on CTRL01 `/var/lib/afw/datasets` (not in Git) |
+| Detailed limitations | `SECURITY_AND_LIMITATIONS.md`, `THREAT_MODEL.md`, per-milestone docs | MET |
+| Professional documentation | The 13 deliverables (this directory) | MET |
+| Team can run and explain the system independently | `FINAL_DEMO.md`, `OPERATOR_GUIDE.md` | BLOCKED-EXT: only the team can demonstrate this |
+
+## Overall
+
+| Gate | Status |
+|---|---|
+| A Infrastructure | **MET** |
+| B Detection | **NOT MET**: attack evaluation BLOCKED-EXT |
+| C Genuine adaptation | **PARTIAL**: works on real recorded drift offline; no live learning or promotion yet |
+| D Enforcement | **MET** |
+| E Independent value | **NOT MET**: benign-only comparison; attack-side value BLOCKED-EXT |
+| F Security and operations | **PARTIAL**: plain-HTTP API on MGMT and plaintext IDS feed |
+| G Academic defensibility | **PARTIAL**: team demonstration BLOCKED-EXT |

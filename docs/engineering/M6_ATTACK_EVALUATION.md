@@ -15,7 +15,7 @@ The harness makes those runs safe, recorded and measurable:
 | Only lab-owned targets | `config/scenarios.yaml` holds an explicit target allowlist (WAF01 10.77.30.10: 443, plus 22/80/3306 for IDS-only visibility). The registry refuses any target outside 10.77.0.0/16, and any target in the management (10.77.50.0/24) or database (10.77.60.0/24) networks, whatever the file says. A scenario target must be on the allowlist | `Registry._safe` |
 | Only ATTACK-zone attackers | Attackers must be inside the lab config's ATTACK zone, excluding the firewall (.1) and probe (.250) addresses | `load_registry` |
 | Bounded duration | `max_duration_s` is at most 3600 s per scenario | `ScenarioSpec` |
-| Ground truth | `afw scenario begin <id> --operator NAME` opens a run (one at a time, an operator name is required), `mark` records phase changes, `end` closes it. Each run is one JSON file in `~/.config/afw/runs/`, written atomically | `RunJournal` |
+| Ground truth | `afw scenario begin <id> <operator>` opens a run (one at a time, an operator name is required), `mark` records phase changes, `end` closes it. Each run is one JSON file in `~/.config/afw/runs/`, written atomically | `RunJournal` |
 | Kill switch | `afw scenario abort` **stops ATK01 through the GNS3 API first**, then records the reason and the stop result | `RunJournal.abort`, `cli._kill_atk01` |
 | Watchdog | `afw scenario watchdog` (run it from a timer or loop during a session) aborts the active run, with the kill switch, once it exceeds its scenario's max duration | `RunJournal.watchdog` |
 | Labels | `afw scenario manifest <run>` turns the journal into a capture manifest: attacker sources labelled with the scenario family and the exact run window, and benign sources listed by the operator. This is the input to `afw dataset capture` | `manifest_for` |
@@ -26,12 +26,12 @@ The harness makes those runs safe, recorded and measurable:
 1. `afw scenario list` and choose a scenario. Holdout scenarios (`purpose: holdout`, for
    example `low-and-slow-bruteforce`) are for final testing only; do not tune on them.
 2. Start benign traffic from USR01 as usual, so that the run measures FPR as well.
-3. `afw scenario begin web-sqli-probe --operator <name>`, then start the tool on ATK01
+3. `afw scenario begin web-sqli-probe <operator-name>`, then start the tool on ATK01
    against `https://10.77.30.10/`.
 4. `afw scenario mark <run> "<what changed>"` at each phase change.
 5. Stop the tool, then `afw scenario end <run>`. If anything goes wrong, use
-   `afw scenario abort <run> --reason "..."`, which powers off ATK01.
-6. `afw scenario manifest <run> --benign 10.77.20.10 > run.json`, then capture it with
+   `afw scenario abort <run> "<reason>"`, which powers off ATK01.
+6. `afw scenario manifest <run> run.json --benign 10.77.20.10`, then capture it with
    `afw dataset capture`.
 7. After at least 3 runs per family: `afw experiment evaluate --datasets ...`.
 

@@ -1,3 +1,5 @@
+> **ARCHIVED (2026-10-27).** Superseded by `docs/PROJECT_STATUS.md` (status), `docs/VALIDATION_MATRIX.md` (evidence) and `docs/engineering/AUTONOMOUS_PROGRESS.md` (milestones). Kept unchanged below for history; statements here may be out of date.
+
 # Master completion plan (P0–P10)
 
 _Owner: Claude (autonomous). Updated 2026-10-17 (session 3). Status vocabulary:

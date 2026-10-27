@@ -1,6 +1,52 @@
 # AI research notes
 
-## Status
+## 1. Research question
+
+> Can an application-aware control plane, placed on top of a conventional firewall, IDS
+> and WAF, make **safe, explainable and verifiable** response decisions from behavioural
+> telemetry, and **adapt online to legitimate change** without letting attackers
+> redefine "normal"?
+
+Sub-questions and where they are answered:
+
+| # | Question | Status |
+|---|---|---|
+| RQ1 | Does behavioural detection on real application telemetry stay within a false-positive budget on legitimate users? | Answered, partly negatively: yes on the training population, **no on new users** (`RESULTS.md` §2–3) |
+| RQ2 | Does ML (Isolation Forest) add detection value over robust statistics at equal FPR? | Benign side: equal safety, about 800× cost. Attack side **BLOCKED-EXT** |
+| RQ3 | Can an online learner adapt to real legitimate drift while resisting poisoning? | Offline on recorded real drift: yes for the HST arm (FPR about 0.65 → 0.03), with a poisoning flaw found and fixed. Not yet shown live (`RESULTS.md` §6b) |
+| RQ4 | Can adaptation be governed so that no model change reaches enforcement unvalidated? | Yes by design and test: gate, human promotion, probation rollback (ADR-030) |
+
+## 2. Contribution statement
+
+What this project adds beyond OPNsense, Suricata, OWASP CRS, River and scikit-learn. Those
+components are used unmodified, as engines.
+
+1. **Correlation into application-aware, evidence-scored decisions.** WAF, application
+   and IDS records are joined per request into per-source behavioural windows. Risk is
+   an additive *evidence* score with an independence rule: a traffic-affecting action
+   needs two or more independent categories, and behavioural detections count only if
+   they are not driven by the same evidence (ADR-013, ADR-027).
+2. **A safety-validated, verified enforcement loop over existing devices.** Every
+   decision, whether from the AI, an operator or an MCP agent, passes one validator.
+   Proportional responses are reconciled level-triggered into OPNsense and the WAF,
+   counted as enforced only after device read-back and traffic probes, and backed by a
+   firewall-local dead-man switch (ADR-009).
+3. **Governed online adaptation.** A shadow online learner with authenticated provenance,
+   two-stage poisoning-resistant eligibility, crash-safe checkpoints and lineage. It
+   feeds a promotion gate that demands real-attack recall and sensitive-feature
+   invariance, followed by human promotion and probation with automatic rollback
+   (ADR-028–030).
+4. **An honest evaluation apparatus.** Arm comparison (M0 static / M1 statistical / M2
+   ML) through the identical pipeline, run-level CIs, synthetic-data refusal, and a
+   safe attack-run harness for team-run scenarios (ADR-032).
+5. **An AI-operator interface that cannot exceed the human one.** The MCP tools use the
+   same validator and audit trail. There is no shell or promotion tool, and the
+   management plane is protected.
+
+Not claimed: new detection algorithms; perfect or attack-validated detection; production
+scale.
+
+## 3. Status (benign baseline, 2026-10-17)
 
 **First real-data results exist (2026-10-17).** A trusted profile (**v2**) and three
 detectors were trained on **genuine lab benign traffic** (6 real client sources,
@@ -13,16 +59,19 @@ arms, with real scoring latency M1 ~63 µs vs M2 ~11.9 ms. `recall = null` — n
 data yet (honest). Attack recall and scenarios A/B/E remain **BLOCKED** on
 team-supplied attack traces. Full evidence: `artifacts/evidence/real-benign-baseline-2026-10-17.md`.
 
+**Correction (2026-10-27):** the 0-FP result holds for the training population only. On
+six new benign sources the frozen detectors had FPR 0.13 (robust stats), 0.72 (IF) and
+0.64 (HST). See `RESULTS.md` §3.
+
 The synthetic fixtures below remain **software-correctness tests only** and are never
 cited as accuracy results.
 
-The **offline replay runner that will produce those numbers is now built**
-(`src/afw/ml/experiments.py`, `afw experiment replay`). It consumes a labeled
+The **offline replay runner** (`src/afw/ml/experiments.py`, `afw experiment replay`;
+cross-run aggregation `afw experiment evaluate`) produces the arm comparison. It consumes a labeled
 `DatasetManifest` + observations and compares the three arms below through the
 same live pipeline, at the same trained false-positive budget, on the identical
-replayed stream. It is correctness-tested on the synthetic fixture only; it has
-not been run on real data because none has been supplied. See
-`docs/IMPLEMENTATION_STATUS.md` item 3.
+replayed stream. It has been run on real benign data. It has not been run on attack
+data because none has been supplied (see `PROJECT_STATUS.md`).
 
 ### Evaluation arms and what the runner measures
 
@@ -51,7 +100,7 @@ WAF/IDS outputs are **evidence for correlation**, never ML inputs.
 |---|---|---|---|
 | M1 | Robust z (median/MAD with floors), mean of 2 largest directed deviations | profile only | benign-validation quantile at target FPR (1 %) |
 | M2 | M1 + Isolation Forest (200 trees, ≤256 samples, log1p + RobustScaler) | benign TRAIN runs | same |
-| comparator | River Half-Space Trees | benign TRAIN runs; shadow copy keeps learning | same |
+| champion / online | River Half-Space Trees | benign TRAIN runs; since M2 a gated shadow challenger learns online (`ADAPTATION_DESIGN.md`) | same; challenger re-calibrated by the promotion gate |
 
 Attributions: occlusion (score drop when a feature is reset to the profile median) — faithful to the model actually used.
 

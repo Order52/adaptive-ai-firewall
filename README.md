@@ -14,30 +14,37 @@ real firewall/WAF, verifies the effect on live traffic, and adapts to legitimate
 change via reviewed shadow learning — never letting an anomaly alone, or repeated
 malicious traffic, silently redefine "normal".
 
-## Status (2026-10-18)
+## Status (2026-10-27)
 
-- **Trained on REAL lab traffic** (not synthetic fixtures): trusted profile v2
-  (6 real client sources, 361 windows); validation FPR ~1.3%; **live inference on
-  CTRL01 → 0 false positives** on held-out benign traffic; M0/M1/M2 replay on real
-  benign → FPR 0 / legit 100%. Evidence: `artifacts/evidence/`.
-- **MCP control plane** (26 tools) connected to Claude Code; **dashboard** with real
-  backend data; **GNS3 lab** 13 nodes / 5 zones, isolation 26/26.
-- **Honest gap:** attack-side evaluation (recall, scenarios A/B/E) is **blocked** on
-  team-supplied attack traces; the machinery is complete and tested. See
-  `docs/IMPLEMENTATION_STATUS.md` and `docs/MASTER_COMPLETION_PLAN.md`.
+Read `docs/PROJECT_STATUS.md` first. In short:
+
+- **Works end to end on a real 13-node GNS3 lab:**
+  * mTLS sensor telemetry with liveness;
+  * behavioural detection and evidence correlation;
+  * verified enforcement on OPNsense and the WAF;
+  * dashboard and a 30-tool MCP interface;
+  * a governed online-learning lifecycle (shadow challenger, promotion gate, probation
+    rollback).
+- **Measured on real traffic:** 0 false positives on the training population, but
+  **high false-positive rates on new benign users** (`docs/RESULTS.md` §3). Online
+  adaptation cut HST false alarms from about 65 % to about 3 % on recorded real drift.
+  The gate still refuses promotion.
+- **Gates:** A and D met; C, F and G partial; B and E not met. Attack-side evaluation
+  is **blocked** on team-run attack scenarios. The harness is ready
+  (`docs/engineering/M6_ATTACK_EVALUATION.md`).
 
 ## Quick start
 
 ```bash
 # dev toolchain
 uv sync
-uv run pytest            # 57 unit/integration tests (+9 live-lab with AFW_LAB=1)
+uv run pytest            # 155 unit/integration tests (+9 live-lab with AFW_LAB=1)
 uv run mypy src && uv run ruff check src tests
 
-# lab (GNS3 running; see docs/INSTALL.md for first-time host setup)
+# lab (GNS3 running; see docs/DEPLOYMENT.md for first-time host setup)
 afw lab status           # node inventory + state
 afw lab layout           # professional zone canvas
-afw lab verify           # zone isolation (26 checks)
+afw lab verify           # zone isolation (37 checks)
 
 # AI
 afw train status                               # profiles + models
@@ -74,18 +81,23 @@ so new apps, sensors, backends and models slot in without touching core logic.
 
 | Doc | Purpose |
 |---|---|
-| `docs/IMPLEMENTATION_STATUS.md` | **Read first** — verified status with dates/evidence |
-| `docs/MASTER_COMPLETION_PLAN.md` | P0–P10 gate board |
-| `docs/SESSION_HANDOFF.md` | Exact resume state |
-| `docs/ARCHITECTURE_DECISIONS.md` | ADR-001…026 |
-| `docs/AI_RESEARCH.md` | Features, detectors, leakage controls, results |
-| `docs/EXPERIMENTS.md` | M0/M1/M2 methodology + what was actually run |
-| `docs/MCP_GUIDE.md` | MCP tools, setup, example NL commands |
-| `docs/GNS3_TOPOLOGY.md` | Live topology + architecture diagram |
-| `docs/OPERATOR_GUIDE.md` | Day-to-day operations |
-| `docs/FINAL_DEMO.md` | 10–15 min repeatable demonstration |
-| `docs/SECURITY_AND_LIMITATIONS.md` | Threat model, trust boundaries, limits |
-| `docs/INSTALL.md` | First-time host + lab setup |
+| `docs/PROJECT_STATUS.md` | **Read first**: gates, milestones, gaps, readiness |
+| `docs/VALIDATION_MATRIX.md` | Every acceptance criterion → tests → evidence |
+| `docs/ARCHITECTURE.md` | System architecture, flows, trust boundaries |
+| `docs/COMPONENT_INVENTORY.md` | Nodes, ports, source tree, entry points |
+| `docs/ARCHITECTURE_DECISIONS.md` | ADR-001…033 |
+| `docs/AI_RESEARCH.md` | Research question, contribution, detectors, leakage controls |
+| `docs/ADAPTATION_DESIGN.md` | Online learning, gate, promotion, rollback |
+| `docs/THREAT_MODEL.md` | Threats and mitigations |
+| `docs/EXPERIMENTS.md` | Methodology |
+| `docs/RESULTS.md` | Measured results, including negative ones |
+| `docs/SECURITY_AND_LIMITATIONS.md` | Safety invariants and known gaps |
+| `docs/DEPLOYMENT.md` | Install, configuration, recovery |
+| `docs/OPERATOR_GUIDE.md`, `docs/MCP_GUIDE.md` | Day-to-day operation |
+| `docs/FINAL_DEMO.md` | Repeatable demonstration |
+| `docs/GNS3_TOPOLOGY.md` | Live topology |
+| `docs/engineering/` | Milestone design notes (M2–M7) and `AUTONOMOUS_PROGRESS.md` |
+| `docs/archive/` | Superseded status files (history only) |
 
 ## Safety & integrity
 

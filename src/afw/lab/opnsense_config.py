@@ -2,7 +2,7 @@
 
 Works on the config dumped from the running image so image-specific defaults
 (and their private keys) never enter Git. Element formats were taken from the
-26.7 factory config and model sources (see docs/IMPLEMENTATION_STATUS.md).
+26.7 factory config and model sources (see docs/archive/IMPLEMENTATION_STATUS.md).
 
 Zone ↔ interface map (GNS3 adapter order):
   lan=vtnet0 MGMT · wan=vtnet1 maintenance uplink · opt1=vtnet2 ATTACK

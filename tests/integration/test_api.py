@@ -122,7 +122,7 @@ def test_geoip_endpoints_lookup_and_preview_without_enforcing(settings, tmp_path
     assert client.get("/api/geo/lookup/1.0.1.1", headers=v).json()["country"] == "CN"
     assert client.get("/api/geo/lookup/10.77.10.10", headers=v).json()["country"] is None
     p = client.get("/api/geo/preview/cn", params={"direction": "inbound"}, headers=v).json()
-    assert p["networks"] == 2 and p["lab_effect"].startswith("none")
+    assert p["networks"] == 2 and p["lab_effect"].startswith("inbound: none")
     assert client.get("/api/geo/preview/XX", headers=v).status_code == 404
     assert client.get("/api/geo/status").status_code == 401
     real = {

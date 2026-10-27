@@ -1,3 +1,5 @@
+> **ARCHIVED (2026-10-27).** Superseded by `docs/PROJECT_STATUS.md` (status), `docs/VALIDATION_MATRIX.md` (evidence) and `docs/engineering/AUTONOMOUS_PROGRESS.md` (milestones). Kept unchanged below for history; statements here may be out of date.
+
 # Session handoff
 
 _Exact state for the next session to resume without rediscovery. Updated

@@ -94,10 +94,13 @@ def test_preview_counts_networks_and_observed_sources(geo_dir):
     lab = [A("10.77.10.10"), A("10.77.20.10")]
     p = country_preview(db, "cn", "inbound", lab, T0)
     assert p["networks"] == 2 and p["addresses"] == 768
-    assert p["observed_sources_in_country"] == [] and p["lab_effect"].startswith("none")
+    assert p["observed_sources_in_country"] == [] and p["lab_effect"].startswith("inbound: none")
     assert "preview only" in p["enforcement"]
     p2 = country_preview(db, "CN", "outbound", [*lab, A("1.0.1.7"), A("1.0.1.7")], T0)
     assert p2["observed_sources_in_country"] == ["1.0.1.7"]
     assert "from lab networks toward CN" in p2["direction_meaning"]
+    assert "egress" in p2["lab_effect"] and "inbound" not in p2["lab_effect"]
+    both = country_preview(db, "CN", "both", [A("1.0.1.7")], T0)["lab_effect"]
+    assert "1 observed source" in both and "egress" in both
     with pytest.raises(ValueError, match="not a country"):
         country_preview(db, "ZZ", "inbound", lab, T0)

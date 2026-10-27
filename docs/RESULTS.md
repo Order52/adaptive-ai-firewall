@@ -1,8 +1,9 @@
-# Results & Evaluation (draft)
+# Results and evaluation
 
-A draft evaluation chapter for the dissertation. Every quantitative claim here is
-backed by a committed evidence file under `artifacts/evidence/` and a figure under
-`docs/figures/`; nothing is synthetic or hand-tuned for presentation. Where a result
+The evaluation chapter for the dissertation, updated 2026-10-27 with the M2–M7 results
+(§3, §6b, §7b). Every quantitative claim is backed by a committed evidence file under
+`artifacts/evidence/`, and figures are under `docs/figures/`. Nothing is synthetic or
+hand-tuned for presentation. The measurement index is in §10. Where a result
 could not be produced, this chapter says so plainly rather than estimating.
 
 > **Scope note.** All AI results in this chapter are **benign-only**. The adversarial
@@ -57,7 +58,33 @@ behaviour, rather than synthetic fixtures, is what removes the false positives.
   threshold; all bars below the 1.0 threshold line.
 - Evidence: `artifacts/evidence/real-benign-baseline-2026-10-17.md`.
 
-## 3. The cost of ML over statistics
+## 3. The zero-FP result does not generalise to new benign users (2026-10-27)
+
+§2 holds for the population the profile was trained on. It was then tested on
+**six new benign client addresses** (10.77.20.11–16). They ran the same persona journeys
+for 75 minutes (992 sessions) over authenticated telemetry. The frozen champion
+detectors, at their trusted thresholds, on the later 30 minutes (193 tumbling windows;
+95 % CIs bootstrapped over the 6 sources):
+
+| Detector | False-positive rate | 95 % CI |
+|---|---|---|
+| Robust statistics | 0.130 | 0.103–0.163 |
+| Isolation Forest | 0.715 | 0.644–0.793 |
+| Half-Space-Trees | 0.637 | 0.560–0.717 |
+
+Live, the controller raised **89 proposals** (46 rate limit, 43 watch) against these
+benign sources. It was in monitor mode, so none was enforced. The training set was
+three runs of about 5 minutes from six other addresses, and it under-represents
+legitimate variation. **This is the most important negative result of the project.**
+In enforce mode, the v2 profile would have harmed new legitimate users. The statistical
+detector degrades far less than the ML detectors. The headline in §2 must always be
+quoted together with this section.
+
+- Evidence: `artifacts/evidence/m3-2026-10-27/m4-adaptation.json` (scenario A),
+  `artifacts/evidence/m2-2026-10-27/live-shadow-final.txt`;
+  `docs/engineering/M4_ADAPTATION_EXPERIMENTS.md` §1–2.
+
+## 4. The cost of ML over statistics
 
 At the *same* 1.30% validation FPR, the three detectors differ by three orders of
 magnitude in scoring cost (Figure A): robust-statistics **≈14 µs/window**,
@@ -72,7 +99,7 @@ the (blocked) adversarial arm answers.
 - Evidence: `artifacts/evidence/real-benign-baseline-2026-10-17.md` (detector and
   M0/M1/M2 tables).
 
-## 4. Explainable decisions on live traffic
+## 5. Explainable decisions on live traffic
 
 Every assessment carries occlusion-based feature attributions and human-readable
 reason codes. A live, unscripted example (Figure F): during dashboard verification,
@@ -94,7 +121,7 @@ consideration, not hidden.
 - Evidence: `artifacts/evidence/dashboard-live-2026-10-20.md` (assessment
   `risk-7b3ee514524a`).
 
-## 5. Controlled adaptation (Scenario C)
+## 6. Controlled adaptation (Scenario C)
 
 The adaptation lifecycle was observed end-to-end on real traffic (Figure C): a
 legitimate behaviour change (users exercising new routes `/reviews`, `/logout`) raised
@@ -114,7 +141,42 @@ single-source poisoning it is designed to refuse.
 - Evidence: `artifacts/evidence/real-benign-baseline-2026-10-17.md` (Scenario C);
   `artifacts/evidence/soak-2026-10-20.md` (single-source candidate held).
 
-## 6. Stability, endurance and recovery
+### 6b. Online adaptation on real drift (M2–M4, 2026-10-27)
+
+The online HST challenger (`ADAPTATION_DESIGN.md`) was replayed over the first 45
+minutes of the §3 run (`real-drift-learn-20261027`) and evaluated on the disjoint later
+holdout (`real-drift-hold-20261027`).
+
+| Setting | Windows learned | Pivots | Holdout test-half FPR (95 % CI) |
+|---|---|---|---|
+| Champion HST (frozen) | — | — | 0.650 (0.566–0.726) |
+| Deployed default caps | 45 | 0 | unchanged (no pivot) |
+| Rate cap and tenure lifted (labelled experiment) | 227 | 1 | 0.062 at champion threshold; **0.031** (0.000–0.067) at calibrated threshold |
+
+* **Benefit.** One reference pivot reduces the HST arm's false alarms on unseen later
+  traffic from about 65 % to about 3 %. Only the HST arm adapts online. Isolation
+  Forest and robust statistics, which drove most live proposals, change only through a
+  reviewed batch rebuild. Under the deployed caps, adaptation takes hours.
+* **Poisoning.** Before the M4 fix, two attacker sources sharing anomaly-driver *names*
+  with drifting benign users got **140/180** poison windows learned and blinded the
+  challenger. With similarity-based corroboration: **0/180**, and drift learning was
+  unchanged.
+* **Regression.** A deliberately degraded promoted model was rolled back automatically
+  after 100 windows (945 s of event time).
+* **The gate refuses promotion** of the adapted challenger, for two reasons:
+  * attack recall cannot be checked (no real labelled attack runs);
+  * sensitive invariance fails: the challenger flags 0.162 of auth-abuse-like probes
+    against the champion's 0.419 (limit 0.369).
+
+  Adaptation reduced sensitivity to those variants. This is a real trade-off, and the
+  gate exists to catch it.
+* **Live,** the shadow challenger learned **0** windows during the run. The champion's
+  own proposals tainted every new source (fail-closed by design).
+
+Evidence: `m3-2026-10-27/m4-adaptation.json`, `m4-adaptation-v1-name-corroboration.json`,
+`m2-2026-10-27/m2-replay-*.json`; `docs/engineering/M4_ADAPTATION_EXPERIMENTS.md`.
+
+## 7. Stability, endurance and recovery
 
 **Soak (Figure D).** Under 60 minutes of continuous benign traffic the controller was
 stable: resident memory flat (**220.9 → 224.2 MB**, +3.3 MB/hour — no leak), control-
@@ -142,7 +204,24 @@ unit/integration tests and 9 live-lab tests (`AFW_LAB=1`) pass.
 - *Figures D, E*; evidence `soak-2026-10-20.md`, `cold-restart-2026-10-18.md`,
   `dashboard-live-2026-10-20.md`.
 
-## 7. Threats to validity and limitations
+### 7b. Telemetry recovery (M5, 2026-10-27)
+
+Verification found a real failure. After a controller restart, sensors kept writing into
+a dead TLS session that FW01 silently dropped, and HTTP telemetry stopped for **about
+55 minutes** without any alarm. After the fixes (bounded TCP retries, rsyslog rebind,
+30 s mTLS heartbeats, per-sensor staleness), recovery was measured live:
+
+| Case | Recovery |
+|---|---|
+| Controller restart under traffic | about 12 s |
+| Restart, sensors idle 17 min, then traffic (before heartbeat) | about 120 s; lines written meanwhile lost |
+| Restart with heartbeat, no client traffic | both sensors back in 59 s |
+| One sensor silenced | flagged stale and evidence degraded at 148 s (limit 150 s); cleared 2 s after it resumed |
+
+Evidence: `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt`;
+`docs/engineering/M5_TELEMETRY_V2.md`.
+
+## 8. Threats to validity and limitations
 
 1. **No adversarial evaluation yet.** Attack recall and the incremental value of M2
    under attack are unmeasured, pending team-supplied attack traces. The benign-only
@@ -151,20 +230,43 @@ unit/integration tests and 9 live-lab tests (`AFW_LAB=1`) pass.
 2. **Single-source soak.** The endurance test varied journeys over time from one
    source; it is an endurance test, not a concurrency/scale test. Multi-source
    behaviour is covered separately by the six-source training/validation capture.
-3. **Infrastructure probes score anomalous** under a user-journey profile (§4);
+3. **Infrastructure probes score anomalous** under a user-journey profile (§5);
    enforce-mode deployment requires allowlisting them or modelling them explicitly.
-4. **Simulated country policies.** GeoIP-based policies are simulated on lab addresses
-   unless a real GeoIP database is configured; this is surfaced in the API and UI.
+4. **Country policies.** A real GeoIP database (DB-IP Lite 2026-10) is installed for
+   lookup and preview. Enforced country policies remain simulated on lab addresses
+   (ADR-033).
 5. **Lab scale.** Results are from a small GNS3 lab on a single host; absolute
    latencies and memory figures are indicative of the architecture, not of a
    production-scale deployment.
+6. **Small training population.** The trusted profile came from about 15 minutes of
+   traffic from six addresses; §3 shows this is not enough for new users.
+7. **One drift run.** The adaptation CIs are over six sources in one run, not over runs.
 
-## 8. Summary
+## 9. Summary
 
-On real lab traffic the system trains a model that makes **zero-false-positive**,
-**explained** decisions; adapts to legitimate change through a **multi-source,
-human-in-the-loop** gate that refuses single-source poisoning; and remains **stable
-under sustained load** and **recoverable** across a full restart — all observable
-through a working operator dashboard and a 26-tool MCP control plane. The outstanding
-work is the **adversarial** half of the evaluation, which is blocked only on data the
-team provides, and for which the measurement machinery is already in place.
+On real lab traffic the system:
+
+* trains models that make explained decisions with no false positives **on the
+  population they were trained on**, but with high false-positive rates on new
+  legitimate users (§3);
+* adapts online on recorded real drift (HST false alarms about 65 % → 3 %), while
+  refusing poisoning and regressions and refusing its own promotion when sensitivity
+  is lost (§6b);
+* enforces through the real firewall and WAF with verification;
+* recovers from controller and sensor failures with bounded, measured delays (§7, §7b).
+
+The adversarial half of the evaluation (attack recall, incremental value under attack)
+is blocked on team-run attack scenarios. The harness for it (M6) is complete.
+
+## 10. Measurement index
+
+| Measurement | Command | Dataset / run | Time (UTC) | Evidence |
+|---|---|---|---|---|
+| Profile v2 validation FPR, live 0-FP | `afw train bootstrap`; live controller | `real-benign-train2`, `real-benign-val`, `real-benign-train` | 2026-10-17 | `real-benign-baseline-2026-10-17.md` |
+| Detector latency, M0/M1/M2 benign replay | `afw experiment replay` | held-out real benign | 2026-10-17 | same |
+| Soak | live, 60 min | — | 2026-10-20 | `soak-2026-10-20.md` |
+| Cold restart | `afw lab stop/start` | — | 2026-10-18 | `cold-restart-2026-10-18.md` |
+| New-user FPR, online adaptation, poisoning, rollback | `afw experiment adaptation --learn real-drift-learn-20261027 --hold real-drift-hold-20261027` | 75-min run, 10.77.20.11–16 | 2026-10-27 18:03–19:18 | `m3-2026-10-27/m4-adaptation*.json` |
+| Online replay (pivot, restore) | `afw experiment online-replay` | real-benign and drift datasets | 2026-10-27 | `m2-2026-10-27/m2-replay-*.json` |
+| Telemetry recovery | scripted restarts (see file) | live | 2026-10-27 20:15–20:48 | `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt` |
+| Isolation, live-lab suite | `afw lab verify`; `AFW_LAB=1 pytest tests/lab` | live | 2026-10-27 20:59–21:00 | `m9-2026-10-27/` |

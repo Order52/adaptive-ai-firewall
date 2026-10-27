@@ -48,7 +48,7 @@ only by evaluation code, never by the detectors (leakage-controlled, ADR-010).
   promoted and used for **live inference on CTRL01**.
 - **Measured**: false-positive behaviour and legitimate-request success on
   independent real benign traffic (see `artifacts/evidence/` once captured).
-- _Status recorded in `docs/IMPLEMENTATION_STATUS.md` with the exact run IDs/metrics._
+- _Results with run IDs: `RESULTS.md` §2–4 and §10._
 
 ### Synthetic correctness fixtures — NOT RESULTS
 - `tests/integration/test_experiments.py`, `test_closed_loop.py`,
@@ -56,12 +56,27 @@ only by evaluation code, never by the detectors (leakage-controlled, ADR-010).
   fixture (AUC 1.0 there is meaningless). These verify **software correctness only**
   and must never be cited as accuracy results.
 
+### Adaptation experiments (M4) — REAL RECORDED DATA
+- `afw experiment adaptation --learn <drift-run> --hold <later-holdout-run>` replays
+  the online challenger over a real benign drift run and evaluates on a disjoint later
+  holdout. Scenarios: A (legitimate drift), B (poisoning, synthetic feature-space
+  injections that are labelled as such), C (regression → probation rollback). Units:
+  tumbling windows; CIs bootstrapped over sources. Method and results:
+  `engineering/M4_ADAPTATION_EXPERIMENTS.md`.
+
+### Attack runs (M6) — HARNESS READY, RUNS BY THE TEAM
+- Scenario registry `config/scenarios.yaml` (lab-owned targets only), ground-truth
+  journal, kill switch, watchdog, manifests generated from the journal.
+- `afw experiment evaluate --datasets …` aggregates M0/M1/M2 per arm with the **run**
+  as the unit (95 % bootstrap CI over runs, none below 3 runs). Synthetic datasets are
+  refused. See `engineering/M6_ATTACK_EVALUATION.md`.
+
 ## What is BLOCKED (and why)
 
 - **Attack/adversarial recall and scenarios A (auth abuse), B (SQLi/CRS), E (held-out
   novelty)** require real **attack** telemetry. Generating an attack-scenario driver
-  was stopped by the safety classifier and is assigned to the team as
-  `DatasetManifest` + `SourceLabel` traces. The evaluation machinery is complete and
+  is out of scope for this project; the team runs attacks with standard tools through
+  the M6 harness. The evaluation machinery is complete and
   tested; it will produce citable M0/M1/M2 attack metrics the moment those traces exist.
 - **Multi-repetition variance (≥5 runs/scenario/mode)** and **ablations** depend on the
   same attack data for the adversarial arms; benign-side repetitions are feasible now.

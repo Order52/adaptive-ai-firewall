@@ -154,6 +154,19 @@ def load_optional(geo_dir: Path) -> tuple[GeoIpDatabase | None, str | None]:
         return None, f"GeoIP database unusable: {exc}"
 
 
+def _lab_effect(cc: str, direction: str, matched: list[IPv4Address]) -> str:
+    inbound = (
+        f"inbound: {len(matched)} observed source(s) would be covered"
+        if matched
+        else "inbound: none, every observed source is RFC 1918 and has no country"
+    )
+    outbound = (
+        f"outbound: lab hosts' Internet egress (NAT via FW01) to {cc} would be affected; "
+        "the controller does not observe egress flows"
+    )
+    return {"inbound": inbound, "outbound": outbound}.get(direction, f"{inbound}; {outbound}")
+
+
 def country_preview(
     db: GeoIpDatabase,
     country_code: str,
@@ -181,11 +194,7 @@ def country_preview(
         "sample_networks": [str(n) for n in nets[:sample]],
         "observed_sources_in_country": [str(ip) for ip in matched],
         "observed_sources_checked": len(set(observed_sources)),
-        "lab_effect": (
-            "none: every lab client address is RFC 1918 and has no country"
-            if not matched
-            else f"{len(matched)} observed source(s) would be covered"
-        ),
+        "lab_effect": _lab_effect(cc, direction, matched),
         "enforcement": "preview only: real-country enforcement is not implemented (ADR-033)",
         "database": db.status(now),
     }

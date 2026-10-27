@@ -32,8 +32,12 @@ begins (DB-IP releases monthly). The age and stale flag are reported in
 
 * `lookup(ip)` returns the ISO country code, or `None`. RFC 1918, reserved, loopback and
   link-local addresses always return `None`, whatever the data says. DB-IP's `ZZ`
-  (unassigned) is not a country. **Every lab client is RFC 1918, so real geography
-  never matches lab traffic.** This is a property of the isolated lab, not a defect.
+  (unassigned) is not a country.
+* **Inbound:** every lab client is RFC 1918, so real geography never matches the
+  sources the controller sees. This is a property of the lab, not a defect.
+* **Outbound:** since 2026-10-22 each zone has Internet egress (NAT via FW01), so lab
+  hosts do open connections to real countries. The controller does not observe those
+  flows: its telemetry is WAF/app HTTP and IDS alerts. The preview says this explicitly.
 * Direction (as in the MCP server instructions):
   * `inbound` means connections initiated from the country toward the protected services.
   * `outbound` means connections initiated from lab networks toward the country.
@@ -41,7 +45,8 @@ begins (DB-IP releases monthly). The age and stale flag are reported in
   * the country's IPv4 networks (CIDR-summarised) and address count;
   * a sample of those networks;
   * which sources seen in the last 24 h (HTTP clients and IDS sources) fall in the country;
-  * the lab effect;
+  * the lab effect for that direction (inbound: observed sources covered; outbound: lab
+    egress affected but not observed);
   * the database status.
 
   It never enforces anything.
@@ -63,8 +68,10 @@ look enforced while it was not. The validator therefore rejects it with
 it said "no GeoIP database loaded", which would have become misleading once a database
 was installed.
 
-The isolated lab has no real-country traffic, so enforcement could only be verified by
-alias read-back, never by blocked traffic. It remains future work with that caveat.
+Verification would also be weak. No inbound real-country traffic reaches the protected
+services, so an inbound policy could only be checked by alias read-back. An outbound
+policy could additionally be checked with a probe from a lab host to an address in the
+country, which is possible because of the per-zone egress. It remains future work.
 
 ## 4. Tests and evidence
 

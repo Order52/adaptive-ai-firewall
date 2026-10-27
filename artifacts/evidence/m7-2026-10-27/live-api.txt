@@ -20,3 +20,7 @@
 [HTTP 401]
 == POST real-country geo_block (operator token)
 {"policy_id":"pol-79ebc5efe602","idempotency_key":"9667a08197b78b83a76f0cfd9ee92282","intent":{"kind":"geo_block","app_id":"rental","service":"rental_https","target":{"type":"country","country_code":"CN","direction":"inbound","simulated":false},"duration_s":600,"rate_profile":null,"origin":"operator","requested_by":"operator","reason_codes":["M7 live check: must be refused"],"risk_assessment_id":null,"evidence_refs":[],"escalation_level":0},"state":"rejected","mode_at_creation":"monitor","created_at":"2026-10-27T20:49:03.083035Z","updated_at":"2026-10-27T20:49:03.083035Z","effective_at":null,"expires_at":null,"approved_by":null,"validation_notes":["real-country enforcement is not implemented; use the GeoIP preview (ADR-033)"],"enforcement_backend":null,"verification":{},"history":[{"at":"2026-10-27T20:49:03.083035Z","from_state":"proposed","to_state":"rejected","actor":"validator","note"
+# after outbound-semantics fix, 2026-10-27T21:08:28Z
+inbound | inbound: none, every observed source is RFC 1918 and has no country
+outbound | outbound: lab hosts' Internet egress (NAT via FW01) to IQ would be affected; the controller does not observe egress flows
+both | inbound: none, every observed source is RFC 1918 and has no country; outbound: lab hosts' Internet egress (NAT via FW01) to IQ would be affected; the controller does not observe egress flows

@@ -1,30 +1,8 @@
-# Security model & limitations
+# Security and limitations
 
-## Threat model & trust boundaries
-
-**Protected asset:** the rental application (APP01) and the availability of
-legitimate users. **Adversary:** a client in the ATTACK/USERS zones attempting
-application abuse (auth abuse, injection, scanning, novel misuse). **Isolation:** the
-whole lab is a self-contained GNS3 project on a host-only management TAP. Since
-2026-10-22 each zone has outbound Internet egress (NAT via FW01, "real-test mode");
-all inter-zone traffic is still blocked except the explicit service paths, and the
-database tier (DB01, PostgreSQL) is reachable only from APP01:5432.
-
-Trust boundaries:
-
-- **Client zones → FW01**: every cross-zone packet is subject to OPNsense pf. Clients
-  cannot reach APP01 directly — only via WAF01 (gate G1: 35/35 verified, incl. DB isolation).
-- **WAF → app identity**: client identity is taken only from the WAF's TCP peer; the
-  WAF overwrites `X-Forwarded-For`/`X-Real-IP`/`X-Request-ID`, and the app trusts those
-  headers only from the WAF IP. Forged-header bans are therefore impossible (ADR-007).
-- **Controller ↔ firewall**: a least-privilege OPNsense API user can only change alias
-  membership and read/delete states; a stolen controller key cannot rewrite rules
-  (ADR-017). All controller→device TLS is verified against the lab CA (ADR-018).
-- **Claude/operator vs AI runtime**: development/admin privileges (lab operations) are
-  separate from the AI runtime's restricted enforcement broker. MCP mutations pass the
-  same typed policy validator as autonomous decisions; there is **no raw-shell tool**.
-- **Management plane**: host-only MGMT zone, reached locally or over SSH (which
-  encrypts transport). Bearer-token API; TLS is implemented and opt-in.
+Threats, adversaries and mitigations: `THREAT_MODEL.md`. Trust boundaries and
+communication flows: `ARCHITECTURE.md` §3. This page lists the safety invariants and
+the known gaps.
 
 ## Safety invariants (enforced in code, tested)
 
@@ -35,19 +13,38 @@ Trust boundaries:
   gateway). Verified: such a block ends `rejected`.
 - Enforcement is **level-triggered and ownership-aware** (idempotent duplicates,
   overlaps, restarts, reboots). Policies are bounded-duration and expire.
-- Learning is anti-poisoning: the trusted profile is frozen; candidates are built from
-  reputation-gated, population-level benign traffic with a source-share cap, sensitive
-  feature limits and an attack-recall regression gate; promotion is human-reviewed.
-  Repeated malicious traffic cannot redefine "normal".
+- Learning is anti-poisoning. The trusted profile and champion are frozen. Batch
+  candidates and the online challenger learn only from authenticated, untainted,
+  population-level benign traffic, under the following controls:
+  * source-share and rate caps;
+  * sensitive-feature limits;
+  * similarity-based corroboration for anomalous windows.
+
+  Promotion needs a passing gate (incl. real-attack recall) and a human admin; probation
+  rolls back automatically (ADR-012, ADR-028, ADR-030).
+- Evidence from a stale sensor (no heartbeat for 150 s) is marked degraded and
+  automatic enforcement pauses (ADR-031). IDS-only evidence never exceeds WATCH.
 - Dead-controller fail-safe: FW01 flushes dynamic blocks within ~120 s without
   heartbeats (ADR-009).
 
 ## Limitations (honest)
 
-- **No attack-side results.** Attack/adversarial recall, scenarios A/B/E and the
-  incremental-AI-value numbers are **BLOCKED** on team-supplied attack traces;
-  generating an attack driver was stopped by the safety classifier. The machinery is
-  complete and tested; benign-side training/inference/FPR are real and measured.
+- **No attack-side results.** Attack recall, scenarios A/B/E and the incremental value
+  of the AI under attack are **BLOCKED** on team-run attack scenarios. This project
+  does not generate attack traffic. The M6 harness and the evaluation machinery are
+  complete and tested; benign-side training, inference and FPR are real and measured.
+- **High false-positive rate on new legitimate users.** Frozen detectors trained on
+  about 15 min of six users flagged 13 % (robust stats) to 72 % (Isolation Forest) of
+  new users' windows (`RESULTS.md` §3). Do not run enforce mode on this profile.
+- **Online learning not yet observed live.** The live challenger learned 0 windows,
+  because champion proposals tainted every new source (fail-closed). Adaptation is
+  shown on recorded real drift only, and the gate refuses the adapted challenger.
+- **Residual poisoning risk.** Four or more colluding, tenured, behaviourally similar
+  sources can corroborate each other (M4). SV-1: occlusion attribution does not prove
+  causal independence of evidence.
+- **Telemetry loss window.** rsyslog over TCP loses lines written into a dead session
+  (about 100 s worst case). Heartbeat staleness makes the gap visible; RELP is not
+  implemented. FW01's IDS feed is plaintext (source-IP allowlist only).
 - **IDS visibility.** Client→WAF traffic is HTTPS, so Suricata mainly catches scans and
   non-HTTPS signatures; IDS is supporting evidence only and never blocks alone.
 - **Low-and-slow / distributed** misuse falls below the per-window minimum by design
@@ -61,7 +58,9 @@ Trust boundaries:
   enforcement budget) but much costlier than the statistical arm (~63 µs).
 - **Not air-gapped.** Guests can reach the Internet for real tests; revert by removing
   the per-zone egress rules in `opnsense_config.lab_rules` and re-provisioning.
-- **Country policies are simulated** (no GeoIP database loaded).
+- **Country policies.** Real GeoIP (DB-IP Lite) is used for lookup and preview only;
+  real-country enforcement is refused, and enforced country policies use the
+  SIMULATED lab mapping (ADR-033).
 - **GNS3 canvas** is a desktop GUI — organised and verified via the API, but not
   captured as a pixel screenshot here.
 

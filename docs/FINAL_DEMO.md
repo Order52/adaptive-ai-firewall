@@ -10,7 +10,7 @@ Open the dashboard first: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` →
 
 ## 1. Lab health & topology (1–2 min)
 - `afw lab status` → 6 guests + infra, all started.
-- `afw lab verify` → **26/26** zone-isolation checks (no WAF/app bypass, clients
+- `afw lab verify` → **37/37** zone-isolation checks (no WAF/app bypass, clients
   isolated, management reaches all).
 - Dashboard tiles: mode, trusted profile **v2**, ML model, live sources, RSS.
 - Via Claude Code (MCP): *"show me the entire lab and the status of every device"*
@@ -44,6 +44,16 @@ Open the dashboard first: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` →
   profile → human-reviewed promotion → rollback available. Attacker traffic cannot
   silently become "normal".
 
+## 5b. Online learning, honestly (2 min)
+- Dashboard **Online learning**: the challenger and the reasons windows were *not*
+  learned. Explain fail-closed: sources the champion acted on are tainted.
+- Dashboard **Promotion gate & probation**: no promotion without a passing gate and an
+  admin. Show `RESULTS.md` §6b: on recorded real drift, HST false alarms fell from about
+  65 % to about 3 %. The gate still refuses: no real attack runs, and sensitivity to
+  auth abuse dropped. This is the gate doing its job.
+- Show `RESULTS.md` §3: the frozen models raised many false positives on new benign
+  users. This is the main limitation and the motivation for adaptation.
+
 ## 6. Explainable decision (1–2 min)
 - On any policy row click **Explain** → the 8-section panel: what happened, why it was
   suspicious (evidence + points), model & profile versions, **occlusion feature
@@ -62,6 +72,11 @@ Open the dashboard first: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` →
   M1 ~63 µs vs M2 ~11.9 ms scoring. Rows are tagged by scenario so a synthetic demo is
   never mistaken for a lab result.
 
+## 8b. Telemetry liveness (1 min)
+- On APP01: `sudo systemctl stop afw-heartbeat.timer`. After about 150 s the dashboard
+  shows sensor **app STALE** and "telemetry degraded". `sudo systemctl start
+  afw-heartbeat.timer` clears it within seconds (measured 2 s).
+
 ## 9. Recovery (1 min)
 - `ssh ctrl01 sudo systemctl restart afw-controller` → within seconds the controller
   reloads profile v2 + models and restores enforcement state. FW01's watchdog is the
@@ -72,9 +87,10 @@ Open the dashboard first: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` →
   correlation), E (held-out novelty): the full pipeline — detection → correlation →
   proportional block → read-back + traffic verification → legitimate client preserved
   → expiry/rollback — is implemented and unit/integration-tested. It will run on real
-  attack telemetry supplied by the team in the `DatasetManifest` format. We do **not**
+  attack telemetry from team-run scenarios recorded with the M6 harness
+  (`afw scenario …`, see `OPERATOR_GUIDE.md`). We do **not**
   claim attack results we have not measured.
 
 ## One-command rebuild
 `afw lab build → start → provision-fw → provision-ids → deploy → layout → verify`,
-then capture benign traffic and `afw train bootstrap`. See `docs/INSTALL.md`.
+then capture benign traffic and `afw train bootstrap`. See `docs/DEPLOYMENT.md`.

@@ -6,7 +6,7 @@ Status words: **DONE** (implemented, tested, evidence exists), **PARTIAL** (some
 acceptance criteria open, listed), **BLOCKED-EXT** (needs something only the team can
 supply), **TODO**.
 
-Last updated: 2026-10-27 ~21:00Z (M4 committed; M5–M8 implemented and live-verified; M9 next).
+Last updated: 2026-10-27 ~21:15Z (M0–M9 worked through; remaining gaps are BLOCKED-EXT or listed below).
 
 ## Milestones
 
@@ -20,15 +20,16 @@ Last updated: 2026-10-27 ~21:00Z (M4 committed; M5–M8 implemented and live-ver
 | M5 | Telemetry v2: envelope, IDS dedup, IDS-only view, heartbeats, liveness (ADR-031) | DONE: live-verified. Found and fixed two live defects (silent ~55 min stall after restart; heartbeat JSON mangled by systemd quoting). Residual: TCP syslog loses lines written into a dead session (≤ about 100 s), RELP not done | `81e8d76` | `docs/engineering/M5_TELEMETRY_V2.md`, `artifacts/evidence/m5-2026-10-27/` |
 | M6 | Attack-evaluation harness: registry, journal, kill switch, watchdog, run-level CIs (ADR-032) | DONE (harness); Gate B BLOCKED-EXT on team attack runs | `81e8d76` | `docs/engineering/M6_ATTACK_EVALUATION.md`, `artifacts/evidence/m6-2026-10-27/` |
 | M7 | Real GeoIP: DB-IP Lite, integrity, freshness, preview (ADR-033) | DONE (lookup + preview, live); real-country *enforcement* deliberately refused (not implemented, documented) | `81e8d76` | `docs/engineering/M7_GEOIP.md`, `artifacts/evidence/m7-2026-10-27/` |
-| M8 | Dashboard: shadow learning (eligibility exclusions, learned-window fingerprints), gate/probation, sensor liveness, IDS-only, GeoIP freshness | DONE: deployed and rendered live (headless Chromium, no console errors); screenshot kept locally (`dashboard-m8.png`, not committed) | this commit | `artifacts/evidence/m8-2026-10-27/dashboard-panels.txt` |
-| M9 | Docs consolidation, validation matrix | TODO | | |
+| M8 | Dashboard: shadow learning (eligibility exclusions, learned-window fingerprints), gate/probation, sensor liveness, IDS-only, GeoIP freshness | DONE: deployed and rendered live (headless Chromium, no console errors); screenshot kept locally (`dashboard-m8.png`, not committed) | `2148038` | `artifacts/evidence/m8-2026-10-27/dashboard-panels.txt` |
+| M9 | Docs consolidation: the 13 Phase 11 deliverables, validation matrix, single project status | DONE: superseded status files moved to `docs/archive/`; RESULTS corrected (new-user FPR) | this commit | `docs/PROJECT_STATUS.md`, `docs/VALIDATION_MATRIX.md`, `artifacts/evidence/m9-2026-10-27/` |
 
 ## Tests (latest full run)
 
 `uv run ruff check . && uv run ruff format --check . && uv run mypy src && uv run pytest -q`
 → ruff clean, mypy clean (94 files), pytest 155 passed, 9 skipped (lab tests need
 `AFW_LAB=1`). Mutation checks: M5 (in M5 doc), M6 10/10, M7 7/7 caught.
-Live (M5 run): `uv run afw lab verify` 37/37; `AFW_LAB=1 uv run pytest tests/lab` 9 passed.
+Live (after all M5–M8 deploys, 2026-10-27 20:59–21:00Z): `uv run afw lab verify` 37/37;
+`AFW_LAB=1 uv run pytest tests/lab` 9 passed (`artifacts/evidence/m9-2026-10-27/`).
 
 ## Acceptance gates (directive A–G)
 
@@ -67,8 +68,11 @@ attack-detection results stays **failed/blocked** until real labelled attack run
 
 ## Next task
 
-M9: consolidate documentation (validation matrix, single project status), then the
-final handoff.
+All achievable directive work is done. What remains is listed in `docs/PROJECT_STATUS.md`
+§4. Items 1 (team attack runs) and the Gate G team demonstration are external. Items
+2–4 are follow-up engineering that needs new benign data captures or hours of live
+traffic: broader benign training data, live online adaptation, and investigating the
+sensitive-invariance failure.
 
 ## Resume commands
 
