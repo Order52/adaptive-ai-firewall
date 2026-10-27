@@ -5,14 +5,15 @@
 **Protected asset:** the rental application (APP01) and the availability of
 legitimate users. **Adversary:** a client in the ATTACK/USERS zones attempting
 application abuse (auth abuse, injection, scanning, novel misuse). **Isolation:** the
-whole lab is a self-contained GNS3 project on a host-only management TAP; no data zone
-has Internet egress (FW01 has an outbound-only maintenance uplink for IDS rule
-updates).
+whole lab is a self-contained GNS3 project on a host-only management TAP. Since
+2026-10-22 each zone has outbound Internet egress (NAT via FW01, "real-test mode");
+all inter-zone traffic is still blocked except the explicit service paths, and the
+database tier (DB01, PostgreSQL) is reachable only from APP01:5432.
 
 Trust boundaries:
 
 - **Client zones → FW01**: every cross-zone packet is subject to OPNsense pf. Clients
-  cannot reach APP01 directly — only via WAF01 (gate G1: 26/26 verified).
+  cannot reach APP01 directly — only via WAF01 (gate G1: 35/35 verified, incl. DB isolation).
 - **WAF → app identity**: client identity is taken only from the WAF's TCP peer; the
   WAF overwrites `X-Forwarded-For`/`X-Real-IP`/`X-Request-ID`, and the app trusts those
   headers only from the WAF IP. Forged-header bans are therefore impossible (ADR-007).
@@ -58,6 +59,9 @@ Trust boundaries:
 - **ML caveats.** Isolation-Forest/robust-stats scores are anomaly scores, not
   calibrated probabilities. Single-row IF scoring is ~11.9 ms on CTRL01 (within the 5 s
   enforcement budget) but much costlier than the statistical arm (~63 µs).
+- **Not air-gapped.** Guests can reach the Internet for real tests; revert by removing
+  the per-zone egress rules in `opnsense_config.lab_rules` and re-provisioning.
+- **Country policies are simulated** (no GeoIP database loaded).
 - **GNS3 canvas** is a desktop GUI — organised and verified via the API, but not
   captured as a pixel screenshot here.
 
