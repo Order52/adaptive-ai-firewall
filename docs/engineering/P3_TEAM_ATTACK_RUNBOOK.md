@@ -30,7 +30,7 @@ On the host:
 
 ```bash
 uv run afw lab status            # all 8 VMs started
-uv run afw lab verify            # expect 37/37 checks passed
+uv run afw lab verify            # expect every check passed (41/41 on 2026-10-28)
 curl -s https://10.77.50.10:8080/api/health    # "status":"ok", "telemetry_degraded":false
 ```
 
@@ -39,7 +39,9 @@ curl -s https://10.77.50.10:8080/api/health    # "status":"ok", "telemetry_degra
   full attack is recorded, and the replay measures what each arm *would* have done.
   Enforcement is measured separately (§5).
 * Pick **benign background addresses** for this run that no earlier run used. Free ones
-  are listed in `artifacts/evidence/p1-2026-10-28/` (10.77.20.21–82 are taken).
+  are listed in `artifacts/evidence/p1-2026-10-28/`. Taken: 10.77.20.10–82 (P1 and
+  earlier), .90–.97 (generator smoke tests), .100–.197 (P6). Use .200–.249 for team
+  runs, two new addresses per run, and note them in the run's `--notes`.
   Each run gets its own users, so FPR is measured on independent people.
 * In a second CTRL01 terminal: `afwc scenario watchdog` (stops ATK01 if the run exceeds
   its registered maximum duration).
@@ -50,7 +52,7 @@ curl -s https://10.77.50.10:8080/api/health    # "status":"ok", "telemetry_degra
 # once per USR01 boot (/tmp is cleared on reboot), from the repository on the host:
 #   scp -F ~/.config/afw/ssh_config traffic/benign_personas.py usr01:/tmp/
 # t = -5 min: benign background on USR01, one process per user (2 users per run)
-ssh usr01 'for ip in 10.77.20.90 10.77.20.91; do
+ssh usr01 'for ip in 10.77.20.200 10.77.20.201; do
   sudo ip addr add $ip/24 dev ens3 2>/dev/null
   AFW_MODE=personas AFW_SOURCES=$ip AFW_DURATION=1800 AFW_SEED=${ip##*.} \
     setsid nohup python3 /tmp/benign_personas.py >/tmp/bg_$ip.log 2>&1 </dev/null &
@@ -81,14 +83,32 @@ Rules:
 ## 3. Capture the run
 
 ```bash
-afwc scenario manifest <RUN_ID> /tmp/<RUN_ID>.json --benign 10.77.20.90,10.77.20.91
+afwc scenario manifest <RUN_ID> /tmp/<RUN_ID>.json --benign 10.77.20.200,10.77.20.201
 afwc dataset capture atk-<family>-<yyyymmdd>-<n> --manifest /tmp/<RUN_ID>.json --purpose test
 #   (--purpose validation for the one validation run per family; holdout for low-and-slow)
-afwc dataset list | grep atk-        # check: observations > 0 for the attack source
+afwc dataset validate atk-<family>-<yyyymmdd>-<n>   # exit 1 on any FAIL
 ```
+
+`dataset validate` checks integrity (sha256), counts and time range, unique request
+ids, that every observed source is labelled and no address is both benign and attack,
+that attackers are in the ATTACK zone and have an `attack_type`, that attack data is
+not marked `train`, that the data is not synthetic, and that the run overlaps no
+dataset of another split. It warns on: labelled sources with no HTTP observation (an
+attack stopped at FW01 leaves none: say so), attacker traffic outside its labelled
+window, observations without full provenance, aborted runs, a subset of the same
+split, and benign addresses that also appear in training/validation datasets. **A
+dataset with a FAIL is not used**; re-capture or relabel it and validate again. Paste
+the WARN lines into the run's entry in the results.
 
 The manifest's time range and labels come from the journal, not from memory. The
 attacker address is labelled malicious, the background users benign.
+
+**What to expect for brute force (ADR-039).** If the attacker *only* fails logins,
+the behaviour anomaly is the same requests as the AUTH evidence, so there is one
+corroborating category: the expected decision is a STRICT rate limit with
+`insufficient_corroboration_for_block`, not a block. A block needs a second
+independent signal (WAF, IDS, or behaviour that stays anomalous without the failed
+logins). This is a prediction to test, not a result: record what actually happens.
 
 ## 4. Evaluate (after all runs of a family)
 

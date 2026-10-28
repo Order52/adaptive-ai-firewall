@@ -184,6 +184,32 @@ def ds_capture(
     typer.echo(f"wrote {len(obs)} observations to {path}")
 
 
+@ds_app.command("validate")
+def ds_validate(dataset_id: str) -> None:
+    """Check a captured dataset (integrity, labels, attack zone, leakage); exit 1 on FAIL."""
+    from afw.ml.dataset_validation import failed, validate
+
+    c = _container()
+    try:
+        m = c.datasets.manifest(dataset_id)
+    except FileNotFoundError as e:
+        typer.echo(f"no dataset {dataset_id}")
+        raise typer.Exit(2) from e
+    try:
+        obs = c.datasets.observations(dataset_id)
+    except ValueError as e:
+        typer.echo(f"FAIL integrity: {e}")
+        raise typer.Exit(1) from e
+    zone = next((z.network for z in c.cfg.zones if z.name == "ATTACK"), None)
+    findings = validate(m, obs, c.datasets.list(), zone)
+    typer.echo(f"{dataset_id}: {m.purpose}, {m.scenario}, {len(obs)} observations")
+    typer.echo("PASS integrity: sha256 matches the manifest")
+    for f in findings:
+        typer.echo(f"{f.level} {f.check}: {f.detail}")
+    if failed(findings):
+        raise typer.Exit(1)
+
+
 # ------------------------------------------------------------------ scenarios
 SCENARIOS = Path("config/scenarios.yaml")
 
