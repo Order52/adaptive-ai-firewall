@@ -5,13 +5,21 @@ from ATK01, against the lab's own WAF01 only. The project does not generate atta
 traffic. This runbook is the exact sequence; the harness behind it is described in
 `M6_ATTACK_EVALUATION.md` (ADR-032).
 
-Run `afw` commands on CTRL01 as the controller user, for example:
+**Short version with exact commands: `docs/TEAM_ATTACK_QUICKSTART.md`.**
+
+The `scenario` commands (journal, kill switch, watchdog, manifest) run **on the host**
+from the repository (`uv run afw scenario ...`): the registry `config/scenarios.yaml`,
+the GNS3 client and the journal `~/.config/afw/runs/` live there (`afw scenario list`
+fails on CTRL01, checked 2026-10-28). The `dataset` and `experiment` commands run on
+CTRL01 as the controller user; copy the manifest there:
 
 ```bash
 ssh ctrl01
-alias afwc='sudo -u afwctl env AFW_CONFIG=/etc/afw/lab.yaml AFW_DATA_DIR=/var/lib/afw \
+alias afwc='sudo -u afwctl env -C /var/lib/afw AFW_CONFIG=/etc/afw/lab.yaml AFW_DATA_DIR=/var/lib/afw \
   AFW_API_TOKENS_FILE=/etc/afw/secrets/api_tokens.yaml /opt/afw/venv/bin/afw'
 ```
+
+Below, `afwc scenario ...` means `uv run afw scenario ...` on the host.
 
 ## 0. What is needed for the gates
 
@@ -31,7 +39,7 @@ On the host:
 ```bash
 uv run afw lab status            # all 8 VMs started
 uv run afw lab verify            # expect every check passed (41/41 on 2026-10-28)
-curl -s https://10.77.50.10:8080/api/health    # "status":"ok", "telemetry_degraded":false
+curl -s --cacert ~/.config/afw/pki/lab-ca.pem https://10.77.50.10:8080/api/health    # "status":"ok", "telemetry_degraded":false
 ```
 
 * Operating mode **monitor** for detection runs (the dashboard header shows it; change
@@ -50,11 +58,11 @@ curl -s https://10.77.50.10:8080/api/health    # "status":"ok", "telemetry_degra
 
 ```bash
 # once per USR01 boot (/tmp is cleared on reboot), from the repository on the host:
-#   scp -F ~/.config/afw/ssh_config traffic/benign_personas.py usr01:/tmp/
+#   scp -F ~/.config/afw/ssh_config traffic/benign_personas.py usr01:/tmp/   (AFW_PERSONA_SET=v2: the v1 personas send bookings without `city`, which return 422)
 # t = -5 min: benign background on USR01, one process per user (2 users per run)
 ssh usr01 'for ip in 10.77.20.200 10.77.20.201; do
   sudo ip addr add $ip/24 dev ens3 2>/dev/null
-  AFW_MODE=personas AFW_SOURCES=$ip AFW_DURATION=1800 AFW_SEED=${ip##*.} \
+  AFW_MODE=personas AFW_PERSONA_SET=v2 AFW_SOURCES=$ip AFW_DURATION=1800 AFW_SEED=${ip##*.} \
     setsid nohup python3 /tmp/benign_personas.py >/tmp/bg_$ip.log 2>&1 </dev/null &
 done'
 
