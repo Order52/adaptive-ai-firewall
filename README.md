@@ -51,12 +51,12 @@ afw train status                               # profiles + models
 afw experiment replay --datasets <held-out>    # M0/M1/M2 comparison
 
 # controller + dashboard (on CTRL01 via systemd; or locally):
-afw serve                # HTTP :8080 (TLS opt-in); dashboard at /
+afw serve                # :8080, HTTPS when AFW_TLS_CERT/KEY set (CTRL01 default); dashboard at /
 claude mcp list          # confirm the `afw` MCP server is Connected
 ```
 
 Dashboard over SSH tunnel: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` →
-`http://localhost:18080/` (token: `~/.config/afw/api/dashboard.token`).
+`https://localhost:18080/` (trust `~/.config/afw/pki/lab-ca.pem`; token: `~/.config/afw/api/dashboard.token`).
 
 ## Architecture
 
