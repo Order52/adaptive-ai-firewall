@@ -395,7 +395,7 @@ class LearningService:
             )
             raise GateFailed(f"profile v{version} has not passed the evaluation gate: {failed}")
         prof = self.profiles.switch(
-            app_id, version, ProfileStatus.TRUSTED, reviewer, note, self._models_of(app_id, version)
+            app_id, version, ProfileStatus.TRUSTED, reviewer, note, self._verified(app_id, version)
         )
         self.audit.record(reviewer, "profile.promote", f"{app_id}:v{version}", {"note": note})
         return prof
@@ -405,7 +405,7 @@ class LearningService:
         if prof is None or prof.status not in (ProfileStatus.RETIRED, ProfileStatus.TRUSTED):
             raise ValueError("can only roll back to a previously trusted profile")
         prof = self.profiles.switch(
-            app_id, version, ProfileStatus.TRUSTED, reviewer, note, self._models_of(app_id, version)
+            app_id, version, ProfileStatus.TRUSTED, reviewer, note, self._verified(app_id, version)
         )
         self.audit.record(reviewer, "profile.rollback", f"{app_id}:v{version}", {"note": note})
         return prof
@@ -416,6 +416,20 @@ class LearningService:
             if r.profile_version == version:
                 self.models.set_status(r.model_id, ModelStatus.REJECTED)
         return prof
+
+    def _verified(self, app_id: str, version: int) -> list[ModelRecord]:
+        """The models a switch to ``version`` would activate, each artifact checked
+        (sha256) BEFORE anything changes: a switch never trusts a profile no controller
+        could load (found 2026-10-28)."""
+        models = self._models_of(app_id, version)
+        if not models:
+            raise ValueError(f"profile v{version} has no models")
+        for r in models:
+            try:
+                self.artifacts.load(r)
+            except (OSError, ValueError, TypeError) as exc:
+                raise ValueError(f"profile v{version}: artifact rejected: {exc}") from exc
+        return models
 
     def _models_of(self, app_id: str, version: int) -> list[ModelRecord]:
         """The newest model per detector trained for profile ``version``."""

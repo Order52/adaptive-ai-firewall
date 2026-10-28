@@ -81,3 +81,38 @@ def test_interrupted_rollback_keeps_the_current_profile_complete(two_versions, n
         c.learning.rollback("rental", v1, "reviewer", "back")
     undo()
     assert _state(c) == (v2, ALL)
+
+
+def _corrupt(c, version, detector=DetectorKind.ISOLATION_FOREST):
+    from pathlib import Path
+
+    rec = next(
+        m
+        for m in c.learning.models.list("rental")
+        if m.profile_version == version and m.detector is detector
+    )
+    p = Path(rec.artifact_path)
+    p.write_bytes(p.read_bytes()[:-64] + b"\0" * 64)
+
+
+def test_switch_to_a_version_with_a_corrupt_artifact_is_refused(two_versions):
+    """Found 2026-10-28 with real artifacts: a rollback trusted a profile whose model
+    failed its integrity check, so no controller could load the trusted state."""
+    c, v1, v2 = two_versions
+    c.learning.promote("rental", v2, "reviewer", "v2")
+    _corrupt(c, v1)
+    with pytest.raises(ValueError, match="artifact rejected"):
+        c.learning.rollback("rental", v1, "reviewer", "back")
+    assert _state(c) == (v2, ALL)
+
+
+def test_controller_survives_a_corrupt_active_artifact(two_versions):
+    """No crash loop, no stale or partial model set: no behavioural models, a visible
+    error, and degraded evidence (automation pauses) until a human acts."""
+    c, v1, _ = two_versions
+    assert c.controller.reload() and c.controller.inference.models
+    _corrupt(c, v1)
+    assert c.controller.reload() is False
+    assert c.controller.inference.models == {} and c.controller.inference.profile is None
+    assert c.controller.model_error and "integrity" in c.controller.model_error
+    assert c.controller.degraded()

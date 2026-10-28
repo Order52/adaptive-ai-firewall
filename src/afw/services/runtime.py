@@ -129,10 +129,23 @@ class Controller:
         self._drop_samples: deque[tuple[float, int]] = deque(maxlen=1000)
         self._ids_only_at: dict[IPv4Address, datetime] = {}
         self._started_at: float | None = None  # set by start(): heartbeats expected
+        self.model_error: str | None = None  # trusted models could not be loaded
 
     # ------------------------------------------------------------ model state
     def reload(self) -> bool:
-        loaded = self.learning.load_active(self.app_id)
+        try:
+            loaded = self.learning.load_active(self.app_id)
+        except (OSError, ValueError, TypeError) as exc:
+            # A trusted model that fails its integrity check is never used, and the
+            # previous in-memory models are dropped too (the registry no longer trusts
+            # them): detection runs without behavioural models, evidence is degraded so
+            # automation pauses, and health shows why. The controller itself keeps
+            # running (telemetry, reconciliation, API) instead of crash-looping.
+            self.model_error = str(exc)
+            self.inference.load_nothing()
+            log.error("model_load_failed", app=self.app_id, error=self.model_error)
+            return False
+        self.model_error = None
         if loaded is None:
             log.warning("no_trusted_profile", app=self.app_id)
             return False
@@ -210,8 +223,9 @@ class Controller:
             self.windows.add(o)
 
     def degraded(self) -> bool:
-        """Evidence is degraded if lines were dropped in the last 60 s or the WAF
-        sensor has gone silent while sources are still being tracked."""
+        """Evidence is degraded if lines were dropped in the last 60 s, the WAF sensor
+        has gone silent while sources are still being tracked, a sensor is stale, or the
+        trusted models failed to load."""
         counts = self.stats.snapshot()["counts"]
         assert isinstance(counts, dict)
         drops = int(counts.get("queue_drop", 0)) + int(counts.get("join_overflow", 0))
@@ -222,7 +236,12 @@ class Controller:
         recent_drop = drops > self._drop_samples[0][1]
         waf_age = self.stats.age("waf")
         silent = waf_age is not None and waf_age > 120 and self.windows.tracked_sources > 0
-        return recent_drop or silent or any(h["stale"] for h in self.sensor_health().values())
+        return (
+            recent_drop
+            or silent
+            or self.model_error is not None
+            or any(h["stale"] for h in self.sensor_health().values())
+        )
 
     def sensor_health(self) -> dict[str, dict[str, object]]:
         """Heartbeat liveness of each mTLS sensor role, once the receiver is running.

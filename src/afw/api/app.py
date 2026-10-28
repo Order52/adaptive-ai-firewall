@@ -153,6 +153,7 @@ def create_app(c: Container) -> FastAPI:
             "simulated_backends": c.simulated,
             "reconciled_since_start": c.policy_service.reconciled_since_start,
             "telemetry_degraded": c.controller.degraded(),
+            "model_error": c.controller.model_error,
             "backends": [o.model_dump(mode="json") for o in rep.observed] if rep else [],
             "last_reconcile": rep.at.isoformat() if rep else None,
         }

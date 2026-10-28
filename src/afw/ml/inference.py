@@ -85,6 +85,11 @@ class InferenceEngine:
             self.profile = profile
             self.models = {m.record.detector: m for m in models}
 
+    def load_nothing(self) -> None:
+        with self._lock:
+            self.profile = None
+            self.models = {}
+
     def active_kinds(self) -> list[DetectorKind]:
         match self.strategy:
             case Strategy.STATIC:
