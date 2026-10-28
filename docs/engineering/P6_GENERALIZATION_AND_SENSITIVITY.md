@@ -314,3 +314,52 @@ was trained and measured on this population; that does not invalidate the compar
 between them, but legitimate traffic in the lab looked less clean than real users, and
 404-driven detections (IDOR, enumeration) were learned against an inflated baseline.
 Fixed in the generator (A2.1).
+
+### 8.4 P7 selection under A2 (2026-10-28, run once at ~18:52Z)
+
+Data: `p7-train` 74,510 and `p7-val` 24,705 observations (Phase C′ 16:31:17–18:01:45Z),
+`p7-sel` 13,173 and `p7-sel-shift` 3,033 (Phase D′ 18:02:21–18:47:44Z). Every count
+equals the WAF01 access log; every `afw dataset validate` check passed. The generator
+on USR01 had the predeclared sha256 (`38f3968d…864a`) and reported reviews off.
+Selection ran on the A2 code (`4e3e7d7`, identical `src/` to `a197a87`) in a separate
+worktree, against a read-only snapshot. Output: `artifacts/evidence/p7-2026-10-28/select/`.
+
+**Result: again no candidate is eligible; nothing was frozen and Phase E stays
+uncollected.**
+
+| Candidate | RS / IF window FPR on p7-sel (95 % CI upper) | M2 users restricted sel / shift | Must-detect min nominal / stressed |
+|---|---|---|---|
+| R2 | 0.369 / 0.843 | 1/16, 0/6 | 1.00 / 0.79 |
+| R3 | 0.040 (0.099) / 0.456 | 1/16, 0/6 | 1.00 / 0.73 |
+| D | 0.015 (0.047) / 0.016 (0.048) | 1/16, 0/6 | 0.81 / 0.49 |
+| F | 0.005 (0.017) / 0.009 (0.029) | 1/16, 0/6 | 0.86 / 0.78 |
+| C | **0.032 (0.075)** / 0.016 | **0/16, 0/6** | 0.82 / 0.52 |
+| S | 0.015 (0.047) / 0.016 (0.048) | 1/16, 0/6 | 1.00 / 1.00 |
+| FS | 0.005 (0.017) / 0.009 (0.029) | 1/16, 0/6 | 1.00 / 1.00 |
+
+Ineligibility reasons: R2, R3 FPR; C robust-stats FPR 0.032 (> 0.02); D, F, S, FS **only**
+the one restricted user. FS would otherwise have been selected (best stressed must-detect,
+lowest FPR).
+
+The restricted user is 10.77.20.155, archetype *forgetful* (typo rate 0.65), the case
+predicted in §7 A2. Diagnosis (`select/diagnosis-restrictions.json`, consumed selection
+data only): for D, F, S, FS, R3 one rate limit, corroborating category AUTH only, with
+behaviour points added (ADR-039); R2 a rate limit and a block (AUTH + behaviour ML).
+**No behaviour-only restriction occurred for any candidate** (A2.3 removed that path),
+and no user on the shift set was restricted by M2.
+
+Decomposition on FS (nominal, IDOR@20, the weakest family in P6): ML 0.86, security
+rules 1.00, combined 1.00 (P6, S: 0.51 / 0.46 / 0.91). Scraping is detected by ML only
+(security rules 0 at every level); IDOR@5 (below must-detect) by ML mostly.
+
+Open observation (not a criterion): with the security path enforcing as an upper bound,
+all 6 users behind the shared address in `p7-sel-shift` would be restricted (security
+FPR 0.13 there). Several real users behind one address add up to brute-force-like
+counts. ADR-043's shared-address guard addresses blocks, not rate limits.
+
+What would resolve the conflict is a human decision, not a tuning step: (a) accept one
+120 s rate limit for a user failing ≥ 5 of their logins at ≥ 50 % within 30 s, (b) change
+the AUTH rule (e.g. require more failures or distinct usernames), or (c) change the
+eligibility criterion. Any of these is a new amendment, predeclared before new selection
+data; the P7 selection sets are now consumed.
+

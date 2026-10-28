@@ -166,6 +166,43 @@ observe-only in replay) was committed before any new data; its result is in §3c
 - Evidence: `artifacts/evidence/p6-2026-10-28/select/` (`p6-select.json`,
   `diagnosis-restrictions.json`), `phaseC-capture.txt`, `phaseD-capture.txt`.
 
+## 3c. P7: the same question on clean data (A2, 2026-10-28)
+
+New legitimate data without the generator defect: 74,510 training and 24,705
+calibration observations (40 users), then 13,173 + 3,033 selection observations from
+22 new users, all equal to the WAF log. Behaviour-only evidence observe-only in replay.
+
+**Result: still no eligible candidate**, but for a different and much narrower reason.
+
+| Candidate | Worst enforcing window FPR on p7-sel | Users restricted (M2) sel / shift | Must-detect min nominal / stressed |
+|---|---|---|---|
+| R2 (trusted v2) | 0.843 (IF) | 1/16, 0/6 | 1.00 / 0.79 |
+| R3 (v3) | 0.456 (IF) | 1/16, 0/6 | 1.00 / 0.73 |
+| D | 0.016 (IF) | 1/16, 0/6 | 0.81 / 0.49 |
+| F | 0.009 (IF) | 1/16, 0/6 | 0.86 / 0.78 |
+| C | 0.032 (RS) | 0/16, 0/6 | 0.82 / 0.52 |
+| S | 0.016 (IF) | 1/16, 0/6 | 1.00 / 1.00 |
+| FS | 0.009 (IF) | 1/16, 0/6 | 1.00 / 1.00 |
+
+* Clean data fixed the false positives. Retrained candidates now have window FPR
+  ≤ 0.016 (upper 95 % CI ≤ 0.048), against 0.02–0.10 in P6. Users restricted fell
+  from up to 7/16 and 5/6 to at most 1/16 and 0/6.
+* The single restriction for D, F, S and FS is one user, a "forgetful" persona (typo
+  rate 0.65), and comes from the AUTH brute-force rule, not from ML. It was predicted
+  before the data (A2). No candidate restricted anyone on behaviour alone.
+* FS would have been selected: stressed must-detect 1.00, lowest FPR. On the weakest
+  P6 family (IDOR@20): ML 0.86, rules 1.00, combined 1.00 (P6: 0.51 / 0.46 / 0.91).
+* Sensitivity here is measured with **synthetic feature-level** cases on real benign
+  windows, not attacks.
+
+Phase E (final sets) remains uncollected. Choosing between accepting that rate limit,
+changing the AUTH rule or changing the criterion is a human decision. Any of them needs a
+new predeclared amendment and new selection data.
+
+- Evidence: `artifacts/evidence/p7-2026-10-28/` (`phaseC-capture.txt`,
+  `phaseD-capture.txt`, `select/summary.txt`, `select/select.json`,
+  `select/diagnosis-restrictions.json`); protocol §8.4.
+
 ## 4. The cost of ML over statistics
 
 At the *same* 1.30% validation FPR, the three detectors differ by three orders of

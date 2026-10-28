@@ -1,0 +1,124 @@
+{
+ "R2/p7-sel": {
+  "restricted_users": 1,
+  "intents": 2,
+  "paths": {
+   "source_block: auth+behavior_ml [detectors agree]": 1,
+   "rate_limit: auth+behavior_ml [detectors agree]": 1
+  },
+  "per_user": {
+   "10.77.20.155": {
+    "source_block: auth+behavior_ml [detectors agree]": 1,
+    "rate_limit: auth+behavior_ml [detectors agree]": 1
+   }
+  }
+ },
+ "R2/p7-sel-shift": {
+  "restricted_users": 0,
+  "intents": 0,
+  "paths": {},
+  "per_user": {}
+ },
+ "R3/p7-sel": {
+  "restricted_users": 1,
+  "intents": 1,
+  "paths": {
+   "rate_limit: auth [detectors agree]": 1
+  },
+  "per_user": {
+   "10.77.20.155": {
+    "rate_limit: auth [detectors agree]": 1
+   }
+  }
+ },
+ "R3/p7-sel-shift": {
+  "restricted_users": 0,
+  "intents": 0,
+  "paths": {},
+  "per_user": {}
+ },
+ "D/p7-sel": {
+  "restricted_users": 1,
+  "intents": 1,
+  "paths": {
+   "rate_limit: auth [detectors agree]": 1
+  },
+  "per_user": {
+   "10.77.20.155": {
+    "rate_limit: auth [detectors agree]": 1
+   }
+  }
+ },
+ "D/p7-sel-shift": {
+  "restricted_users": 0,
+  "intents": 0,
+  "paths": {},
+  "per_user": {}
+ },
+ "F/p7-sel": {
+  "restricted_users": 1,
+  "intents": 1,
+  "paths": {
+   "rate_limit: auth [detectors agree]": 1
+  },
+  "per_user": {
+   "10.77.20.155": {
+    "rate_limit: auth [detectors agree]": 1
+   }
+  }
+ },
+ "F/p7-sel-shift": {
+  "restricted_users": 0,
+  "intents": 0,
+  "paths": {},
+  "per_user": {}
+ },
+ "C/p7-sel": {
+  "restricted_users": 0,
+  "intents": 0,
+  "paths": {},
+  "per_user": {}
+ },
+ "C/p7-sel-shift": {
+  "restricted_users": 0,
+  "intents": 0,
+  "paths": {},
+  "per_user": {}
+ },
+ "S/p7-sel": {
+  "restricted_users": 1,
+  "intents": 1,
+  "paths": {
+   "rate_limit: auth [detectors agree]": 1
+  },
+  "per_user": {
+   "10.77.20.155": {
+    "rate_limit: auth [detectors agree]": 1
+   }
+  }
+ },
+ "S/p7-sel-shift": {
+  "restricted_users": 0,
+  "intents": 0,
+  "paths": {},
+  "per_user": {}
+ },
+ "FS/p7-sel": {
+  "restricted_users": 1,
+  "intents": 1,
+  "paths": {
+   "rate_limit: auth [detectors agree]": 1
+  },
+  "per_user": {
+   "10.77.20.155": {
+    "rate_limit: auth [detectors agree]": 1
+   }
+  }
+ },
+ "FS/p7-sel-shift": {
+  "restricted_users": 0,
+  "intents": 0,
+  "paths": {},
+  "per_user": {}
+ }
+}
