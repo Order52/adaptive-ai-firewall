@@ -1,0 +1,484 @@
+{
+ "dataset": "p1-val",
+ "bases": 65,
+ "candidates": {
+  "R2": {
+   "robust_stats": {
+    "bases_normal": 55,
+    "cases": {
+     "brute_force@5": {
+      "cases": 55,
+      "flagged": 55,
+      "flagged_with_auth_evidence": 55,
+      "occlusion_says_independent": 2,
+      "false_independence_rate": 0.0364,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10": {
+      "cases": 55,
+      "flagged": 55,
+      "flagged_with_auth_evidence": 55,
+      "occlusion_says_independent": 31,
+      "false_independence_rate": 0.5636,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@20": {
+      "cases": 55,
+      "flagged": 55,
+      "flagged_with_auth_evidence": 55,
+      "occlusion_says_independent": 42,
+      "false_independence_rate": 0.7636,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@5": {
+      "cases": 55,
+      "flagged": 55,
+      "flagged_with_auth_evidence": 55,
+      "occlusion_says_independent": 2,
+      "false_independence_rate": 0.0364,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@10": {
+      "cases": 55,
+      "flagged": 55,
+      "flagged_with_auth_evidence": 55,
+      "occlusion_says_independent": 31,
+      "false_independence_rate": 0.5636,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@20": {
+      "cases": 55,
+      "flagged": 55,
+      "flagged_with_auth_evidence": 55,
+      "occlusion_says_independent": 42,
+      "false_independence_rate": 0.7636,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10+scraping@40": {
+      "independent_cases": 55,
+      "occlusion_false_dependence_rate": 0.0,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@10+scraping@80": {
+      "independent_cases": 55,
+      "occlusion_false_dependence_rate": 0.0,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@20+scraping@40": {
+      "independent_cases": 55,
+      "occlusion_false_dependence_rate": 0.0,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@20+scraping@80": {
+      "independent_cases": 55,
+      "occlusion_false_dependence_rate": 0.0,
+      "residual_false_dependence_rate": 0.0
+     }
+    }
+   },
+   "isolation_forest": {
+    "bases_normal": 23,
+    "cases": {
+     "brute_force@5": {
+      "cases": 23,
+      "flagged": 14,
+      "flagged_with_auth_evidence": 14,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10": {
+      "cases": 23,
+      "flagged": 18,
+      "flagged_with_auth_evidence": 18,
+      "occlusion_says_independent": 1,
+      "false_independence_rate": 0.0556,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@20": {
+      "cases": 23,
+      "flagged": 23,
+      "flagged_with_auth_evidence": 23,
+      "occlusion_says_independent": 3,
+      "false_independence_rate": 0.1304,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@5": {
+      "cases": 23,
+      "flagged": 17,
+      "flagged_with_auth_evidence": 17,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@10": {
+      "cases": 23,
+      "flagged": 22,
+      "flagged_with_auth_evidence": 22,
+      "occlusion_says_independent": 1,
+      "false_independence_rate": 0.0455,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@20": {
+      "cases": 23,
+      "flagged": 23,
+      "flagged_with_auth_evidence": 23,
+      "occlusion_says_independent": 3,
+      "false_independence_rate": 0.1304,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10+scraping@40": {
+      "independent_cases": 23,
+      "occlusion_false_dependence_rate": 0.6957,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@10+scraping@80": {
+      "independent_cases": 23,
+      "occlusion_false_dependence_rate": 0.1739,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@20+scraping@40": {
+      "independent_cases": 23,
+      "occlusion_false_dependence_rate": 0.7826,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@20+scraping@80": {
+      "independent_cases": 23,
+      "occlusion_false_dependence_rate": 0.3913,
+      "residual_false_dependence_rate": 0.0
+     }
+    }
+   },
+   "half_space_trees": {
+    "bases_normal": 21,
+    "cases": {
+     "brute_force@5": {
+      "cases": 21,
+      "flagged": 21,
+      "flagged_with_auth_evidence": 21,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10": {
+      "cases": 21,
+      "flagged": 21,
+      "flagged_with_auth_evidence": 21,
+      "occlusion_says_independent": 1,
+      "false_independence_rate": 0.0476,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@20": {
+      "cases": 21,
+      "flagged": 21,
+      "flagged_with_auth_evidence": 21,
+      "occlusion_says_independent": 7,
+      "false_independence_rate": 0.3333,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@5": {
+      "cases": 21,
+      "flagged": 21,
+      "flagged_with_auth_evidence": 21,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@10": {
+      "cases": 21,
+      "flagged": 21,
+      "flagged_with_auth_evidence": 21,
+      "occlusion_says_independent": 1,
+      "false_independence_rate": 0.0476,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@20": {
+      "cases": 21,
+      "flagged": 21,
+      "flagged_with_auth_evidence": 21,
+      "occlusion_says_independent": 7,
+      "false_independence_rate": 0.3333,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10+scraping@40": {
+      "independent_cases": 20,
+      "occlusion_false_dependence_rate": 0.85,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@10+scraping@80": {
+      "independent_cases": 21,
+      "occlusion_false_dependence_rate": 0.0952,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@20+scraping@40": {
+      "independent_cases": 20,
+      "occlusion_false_dependence_rate": 0.85,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@20+scraping@80": {
+      "independent_cases": 21,
+      "occlusion_false_dependence_rate": 0.5238,
+      "residual_false_dependence_rate": 0.0
+     }
+    }
+   }
+  },
+  "D": {
+   "robust_stats": {
+    "bases_normal": 65,
+    "cases": {
+     "brute_force@5": {
+      "cases": 65,
+      "flagged": 65,
+      "flagged_with_auth_evidence": 65,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10": {
+      "cases": 65,
+      "flagged": 65,
+      "flagged_with_auth_evidence": 65,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@20": {
+      "cases": 65,
+      "flagged": 65,
+      "flagged_with_auth_evidence": 65,
+      "occlusion_says_independent": 2,
+      "false_independence_rate": 0.0308,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@5": {
+      "cases": 65,
+      "flagged": 65,
+      "flagged_with_auth_evidence": 65,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@10": {
+      "cases": 65,
+      "flagged": 65,
+      "flagged_with_auth_evidence": 65,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@20": {
+      "cases": 65,
+      "flagged": 65,
+      "flagged_with_auth_evidence": 65,
+      "occlusion_says_independent": 2,
+      "false_independence_rate": 0.0308,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10+scraping@40": {
+      "independent_cases": 0,
+      "occlusion_false_dependence_rate": null,
+      "residual_false_dependence_rate": null
+     },
+     "brute_force@10+scraping@80": {
+      "independent_cases": 22,
+      "occlusion_false_dependence_rate": 1.0,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@20+scraping@40": {
+      "independent_cases": 0,
+      "occlusion_false_dependence_rate": null,
+      "residual_false_dependence_rate": null
+     },
+     "brute_force@20+scraping@80": {
+      "independent_cases": 22,
+      "occlusion_false_dependence_rate": 1.0,
+      "residual_false_dependence_rate": 0.0
+     }
+    }
+   },
+   "isolation_forest": {
+    "bases_normal": 62,
+    "cases": {
+     "brute_force@5": {
+      "cases": 62,
+      "flagged": 60,
+      "flagged_with_auth_evidence": 60,
+      "occlusion_says_independent": 12,
+      "false_independence_rate": 0.2,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10": {
+      "cases": 62,
+      "flagged": 62,
+      "flagged_with_auth_evidence": 62,
+      "occlusion_says_independent": 20,
+      "false_independence_rate": 0.3226,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@20": {
+      "cases": 62,
+      "flagged": 62,
+      "flagged_with_auth_evidence": 62,
+      "occlusion_says_independent": 27,
+      "false_independence_rate": 0.4355,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@5": {
+      "cases": 62,
+      "flagged": 62,
+      "flagged_with_auth_evidence": 62,
+      "occlusion_says_independent": 12,
+      "false_independence_rate": 0.1935,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@10": {
+      "cases": 62,
+      "flagged": 62,
+      "flagged_with_auth_evidence": 62,
+      "occlusion_says_independent": 20,
+      "false_independence_rate": 0.3226,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@20": {
+      "cases": 62,
+      "flagged": 62,
+      "flagged_with_auth_evidence": 62,
+      "occlusion_says_independent": 27,
+      "false_independence_rate": 0.4355,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10+scraping@40": {
+      "independent_cases": 34,
+      "occlusion_false_dependence_rate": 0.2059,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@10+scraping@80": {
+      "independent_cases": 62,
+      "occlusion_false_dependence_rate": 0.2903,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@20+scraping@40": {
+      "independent_cases": 34,
+      "occlusion_false_dependence_rate": 0.0,
+      "residual_false_dependence_rate": 0.0
+     },
+     "brute_force@20+scraping@80": {
+      "independent_cases": 62,
+      "occlusion_false_dependence_rate": 0.2903,
+      "residual_false_dependence_rate": 0.0
+     }
+    }
+   },
+   "half_space_trees": {
+    "bases_normal": 65,
+    "cases": {
+     "brute_force@5": {
+      "cases": 65,
+      "flagged": 29,
+      "flagged_with_auth_evidence": 29,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10": {
+      "cases": 65,
+      "flagged": 65,
+      "flagged_with_auth_evidence": 65,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@20": {
+      "cases": 65,
+      "flagged": 65,
+      "flagged_with_auth_evidence": 65,
+      "occlusion_says_independent": 1,
+      "false_independence_rate": 0.0154,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@5": {
+      "cases": 65,
+      "flagged": 47,
+      "flagged_with_auth_evidence": 47,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@10": {
+      "cases": 65,
+      "flagged": 65,
+      "flagged_with_auth_evidence": 65,
+      "occlusion_says_independent": 0,
+      "false_independence_rate": 0.0,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "stuffing@20": {
+      "cases": 65,
+      "flagged": 65,
+      "flagged_with_auth_evidence": 65,
+      "occlusion_says_independent": 1,
+      "false_independence_rate": 0.0154,
+      "residual_says_independent": 0,
+      "residual_false_independence_rate": 0.0
+     },
+     "brute_force@10+scraping@40": {
+      "independent_cases": 0,
+      "occlusion_false_dependence_rate": null,
+      "residual_false_dependence_rate": null
+     },
+     "brute_force@10+scraping@80": {
+      "independent_cases": 0,
+      "occlusion_false_dependence_rate": null,
+      "residual_false_dependence_rate": null
+     },
+     "brute_force@20+scraping@40": {
+      "independent_cases": 0,
+      "occlusion_false_dependence_rate": null,
+      "residual_false_dependence_rate": null
+     },
+     "brute_force@20+scraping@80": {
+      "independent_cases": 0,
+      "occlusion_false_dependence_rate": null,
+      "residual_false_dependence_rate": null
+     }
+    }
+   }
+  }
+ }
+}

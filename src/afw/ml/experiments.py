@@ -25,7 +25,7 @@ detectors. No metric is manufactured: a run with no attack windows reports
 from __future__ import annotations
 
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from ipaddress import IPv4Address
@@ -33,7 +33,9 @@ from typing import Any
 
 from afw.config import LabConfig
 from afw.correlation.engine import CorrelationEngine
+from afw.domain.detection import DetectionResult
 from afw.domain.events import HttpObservation, IdsAlert
+from afw.domain.features import FeatureVector
 from afw.domain.policy import PolicyKind
 from afw.domain.profiles import BehaviorProfile
 from afw.domain.risk import RiskBand
@@ -46,6 +48,9 @@ from afw.policy.decision import DecisionEngine
 # A source is "contained" by the adaptive controller when it proposes a policy
 # that actually changes the source's traffic. WATCH is observation only.
 _TRAFFIC_AFFECTING = {PolicyKind.SOURCE_BLOCK, PolicyKind.RATE_LIMIT}
+
+# (window, strategy) -> detections; see run_experiment
+Scorer = Callable[[FeatureVector, Strategy], list[DetectionResult]]
 
 _ARMS: tuple[tuple[str, Strategy], ...] = (
     ("M0", Strategy.STATIC),
@@ -90,6 +95,7 @@ class ArmReport:
     attack_sources_contained: int = 0
     benign_sources: int = 0
     benign_sources_flagged: int = 0
+    benign_sources_flagged_ips: list[str] = field(default_factory=list)
     # Legitimate-traffic impact, per request (each benign observation counted once;
     # impacted if its source was rate limited or blocked at the request's own time)
     benign_requests: int = 0
@@ -197,10 +203,12 @@ def _run_arm(
     observations: Sequence[HttpObservation],
     ids_alerts: Sequence[IdsAlert],
     labels: LabelIndex,
+    scorer: Scorer | None = None,
 ) -> ArmReport:
     engine = InferenceEngine()
     engine.load(profile, list(models))
     engine.strategy = strategy
+    score = engine.score if scorer is None else (lambda fv: scorer(fv, strategy))
 
     correlation = CorrelationEngine(cfg.risk)
     for m in models:
@@ -227,7 +235,7 @@ def _run_arm(
             track.first_seen = fv.window_start
 
         t0 = time.perf_counter_ns()
-        detections = engine.score(fv)
+        detections = score(fv)
         score_latencies_us.append((time.perf_counter_ns() - t0) / 1000.0)
 
         ra = correlation.assess(fv, detections, now)
@@ -314,6 +322,7 @@ def _finalize_sources(
             report.benign_sources += 1
             if contained:
                 report.benign_sources_flagged += 1
+                report.benign_sources_flagged_ips.append(str(ip))
     if latencies:
         report.mean_detection_latency_s = round(sum(latencies) / len(latencies), 1)
         report.median_detection_latency_s = round(_percentile(latencies, 50), 1)
@@ -401,8 +410,13 @@ def run_experiment(
     manifest: DatasetManifest,
     observations: Sequence[HttpObservation],
     ids_alerts: Sequence[IdsAlert] = (),
+    scorer: Scorer | None = None,
 ) -> ExperimentReport:
-    """Replay one labeled dataset through M0/M1/M2 and return a comparison."""
+    """Replay one labeled dataset through M0/M1/M2 and return a comparison.
+
+    ``scorer`` replaces the default detector scoring (``InferenceEngine.score`` for the
+    arm's strategy), so model variants that are not plain stored detectors can be
+    compared through the same correlation and decision logic (P6)."""
     if not observations:
         raise ValueError("no observations to replay")
     labels = LabelIndex(manifest)
@@ -421,6 +435,7 @@ def run_experiment(
             observations=ordered,
             ids_alerts=ids_alerts,
             labels=labels,
+            scorer=scorer,
         )
         for arm, strategy in _ARMS
     ]
