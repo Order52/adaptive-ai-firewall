@@ -12,8 +12,9 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 `artifacts/evidence/`. Latest runs (2026-10-28):
 
 * unit/integration: 174 passed, 9 skipped;
-* live lab: `AFW_LAB=1 pytest tests/lab` 9/9 (`m9-2026-10-27/pytest-lab.txt`);
-* isolation: 37/37 (`m9-2026-10-27/lab-verify.txt`).
+* live lab: `AFW_LAB=1 pytest tests/lab` 9/9 and isolation 37/37, re-run after the P5
+  changes (IDS mTLS, plaintext listener removed) on 2026-10-28 08:41Z
+  (`p1-2026-10-28/p5-final-regression.txt`; earlier: `m9-2026-10-27/`).
 
 ## Gate A: Infrastructure
 
