@@ -46,8 +46,10 @@ the known gaps.
   causal independence of evidence.
 - **Telemetry loss window.** rsyslog over TCP loses lines written into a dead session
   (about 100 s worst case). Heartbeat staleness makes the gap visible; RELP is not
-  implemented. FW01's IDS feed is authenticated (mTLS since 2026-10-28, ADR-035) but has
-  no heartbeat, so its liveness is not observable.
+  implemented. FW01's IDS feed is authenticated (mTLS since 2026-10-28, ADR-035) and,
+  since ADR-037, heartbeats every 30 s while Suricata runs; a stopped Suricata or feed
+  makes the `ids` sensor stale. The heartbeat cannot show that Suricata still inspects
+  traffic correctly, only that it runs and its log path reaches CTRL01.
 - **IDS visibility.** Client→WAF traffic is HTTPS, so Suricata mainly catches scans and
   non-HTTPS signatures; IDS is supporting evidence only and never blocks alone.
 - **Low-and-slow / distributed** misuse falls below the per-window minimum by design

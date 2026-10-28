@@ -81,7 +81,7 @@ controller; not done. Heartbeat staleness makes such gaps visible instead of sil
 
 * ~~FW01's IDS feed stays plaintext on 5515.~~ Closed 2026-10-28 (P5, ADR-035): FW01
   now exports Suricata alerts over mutual TLS to 5514 with its own client certificate
-  (role `ids`), and the plaintext listener is disabled. FW01 still sends no heartbeat.
+  (role `ids`), and the plaintext listener is disabled. FW01 heartbeats since ADR-037 (watchdog, only while Suricata runs).
 * No session- or account-level view. The IDS-only view adds the missing non-HTTP
   source view only.
 * `/var/log/afw/*.log` on the sensors has no rotation (pre-existing; the heartbeat log has

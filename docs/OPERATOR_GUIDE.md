@@ -78,7 +78,8 @@ Change mode (admin): `POST /api/mode {"mode":"assisted"}` or the MCP `set_mode` 
 The **Telemetry health** panel shows each mTLS sensor's heartbeat age. A sensor silent
 for 150 s is **stale**: evidence is marked degraded and automatic actions pause
 (header chip "telemetry degraded"). Fix with `afw lab deploy --limit <host>` or
-check `rsyslog` / `afw-heartbeat.timer` on the sensor. **IDS-only sources** (seen by
+check `rsyslog` / `afw-heartbeat.timer` on the sensor. For the `ids` sensor (FW01) check
+that Suricata runs (*Services → Intrusion Detection*) and the syslog destination is up. **IDS-only sources** (seen by
 Suricata without HTTP traffic) appear in their own panel and are watched at most.
 
 ## Attack runs (team only, M6)

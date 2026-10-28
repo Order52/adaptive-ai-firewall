@@ -146,11 +146,36 @@ def test_silent_sensor_after_restart_marks_evidence_degraded(ctl, monkeypatch):
     ctl._started_at = rt.time.monotonic() - rt.HEARTBEAT_STALE_S - 1
     health = ctl.sensor_health()
     assert health["waf"]["stale"] and health["app"]["stale"]  # never (re)connected
+    assert health["ids"]["stale"]
     assert ctl.degraded()
     ctl.ingest_line(WAF, hb_line(), "waf")
     ctl.ingest_line(APP, hb_line(), "app")
+    assert ctl.sensor_health()["ids"]["stale"] and ctl.degraded()  # FW01 still silent
+    ctl.ingest_line(FW, fw_hb_line(), "ids")
     assert not any(h["stale"] for h in ctl.sensor_health().values())
     assert not ctl.degraded()
+
+
+def fw_hb_line() -> str:
+    """FW01's watchdog line: only listed programs are forwarded, so it rides the
+    suricata tag with an event type Suricata never emits."""
+    body = '{"event_type":"afw_heartbeat","hb":"2026-10-27T12:00:00Z","ids":"running"}'
+    return "<14>1 2026-10-27T12:00:00Z fw01 suricata - - - " + body
+
+
+def test_fw01_heartbeat_is_liveness_not_an_ids_alert(ctl):
+    assert classify(fw_hb_line())[0] == "afw-heartbeat"
+    ctl.ingest_line(FW, fw_hb_line(), "ids")
+    counts = ctl.stats.snapshot()["counts"]
+    assert ctl.stats.age("heartbeat:ids") is not None
+    assert ctl.stats.age("ids") is None and "ids_authenticated" not in counts
+    assert not ctl.correlation._ids
+    ctl.ingest_line(FW, fw_hb_line())  # plaintext: not liveness
+    assert ctl.stats.snapshot()["counts"]["heartbeat_unauthenticated"] == 1
+
+
+def test_a_real_suricata_alert_is_still_an_alert(ctl):
+    assert classify(ids_line())[0] == "suricata"
 
 
 def test_ids_alerts_on_the_authenticated_channel_need_the_ids_identity(ctl):

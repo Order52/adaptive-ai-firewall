@@ -47,6 +47,10 @@ def classify(line: str) -> tuple[str, dict[str, Any]]:
     if not isinstance(payload, dict):
         raise ParseError("bad_json")
     tag = _SYSLOG_TAG.search(header)
+    if tag and tag.group(1) == "suricata" and payload.get("event_type") == "afw_heartbeat":
+        # FW01's syslog forwards only listed programs, so its watchdog sends liveness
+        # under the suricata tag; Suricata itself never emits this event type.
+        return "afw-heartbeat", payload
     if tag:
         return tag.group(1), payload
     if payload.get("event_type") == "alert":

@@ -232,9 +232,9 @@ class Controller:
             return {}
         uptime = time.monotonic() - self._started_at
         out: dict[str, dict[str, object]] = {}
-        # FW01 (role "ids") runs OPNsense's syslog and cannot emit heartbeat lines; its
-        # alerts are event-driven, so silence there is not evidence of a dead feed.
-        for role in sorted(set(self.cfg.telemetry.tls_identities.values()) - {"ids"}):
+        # FW01 (role "ids") heartbeats from its watchdog only while Suricata runs, so a
+        # stale "ids" entry means a dead IDS or a dead feed, not merely no alerts.
+        for role in sorted(set(self.cfg.telemetry.tls_identities.values())):
             age = self.stats.age(f"heartbeat:{role}")
             stale = (age is None and uptime > HEARTBEAT_STALE_S) or (
                 age is not None and age > HEARTBEAT_STALE_S

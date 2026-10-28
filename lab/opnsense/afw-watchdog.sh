@@ -5,6 +5,10 @@
 # * Heartbeat fresh: the controller is alive, so pull the published real-country
 #   network lists (ADR-036) and atomically replace AFW_GEO_IN / AFW_GEO_OUT when their
 #   sha256 changed. A list whose sha256 does not match its header is never loaded.
+# * Independently, while Suricata runs, one liveness line goes to CTRL01 over FW01's
+#   mTLS syslog feed. Only listed programs are forwarded, so it uses the suricata tag
+#   with event_type "afw_heartbeat", which Suricata itself never emits. A silent IDS
+#   feed (Suricata or syslog down) thus shows as a stale "ids" sensor on CTRL01.
 # * Heartbeat older than MAX_AGE seconds, or missing, while any AFW table has entries:
 #   the controller is presumed dead and every dynamic table is flushed, so neither
 #   source blocks nor country blocks can outlive it. Static zone rules are unaffected;
@@ -50,7 +54,14 @@ geo_sync() {  # $1 = inbound|outbound, $2 = pf table
     && /usr/bin/logger -t afw-geo "$2 replaced: $n networks sha256=$want"
 }
 
+ids_heartbeat() {
+  /bin/pgrep -qx suricata || return 0
+  /usr/bin/logger -t suricata \
+    "{\"event_type\":\"afw_heartbeat\",\"hb\":\"$(/bin/date -u +%Y-%m-%dT%H:%M:%SZ)\",\"ids\":\"running\"}"
+}
+
 check() {
+  ids_heartbeat
   age=$(heartbeat_age)
   if [ "$age" -ge 0 ] && [ "$age" -le "$MAX_AGE" ]; then
     if [ -r "$GEO_TOKEN" ]; then
