@@ -14,6 +14,7 @@ import hashlib
 import re
 import secrets
 import subprocess
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -129,6 +130,20 @@ class FwShell:
         self.run(f"chmod {mode} {tmp} && mv {tmp} {path} && rm -f {tmp}.b64")
 
 
+def _suricata_healthy(sh: FwShell, since: int, wait_s: int = 150) -> bool:
+    """Running and has written stats.log (30 s interval, ADR-041) after ``since``
+    (FW01 epoch seconds, taken before the restart), within ``wait_s``.
+    Short commands only: the serial console drops long lines."""
+    for _ in range(wait_s // 10):
+        out = sh.run(
+            "pgrep -qx suricata && stat -f %m /var/log/suricata/stats.log", check=False
+        ).strip()
+        if out.isdigit() and int(out) > since:
+            return True
+        time.sleep(10)
+    return False
+
+
 def provision(
     host: str, port: int, log: Callable[[str], None] = print, force: bool = False
 ) -> None:
@@ -168,7 +183,19 @@ def provision(
                 changed.append(name)
         if changed:
             sh.run("configctl template reload OPNsense/IDS", timeout=120)  # renders conf.d
+            since = int(sh.run("date +%s").strip())
             sh.run("configctl ids restart", timeout=300)
+            if not _suricata_healthy(sh, since):
+                # never leave the IDS down: drop what changed and go back
+                for name in changed:
+                    sh.run(f"rm -f /usr/local/etc/suricata/conf.d/{name}")
+                sh.run("configctl template reload OPNsense/IDS", timeout=120)
+                since = int(sh.run("date +%s").strip())
+                sh.run("configctl ids restart", timeout=300)
+                raise RuntimeError(
+                    f"Suricata unhealthy after {', '.join(changed)}; removed and restarted "
+                    f"(healthy now: {_suricata_healthy(sh, since)})"
+                )
             log(f"FW01: Suricata conf.d updated ({', '.join(changed)}), IDS restarted")
         if not already or force:
             con.sendline("reboot")

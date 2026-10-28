@@ -1,0 +1,5 @@
+FW01 baseline before the N1 flow/dns/tls/ssh export (2026-10-28 17:28Z, P7 Phase C' benign traffic running)
+uptime: load averages 0.05, 0.14, 0.15 (2 vCPU)
+suricata pid 29640: %cpu 0.1, rss 482412 KiB, vsz 716036 KiB
+syslog-ng: rss 10572 / 17308 KiB
+hw.physmem 1566023680 B; free pages 66774 (~261 MiB)
