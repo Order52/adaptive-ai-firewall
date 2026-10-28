@@ -24,6 +24,7 @@ from afw.domain.common import utcnow
 from afw.domain.detection import DetectionResult, DetectorKind
 from afw.domain.events import HttpObservation
 from afw.domain.features import FeatureVector
+from afw.domain.network import NetworkEvent
 from afw.domain.policy import Policy, PolicyKind, SourceTarget
 from afw.domain.risk import EvidenceCategory, RiskAssessment, RiskBand
 from afw.features.extract import EndpointCatalog
@@ -44,8 +45,10 @@ from afw.telemetry.correlator import RequestCorrelator, to_ids_alert
 from afw.telemetry.parsers.lines import (
     ParseError,
     classify,
+    is_network_event,
     parse_app,
     parse_suricata,
+    parse_suricata_net,
     parse_waf_access,
     parse_waf_audit,
 )
@@ -54,6 +57,7 @@ from afw.telemetry.routes import RouteMatcher
 from afw.telemetry.stats import TelemetryStats
 
 log = structlog.get_logger(__name__)
+NET_PENDING_MAX = 50_000  # network events buffered between ticks (~1 s of a busy feed x 100)
 IDS_ONLY_EVERY = timedelta(seconds=60)
 HEARTBEAT_STALE_S = (
     150  # sensors send one every 30 s  # re-assess an IDS-only source at most this often
@@ -126,6 +130,8 @@ class Controller:
         self.policies.on_enforced = self._on_enforced
         self.last_tick: datetime | None = None
         self.tick_ms: deque[float] = deque(maxlen=120)
+        # N1: network events are buffered and stored once per tick (one transaction)
+        self._net_pending: list[NetworkEvent] = []
         self._drop_samples: deque[tuple[float, int]] = deque(maxlen=1000)
         self._ids_only_at: dict[IPv4Address, datetime] = {}
         self._started_at: float | None = None  # set by start(): heartbeats expected
@@ -201,6 +207,16 @@ class Controller:
                 case "afw-app":
                     self.correlator.add_app(parse_app(payload).model_copy(update=authed))
                     self.stats.seen("app")
+                case "suricata" if is_network_event(payload):
+                    ev = parse_suricata_net(payload, sensor_id=str(sender)).model_copy(
+                        update={"received_at": self.clock()}
+                    )
+                    self.stats.seen("ids_net")
+                    self.stats.inc(f"net_{ev.kind.value}")
+                    if len(self._net_pending) < NET_PENDING_MAX:
+                        self._net_pending.append(ev)
+                    else:
+                        self.stats.inc("net_overflow")  # bounded memory; counted, not silent
                 case "suricata":
                     alert = to_ids_alert(
                         parse_suricata(payload, sensor_id=str(sender)), self.clock()
@@ -216,6 +232,15 @@ class Controller:
                     self.stats.inc("ignored")
         except ParseError as exc:
             self.stats.inc(f"parse_error:{exc.reason}")
+
+    def _flush_net(self) -> list[NetworkEvent]:
+        if not self._net_pending:
+            return []
+        batch, self._net_pending = self._net_pending, []
+        added = self.events.add_net_events(batch)
+        if len(added) < len(batch):
+            self.stats.inc("duplicate_net_event", len(batch) - len(added))
+        return added
 
     def ingest_observations(self, obs: list[HttpObservation]) -> None:
         """Feed already-normalized observations (offline replay of recorded runs)."""
@@ -267,6 +292,7 @@ class Controller:
         t0 = time.perf_counter()
         now = now or self.clock()
         obs = self.correlator.flush()
+        self._flush_net()
         sensors = set(self.cfg.telemetry.waf_sensor_ips)
         if sensors and obs:
             own = [o for o in obs if o.client_ip in sensors]

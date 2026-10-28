@@ -15,6 +15,7 @@ from ipaddress import IPv4Address, ip_address
 from typing import Any
 
 from afw.domain.events import AuthOutcome
+from afw.domain.network import FlowState, NetKind, NetworkEvent
 from afw.telemetry.parsers.records import AppRecord, SuricataAlert, WafAccess, WafAudit
 
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9_\-]{8,64}$")
@@ -228,4 +229,116 @@ def parse_suricata(p: dict[str, Any], sensor_id: str) -> SuricataAlert:
         signature=str(alert.get("signature", ""))[:256],
         severity=min(4, max(1, _int(alert.get("severity"), 3) or 3)),
         flow_id=_int(p.get("flow_id")),
+    )
+
+
+_NET_KINDS = {k.value: k for k in NetKind}
+
+
+def is_network_event(p: dict[str, Any]) -> bool:
+    return p.get("event_type") in _NET_KINDS
+
+
+def _obj(p: dict[str, Any], key: str) -> dict[str, Any]:
+    v = p.get(key)
+    return v if isinstance(v, dict) else {}
+
+
+def _short(value: Any, n: int) -> str:
+    return str(value or "")[:n]
+
+
+def _dns_fields(d: dict[str, Any]) -> tuple[str, str, str]:
+    """Suricata 8 (DNS v3: ``queries`` list) and 7 (flat ``rrname``) layouts."""
+    q = d.get("queries")
+    first = q[0] if isinstance(q, list) and q and isinstance(q[0], dict) else d
+    return (
+        _short(first.get("rrname"), 128).lower(),
+        _short(first.get("rrtype"), 8),
+        _short(d.get("rcode"), 12),
+    )
+
+
+def parse_suricata_net(p: dict[str, Any], sensor_id: str) -> NetworkEvent:
+    """A Suricata EVE flow/dns/tls/ssh/anomaly event as a ``NetworkEvent`` (N1)."""
+    kind = _NET_KINDS.get(str(p.get("event_type")))
+    if kind is None:
+        raise ParseError("not_network_event")
+    observed = _ts(p.get("timestamp"))
+    fields: dict[str, Any] = {}
+    if kind is NetKind.FLOW:
+        f = p.get("flow")
+        if not isinstance(f, dict):
+            raise ParseError("bad_flow")
+        tcp = _obj(p, "tcp")
+        start = _ts(f["start"]) if f.get("start") else None
+        end = _ts(f["end"]) if f.get("end") else observed
+        try:
+            state = FlowState(str(f.get("state", "unknown")))
+        except ValueError:
+            state = FlowState.UNKNOWN
+        fields = {
+            "observed_at": end,
+            "started_at": start,
+            "duration_s": max(0.0, (end - start).total_seconds()) if start else None,
+            "pkts_to_server": max(0, _int(f.get("pkts_toserver"), 0) or 0),
+            "pkts_to_client": max(0, _int(f.get("pkts_toclient"), 0) or 0),
+            "bytes_to_server": max(0, _int(f.get("bytes_toserver"), 0) or 0),
+            "bytes_to_client": max(0, _int(f.get("bytes_toclient"), 0) or 0),
+            "state": state,
+            "end_reason": _short(f.get("reason"), 16),
+            "syn": bool(tcp.get("syn")),
+            "rst": bool(tcp.get("rst")),
+            "fin": bool(tcp.get("fin")),
+            "alerted": bool(f.get("alerted")),
+        }
+    elif kind is NetKind.DNS:
+        d = p.get("dns")
+        if not isinstance(d, dict):
+            raise ParseError("bad_dns")
+        rrname, rrtype, rcode = _dns_fields(d)
+        fields = {"dns_rrname": rrname, "dns_rrtype": rrtype, "dns_rcode": rcode}
+    elif kind is NetKind.TLS:
+        t = _obj(p, "tls")
+        fields = {
+            "tls_sni": _short(t.get("sni"), 128).lower(),
+            "tls_version": _short(t.get("version"), 16),
+        }
+    elif kind is NetKind.SSH:
+        sh = _obj(p, "ssh")
+        client = _obj(sh, "client")
+        fields = {"ssh_client": _short(client.get("software_version"), 64)}
+    else:
+        a = _obj(p, "anomaly")
+        fields = {"anomaly": _short(f"{a.get('type', '')}:{a.get('event', '')}", 64)}
+    src, dst = _ipv4(p.get("src_ip")), _ipv4(p.get("dest_ip"))
+    flow_id = _int(p.get("flow_id"))
+    key = "|".join(
+        str(x)
+        for x in (
+            sensor_id,
+            kind.value,
+            flow_id,
+            p.get("timestamp"),
+            src,
+            p.get("src_port"),
+            dst,
+            p.get("dest_port"),
+            p.get("tx_id", ""),
+        )
+    )
+    return NetworkEvent(
+        event_id="net-" + hashlib.sha256(key.encode()).hexdigest()[:32],
+        kind=kind,
+        observed_at=fields.pop("observed_at", observed),
+        sensor_id=sensor_id,
+        in_iface=_short(p.get("in_iface"), 16),
+        src_ip=src,
+        src_port=_int(p.get("src_port")),
+        dst_ip=dst,
+        dst_port=_int(p.get("dest_port")),
+        proto=_short(p.get("proto"), 8).upper(),
+        app_proto=_short(p.get("app_proto"), 16),
+        flow_id=flow_id,
+        **fields,
     )

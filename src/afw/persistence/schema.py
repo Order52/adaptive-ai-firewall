@@ -42,6 +42,16 @@ ids_alerts = Table(
     Column("body", Text, nullable=False),
 )
 
+net_events = Table(
+    "net_events",
+    metadata,
+    Column("event_id", String(40), primary_key=True),
+    Column("observed_at", DateTime(timezone=True), nullable=False, index=True),
+    Column("src_ip", String(15), nullable=False, index=True),
+    Column("kind", String(8), nullable=False),
+    Column("body", Text, nullable=False),
+)
+
 features = Table(
     "features",
     metadata,

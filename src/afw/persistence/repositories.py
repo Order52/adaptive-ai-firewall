@@ -27,6 +27,7 @@ from afw.domain.learning import (
     ShadowScore,
     SourceRecord,
 )
+from afw.domain.network import NetworkEvent
 from afw.domain.policy import OperatingMode, Policy, PolicyState
 from afw.domain.profiles import BehaviorProfile, ProfileStatus
 from afw.domain.risk import RiskAssessment
@@ -94,6 +95,41 @@ class SqlEventRepository(_Repo):
                     continue  # duplicate alert line: already stored and counted
         return added
 
+    def add_net_events(self, items: Sequence[NetworkEvent]) -> list[NetworkEvent]:
+        """Insert network events; return only the new ones (content-derived ids)."""
+        added: list[NetworkEvent] = []
+        with self.engine.begin() as c:
+            for e in items:
+                try:
+                    with c.begin_nested():
+                        c.execute(
+                            insert(t.net_events).values(
+                                event_id=e.event_id,
+                                observed_at=utc_naive(e.observed_at),
+                                src_ip=str(e.src_ip),
+                                kind=e.kind.value,
+                                body=e.model_dump_json(),
+                            )
+                        )
+                    added.append(e)
+                except IntegrityError:
+                    continue  # duplicate line: already stored
+        return added
+
+    def net_events_between(
+        self, start: datetime, end: datetime, sources: Sequence[IPv4Address] | None = None
+    ) -> list[NetworkEvent]:
+        q = (
+            select(t.net_events.c.body)
+            .where(t.net_events.c.observed_at >= utc_naive(start))
+            .where(t.net_events.c.observed_at <= utc_naive(end))
+            .order_by(t.net_events.c.observed_at)
+        )
+        if sources is not None:
+            q = q.where(t.net_events.c.src_ip.in_([str(s) for s in sources]))
+        with self.engine.connect() as c:
+            return _load(NetworkEvent, c.execute(q).all())
+
     def recent_observations(
         self, limit: int = 100, source_ip: IPv4Address | None = None
     ) -> list[HttpObservation]:
@@ -155,6 +191,7 @@ class SqlEventRepository(_Repo):
             c.execute(delete(t.features).where(t.features.c.window_end < utc_naive(cutoff)))
             c.execute(delete(t.detections).where(t.detections.c.window_end < utc_naive(cutoff)))
             c.execute(delete(t.ids_alerts).where(t.ids_alerts.c.observed_at < utc_naive(cutoff)))
+            c.execute(delete(t.net_events).where(t.net_events.c.observed_at < utc_naive(cutoff)))
         return int(n)
 
 
