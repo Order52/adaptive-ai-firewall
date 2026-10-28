@@ -369,6 +369,44 @@ def train_status(app_id: str = "rental") -> None:
 
 
 # --------------------------------------------------------------- experiments
+@exp_app.command("benign-generalization")
+def experiment_benign_generalization(
+    versions: Annotated[str, typer.Option(help="comma-separated profile versions (frozen)")],
+    datasets: Annotated[str, typer.Option(help="comma-separated all-benign dataset ids")],
+    out: Annotated[Path, typer.Option(help="JSON report path")],
+    app_id: str = "rental",
+    seed: int = 0,
+) -> None:
+    """P1: false positives of frozen profiles on held-out benign runs, per window
+    (tumbling, source CIs), per user and per request, plus decision-level impact."""
+    from afw.ml.benign_generalization import evaluate_benign
+
+    c = _container()
+    rows = []
+    for v in [int(x) for x in versions.split(",") if x]:
+        profile, models = c.learning.load_version(app_id, v)
+        catalog = c.learning.catalog(app_id, profile)
+        for ds in [d for d in datasets.split(",") if d]:
+            obs = c.datasets.observations(ds)
+            res = evaluate_benign(
+                cfg=c.cfg,
+                profile=profile,
+                models=models,
+                manifest=c.datasets.manifest(ds),
+                observations=obs,
+                windows=c.learning.windows(obs, catalog),
+                seed=seed,
+            )
+            rows.append(res)
+            dets = " ".join(
+                f"{k}={d['rate']}[{d['users']['with_any_flag']}/{d['users']['n']}u]"
+                for k, d in res["detectors"].items()
+            )
+            typer.echo(f"v{v} {ds}: {dets}")
+    out.write_text(json.dumps(rows, indent=1, default=str))
+    typer.echo(f"wrote {out}")
+
+
 @exp_app.command("replay")
 def experiment_replay(
     datasets: Annotated[str, typer.Option(help="comma-separated labeled dataset ids")],

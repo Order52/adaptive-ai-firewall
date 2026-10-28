@@ -1,0 +1,358 @@
+Oct 28 06:36:39 gns3 unattended-upgrade[65167]: Enabled logging to syslog via daemon facility
+Oct 28 06:36:39 gns3 unattended-upgrade[65167]: Starting unattended upgrades script
+Oct 28 06:36:39 gns3 unattended-upgrade[65167]: Allowed origins are: o=Ubuntu,a=noble, o=Ubuntu,a=noble-security, o=UbuntuESMApps,a=noble-apps-security, o=UbuntuESM,a=noble-infra-security
+Oct 28 06:36:39 gns3 unattended-upgrade[65167]: Initial blacklist:
+Oct 28 06:36:39 gns3 unattended-upgrade[65167]: Initial whitelist (not strict):
+Oct 28 06:36:40 gns3 unattended-upgrade[65167]: Packages that will be upgraded: libbrotli1 zlib1g
+Oct 28 06:36:40 gns3 unattended-upgrade[65167]: Writing dpkg log to /var/log/unattended-upgrades/unattended-upgrades-dpkg.log
+Oct 28 06:36:40 gns3 apt.systemd.daily[65167]: /usr/bin/unattended-upgrade:567: DeprecationWarning: This process (pid=65167) is multi-threaded, use of fork() may lead to deadlocks in the child.
+Oct 28 06:36:42 gns3 apt.systemd.daily[65167]: /usr/bin/unattended-upgrade:567: DeprecationWarning: This process (pid=65167) is multi-threaded, use of fork() may lead to deadlocks in the child.
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 WARNING web_server.py:172 Server has got signal SIGTERM, exiting...
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO web_server.py:115 Closing 1 websocket connections...
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO compute.py:462 Connection closed to compute 'local' WebSocket 'http://127.0.0.1:3080/v2/compute/notifications/ws'
+Oct 28 06:36:43 gns3 systemd[1]: Stopping gns3server.service - GNS3 server (AI-Adaptive-Firewall lab)...
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO notification_handler.py:59 Client has disconnected from compute WebSocket
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO web_log.py:232 127.0.0.1 [27/Oct/2026:16:45:58 +0000] "GET /v2/compute/notifications/ws HTTP/1.1" 200 0 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO __init__.py:146 Controller is stopping
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO base_node.py:335 Builtin: 'HOST-MGMT' [68823de4-b67e-4b36-80f4-b7293b2fcd6f]: is closing
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO cloud.py:248 Cloud "HOST-MGMT" [68823de4-b67e-4b36-80f4-b7293b2fcd6f] has been closed
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO base_node.py:335 Builtin: 'MAINT-NAT' [8b5e16f9-8b17-4050-abdc-ffc9fcbd9493]: is closing
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO cloud.py:248 Cloud "MAINT-NAT" [8b5e16f9-8b17-4050-abdc-ffc9fcbd9493] has been closed
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO qemu_vm.py:1194 QEMU process has stopped, return code: 0
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO qemu_vm.py:1194 QEMU process has stopped, return code: 0
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO qemu_vm.py:1194 QEMU process has stopped, return code: 0
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO qemu_vm.py:1194 QEMU process has stopped, return code: 0
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO qemu_vm.py:1194 QEMU process has stopped, return code: 0
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO qemu_vm.py:1194 QEMU process has stopped, return code: 0
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO qemu_vm.py:1194 QEMU process has stopped, return code: 0
+Oct 28 06:36:43 gns3 gns3server[1418]: 2026-10-28 06:36:43 INFO qemu_vm.py:1194 QEMU process has stopped, return code: 0
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO base_node.py:335 Qemu: 'CTRL01' [c4c9e977-0697-4201-85a9-be25c7d66f32]: is closing
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO qemu_vm.py:728 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32] set the close action to "power_off"
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO base_node.py:335 Qemu: 'WAF01' [0338133b-e56b-46ae-b9fb-9b047910ff79]: is closing
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO qemu_vm.py:728 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79] set the close action to "power_off"
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO base_node.py:335 Qemu: 'APP01' [2b772f0a-81ba-4610-b9b2-7cfb42fad519]: is closing
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO qemu_vm.py:728 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519] set the close action to "power_off"
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO base_node.py:335 Qemu: 'DB01' [083c51e2-c597-45c8-ba5b-4a4fa00c7146]: is closing
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO qemu_vm.py:728 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146] set the close action to "power_off"
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO base_node.py:335 Qemu: 'USR01' [462c10d3-2054-4a30-b8ab-7d537ef8da02]: is closing
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO qemu_vm.py:728 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02] set the close action to "power_off"
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO base_node.py:335 Qemu: 'ATK01' [485f6315-fd5c-43dd-be64-234ae692750d]: is closing
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO qemu_vm.py:728 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d] set the close action to "power_off"
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO base_node.py:335 Qemu: 'FW01' [a8b8a69e-39f2-4246-a552-a49e31b9b654]: is closing
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO qemu_vm.py:728 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654] set the close action to "power_off"
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO base_node.py:335 Qemu: 'DESK01' [7b86ae81-7af7-4027-9b3f-b2f7f4dda565]: is closing
+Oct 28 06:36:44 gns3 gns3server[1418]: 2026-10-28 06:36:44 INFO qemu_vm.py:728 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] set the close action to "power_off"
+Oct 28 06:36:45 gns3 systemd[1]: gns3server.service: Deactivated successfully.
+Oct 28 06:36:45 gns3 systemd[1]: Stopped gns3server.service - GNS3 server (AI-Adaptive-Firewall lab).
+Oct 28 06:36:45 gns3 systemd[1]: gns3server.service: Consumed 2h 26min 22.197s CPU time, 13.3G memory peak, 0B memory swap peak.
+Oct 28 06:36:45 gns3 systemd[1]: Started gns3server.service - GNS3 server (AI-Adaptive-Firewall lab).
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO run.py:218 GNS3 server version 2.2.61
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO run.py:220 Copyright (c) 2007-2026 GNS3 Technologies Inc.
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO run.py:223 Config file /home/gns3/.config/GNS3/2.2/gns3_server.conf loaded
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO run.py:236 HTTP authentication is enabled with username 'afwadmin'
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO run.py:242 Running with Python 3.12.3 and has PID 65711
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO run.py:248 Using system certificate store for SSL connections
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO run.py:78 Current locale is en_US.UTF-8
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO web_server.py:349 Starting server on 127.0.0.1:3080
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:70 Load controller configuration file /home/gns3/.config/GNS3/2.2/gns3_controller.conf
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:74 Controller is starting
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:329 Installing base configs in '/home/gns3/GNS3/configs'
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:342 Installing built-in disks in '/home/gns3/GNS3/images/QEMU'
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:255 Comparing controller version 2.2.61 with config version 2.2.61
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:263 Built-in appliances are installed in '/home/gns3/.local/share/GNS3/appliances'
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO compute.py:69 Create compute local
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO compute.py:369 Connecting to compute 'local'
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 WARNING compute.py:372 Cannot connect to compute 'local': Cannot connect to host 127.0.0.1:3080 ssl:default [Connect call failed ('127.0.0.1', 3080)]
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO compute.py:369 Connecting to compute 'local'
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 WARNING compute.py:372 Cannot connect to compute 'local': Cannot connect to host 127.0.0.1:3080 ssl:default [Connect call failed ('127.0.0.1', 3080)]
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO compute.py:369 Connecting to compute 'local'
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:45 +0000] "GET /v2/compute/capabilities HTTP/1.1" 200 553 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO project.py:78 Project 0a8625b8-eca7-4fe2-91d5-85cbd2ca0128 with path '/home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128' created
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:45 +0000] "POST /v2/compute/projects HTTP/1.1" 201 316 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO notification_handler.py:50 New client has connected to compute WebSocket
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO compute.py:436 Connected to compute 'local' WebSocket 'http://127.0.0.1:3080/v2/compute/notifications/ws'
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:337 Creating new hypervisor 127.0.0.1:54327 with working directory /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:128 Starting Dynamips: ['/usr/bin/dynamips', '-N1', '-l', 'dynamips_i1_log.txt', '-H', '127.0.0.1:54327', '--console-binding-addr', '127.0.0.1']
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:130 Dynamips process logging to /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips/dynamips_i1_stdout.txt
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:137 Dynamips process started PID=65725
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:339 Hypervisor 127.0.0.1:54327 has successfully started
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO dynamips_hypervisor.py:92 Connected to Dynamips hypervisor on 127.0.0.1:54327 after 0.0104 seconds
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO dynamips_hypervisor.py:97 Dynamips version 0.2.25 detected
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO ethernet_switch.py:187 Ethernet switch "SW-ATTACK" [4687a037-e893-45ff-b578-46935abd1e0d] has been created
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:45 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes HTTP/1.1" 201 1564 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:337 Creating new hypervisor 127.0.0.1:58249 with working directory /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:128 Starting Dynamips: ['/usr/bin/dynamips', '-N1', '-l', 'dynamips_i2_log.txt', '-H', '127.0.0.1:58249', '--console-binding-addr', '127.0.0.1']
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:130 Dynamips process logging to /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips/dynamips_i2_stdout.txt
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:137 Dynamips process started PID=65753
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:339 Hypervisor 127.0.0.1:58249 has successfully started
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO dynamips_hypervisor.py:92 Connected to Dynamips hypervisor on 127.0.0.1:58249 after 0.0108 seconds
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO dynamips_hypervisor.py:97 Dynamips version 0.2.25 detected
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO ethernet_switch.py:187 Ethernet switch "SW-USERS" [5b610a3b-8284-4b27-86b0-6230d565af73] has been created
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:45 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes HTTP/1.1" 201 1563 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:337 Creating new hypervisor 127.0.0.1:33829 with working directory /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:128 Starting Dynamips: ['/usr/bin/dynamips', '-N1', '-l', 'dynamips_i3_log.txt', '-H', '127.0.0.1:33829', '--console-binding-addr', '127.0.0.1']
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:130 Dynamips process logging to /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips/dynamips_i3_stdout.txt
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:137 Dynamips process started PID=65781
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:339 Hypervisor 127.0.0.1:33829 has successfully started
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO dynamips_hypervisor.py:92 Connected to Dynamips hypervisor on 127.0.0.1:33829 after 0.0107 seconds
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO dynamips_hypervisor.py:97 Dynamips version 0.2.25 detected
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO ethernet_switch.py:187 Ethernet switch "SW-DMZ" [fde9c2bf-de06-475e-924a-3136e5ab98d1] has been created
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:45 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes HTTP/1.1" 201 1561 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:337 Creating new hypervisor 127.0.0.1:49145 with working directory /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:128 Starting Dynamips: ['/usr/bin/dynamips', '-N1', '-l', 'dynamips_i4_log.txt', '-H', '127.0.0.1:49145', '--console-binding-addr', '127.0.0.1']
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:130 Dynamips process logging to /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips/dynamips_i4_stdout.txt
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:137 Dynamips process started PID=65809
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:339 Hypervisor 127.0.0.1:49145 has successfully started
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO dynamips_hypervisor.py:92 Connected to Dynamips hypervisor on 127.0.0.1:49145 after 0.0106 seconds
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO dynamips_hypervisor.py:97 Dynamips version 0.2.25 detected
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO ethernet_switch.py:187 Ethernet switch "SW-APP" [4e2d8f36-1d88-4237-8fe1-ae1d6061c5ff] has been created
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:45 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes HTTP/1.1" 201 1561 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:337 Creating new hypervisor 127.0.0.1:56809 with working directory /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:128 Starting Dynamips: ['/usr/bin/dynamips', '-N1', '-l', 'dynamips_i5_log.txt', '-H', '127.0.0.1:56809', '--console-binding-addr', '127.0.0.1']
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:130 Dynamips process logging to /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips/dynamips_i5_stdout.txt
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:137 Dynamips process started PID=65837
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO __init__.py:339 Hypervisor 127.0.0.1:56809 has successfully started
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO dynamips_hypervisor.py:92 Connected to Dynamips hypervisor on 127.0.0.1:56809 after 0.0107 seconds
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO dynamips_hypervisor.py:97 Dynamips version 0.2.25 detected
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO ethernet_switch.py:187 Ethernet switch "SW-MGMT" [426e1f31-a8b1-47a3-b589-9654e7546106] has been created
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:45 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes HTTP/1.1" 201 1562 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO base_node.py:702 Starting new uBridge hypervisor 127.0.0.1:32899
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:169 starting ubridge: ['/usr/bin/ubridge', '-H', '127.0.0.1:32899']
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:171 logging to /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/builtin/68823de4-b67e-4b36-80f4-b7293b2fcd6f/ubridge.log
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:179 ubridge started PID=65853
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO base_node.py:705 Hypervisor 127.0.0.1:32899 has successfully started
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO ubridge_hypervisor.py:83 Connected to uBridge hypervisor on 127.0.0.1:32899 after 0.1012 seconds
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO cloud.py:215 Cloud "HOST-MGMT" [68823de4-b67e-4b36-80f4-b7293b2fcd6f] has been created
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:45 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/cloud/nodes HTTP/1.1" 201 1547 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO nat.py:60 NAT node 'MAINT-NAT' configured to use NAT interface 'virbr0'
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO base_node.py:702 Starting new uBridge hypervisor 127.0.0.1:44883
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:169 starting ubridge: ['/usr/bin/ubridge', '-H', '127.0.0.1:44883']
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:171 logging to /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/builtin/8b5e16f9-8b17-4050-abdc-ffc9fcbd9493/ubridge.log
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO hypervisor.py:179 ubridge started PID=65863
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO base_node.py:705 Hypervisor 127.0.0.1:44883 has successfully started
+Oct 28 06:36:45 gns3 gns3server[65711]: 2026-10-28 06:36:45 INFO ubridge_hypervisor.py:83 Connected to uBridge hypervisor on 127.0.0.1:44883 after 0.1010 seconds
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO cloud.py:215 Cloud "MAINT-NAT" [8b5e16f9-8b17-4050-abdc-ffc9fcbd9493] has been created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:45 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/nat/nodes HTTP/1.1" 201 559 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO __init__.py:337 Creating new hypervisor 127.0.0.1:57857 with working directory /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO hypervisor.py:128 Starting Dynamips: ['/usr/bin/dynamips', '-N1', '-l', 'dynamips_i6_log.txt', '-H', '127.0.0.1:57857', '--console-binding-addr', '127.0.0.1']
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO hypervisor.py:130 Dynamips process logging to /home/gns3/GNS3/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/project-files/dynamips/dynamips_i6_stdout.txt
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO hypervisor.py:137 Dynamips process started PID=65889
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO __init__.py:339 Hypervisor 127.0.0.1:57857 has successfully started
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO dynamips_hypervisor.py:92 Connected to Dynamips hypervisor on 127.0.0.1:57857 after 0.0105 seconds
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO dynamips_hypervisor.py:97 Dynamips version 0.2.25 detected
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:187 Ethernet switch "SW-DB" [bb192270-3ad7-4e2f-96cc-f36a690a9424] has been created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes HTTP/1.1" 201 1560 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:232 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32] has set the QEMU path to /usr/bin/qemu-system-x86_64
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:634 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32]: MAC address changed to 0c:c9:e9:77:00:00
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:582 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32]: number of Ethernet adapters changed to 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:159 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32] has been created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO base_node.py:284 Qemu: CTRL01 [c4c9e977-0697-4201-85a9-be25c7d66f32] created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:606 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32]: adapter type changed to virtio-net-pci
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:473 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32] has set the QEMU cdrom image path to /home/gns3/GNS3/images/QEMU/afw-seed-ctrl01.iso
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:819 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32] has set the number of vCPUs to 2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:275 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32] has set the QEMU hda_disk_image path to /home/gns3/GNS3/images/QEMU/afw-ubuntu-24.04-golden.qcow2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:379 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32] has set the QEMU hda disk interface to virtio
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:728 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32] set the close action to "shutdown_signal"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:888 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32] has set the QEMU options to -cpu host
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:798 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32] has set the RAM to 2048
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes HTTP/1.1" 201 1848 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:232 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79] has set the QEMU path to /usr/bin/qemu-system-x86_64
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:634 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79]: MAC address changed to 0c:38:13:3b:00:00
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:582 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79]: number of Ethernet adapters changed to 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:159 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79] has been created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO base_node.py:284 Qemu: WAF01 [0338133b-e56b-46ae-b9fb-9b047910ff79] created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:606 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79]: adapter type changed to virtio-net-pci
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:473 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79] has set the QEMU cdrom image path to /home/gns3/GNS3/images/QEMU/afw-seed-waf01.iso
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:275 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79] has set the QEMU hda_disk_image path to /home/gns3/GNS3/images/QEMU/afw-ubuntu-24.04-golden.qcow2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:379 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79] has set the QEMU hda disk interface to virtio
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:728 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79] set the close action to "shutdown_signal"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:888 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79] has set the QEMU options to -cpu host
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:798 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79] has set the RAM to 1024
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes HTTP/1.1" 201 1846 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:232 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519] has set the QEMU path to /usr/bin/qemu-system-x86_64
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:634 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519]: MAC address changed to 0c:77:2f:0a:00:00
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:582 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519]: number of Ethernet adapters changed to 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:159 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519] has been created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO base_node.py:284 Qemu: APP01 [2b772f0a-81ba-4610-b9b2-7cfb42fad519] created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:606 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519]: adapter type changed to virtio-net-pci
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:473 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519] has set the QEMU cdrom image path to /home/gns3/GNS3/images/QEMU/afw-seed-app01.iso
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:275 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519] has set the QEMU hda_disk_image path to /home/gns3/GNS3/images/QEMU/afw-ubuntu-24.04-golden.qcow2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:379 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519] has set the QEMU hda disk interface to virtio
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:728 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519] set the close action to "shutdown_signal"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:888 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519] has set the QEMU options to -cpu host
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:798 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519] has set the RAM to 768
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes HTTP/1.1" 201 1845 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:232 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146] has set the QEMU path to /usr/bin/qemu-system-x86_64
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:634 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146]: MAC address changed to 0c:3c:51:e2:00:00
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:582 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146]: number of Ethernet adapters changed to 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:159 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146] has been created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO base_node.py:284 Qemu: DB01 [083c51e2-c597-45c8-ba5b-4a4fa00c7146] created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:606 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146]: adapter type changed to virtio-net-pci
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:473 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146] has set the QEMU cdrom image path to /home/gns3/GNS3/images/QEMU/afw-seed-db01.iso
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:275 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146] has set the QEMU hda_disk_image path to /home/gns3/GNS3/images/QEMU/afw-ubuntu-24.04-golden.qcow2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:379 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146] has set the QEMU hda disk interface to virtio
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:728 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146] set the close action to "shutdown_signal"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:888 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146] has set the QEMU options to -cpu host
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:798 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146] has set the RAM to 768
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes HTTP/1.1" 201 1843 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:232 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02] has set the QEMU path to /usr/bin/qemu-system-x86_64
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:634 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02]: MAC address changed to 0c:2c:10:d3:00:00
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:582 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02]: number of Ethernet adapters changed to 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:159 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02] has been created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO base_node.py:284 Qemu: USR01 [462c10d3-2054-4a30-b8ab-7d537ef8da02] created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:606 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02]: adapter type changed to virtio-net-pci
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:473 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02] has set the QEMU cdrom image path to /home/gns3/GNS3/images/QEMU/afw-seed-usr01.iso
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:275 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02] has set the QEMU hda_disk_image path to /home/gns3/GNS3/images/QEMU/afw-ubuntu-24.04-golden.qcow2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:379 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02] has set the QEMU hda disk interface to virtio
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:728 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02] set the close action to "shutdown_signal"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:888 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02] has set the QEMU options to -cpu host
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:798 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02] has set the RAM to 768
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes HTTP/1.1" 201 1845 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:232 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d] has set the QEMU path to /usr/bin/qemu-system-x86_64
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:634 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d]: MAC address changed to 0c:5f:63:15:00:00
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:582 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d]: number of Ethernet adapters changed to 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:159 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d] has been created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO base_node.py:284 Qemu: ATK01 [485f6315-fd5c-43dd-be64-234ae692750d] created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:606 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d]: adapter type changed to virtio-net-pci
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:473 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d] has set the QEMU cdrom image path to /home/gns3/GNS3/images/QEMU/afw-seed-atk01.iso
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:275 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d] has set the QEMU hda_disk_image path to /home/gns3/GNS3/images/QEMU/afw-ubuntu-24.04-golden.qcow2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:379 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d] has set the QEMU hda disk interface to virtio
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:728 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d] set the close action to "shutdown_signal"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:888 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d] has set the QEMU options to -cpu host
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:798 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d] has set the RAM to 768
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes HTTP/1.1" 201 1845 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:232 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654] has set the QEMU path to /usr/bin/qemu-system-x86_64
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:634 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: MAC address changed to 0c:b8:a6:9e:00:00
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:582 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: number of Ethernet adapters changed to 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:159 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654] has been created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO base_node.py:284 Qemu: FW01 [a8b8a69e-39f2-4246-a552-a49e31b9b654] created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:606 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: adapter type changed to virtio-net-pci
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:582 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: number of Ethernet adapters changed to 7
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:819 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654] has set the number of vCPUs to 2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:275 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654] has set the QEMU hda_disk_image path to /home/gns3/GNS3/images/QEMU/opnsense-26.7-nano.qcow2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:379 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654] has set the QEMU hda disk interface to virtio
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:728 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654] set the close action to "shutdown_signal"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:888 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654] has set the QEMU options to -cpu host
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:798 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654] has set the RAM to 1536
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes HTTP/1.1" 201 1792 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:232 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] has set the QEMU path to /usr/bin/qemu-system-x86_64
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:634 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565]: MAC address changed to 0c:86:ae:81:00:00
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:582 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565]: number of Ethernet adapters changed to 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:159 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] has been created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO base_node.py:284 Qemu: DESK01 [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] created
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:606 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565]: adapter type changed to virtio-net-pci
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:473 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] has set the QEMU cdrom image path to /home/gns3/GNS3/images/QEMU/afw-seed-desk01.iso
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:819 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] has set the number of vCPUs to 2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:275 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] has set the QEMU hda_disk_image path to /home/gns3/GNS3/images/QEMU/afw-ubuntu-desktop.qcow2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:379 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] has set the QEMU hda disk interface to virtio
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:728 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] set the close action to "shutdown_signal"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:888 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] has set the QEMU options to -cpu host
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:798 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565] has set the RAM to 3072
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes HTTP/1.1" 201 1840 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO cloud.py:396 Cloud "HOST-MGMT" [68823de4-b67e-4b36-80f4-b7293b2fcd6f]: NIO NIO UDP bound to port 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/cloud/nodes/68823de4-b67e-4b36-80f4-b7293b2fcd6f/adapters/0/ports/0/nio HTTP/1.1" 201 380 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-MGMT" [426e1f31-a8b1-47a3-b589-9654e7546106]: NIO udp-e3a0b01c-a634-47e0-b634-6171d081ad81 bound to port 2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-MGMT" [426e1f31-a8b1-47a3-b589-9654e7546106]: port 2 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/426e1f31-a8b1-47a3-b589-9654e7546106/adapters/0/ports/2/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "CTRL01" [c4c9e977-0697-4201-85a9-be25c7d66f32]: NIO UDP added to adapter 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/c4c9e977-0697-4201-85a9-be25c7d66f32/adapters/0/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-MGMT" [426e1f31-a8b1-47a3-b589-9654e7546106]: NIO udp-cee6afab-8da6-4cf2-b6c1-d336dafecc78 bound to port 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-MGMT" [426e1f31-a8b1-47a3-b589-9654e7546106]: port 1 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/426e1f31-a8b1-47a3-b589-9654e7546106/adapters/0/ports/1/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "WAF01" [0338133b-e56b-46ae-b9fb-9b047910ff79]: NIO UDP added to adapter 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/0338133b-e56b-46ae-b9fb-9b047910ff79/adapters/0/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-DMZ" [fde9c2bf-de06-475e-924a-3136e5ab98d1]: NIO udp-4711addb-d9f5-4e9b-b0a1-fcc5b5123185 bound to port 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-DMZ" [fde9c2bf-de06-475e-924a-3136e5ab98d1]: port 1 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/fde9c2bf-de06-475e-924a-3136e5ab98d1/adapters/0/ports/1/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "APP01" [2b772f0a-81ba-4610-b9b2-7cfb42fad519]: NIO UDP added to adapter 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/2b772f0a-81ba-4610-b9b2-7cfb42fad519/adapters/0/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-APP" [4e2d8f36-1d88-4237-8fe1-ae1d6061c5ff]: NIO udp-31080388-1cf6-4550-b9a6-9c9fad3642bb bound to port 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-APP" [4e2d8f36-1d88-4237-8fe1-ae1d6061c5ff]: port 1 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/4e2d8f36-1d88-4237-8fe1-ae1d6061c5ff/adapters/0/ports/1/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "DB01" [083c51e2-c597-45c8-ba5b-4a4fa00c7146]: NIO UDP added to adapter 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/083c51e2-c597-45c8-ba5b-4a4fa00c7146/adapters/0/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-DB" [bb192270-3ad7-4e2f-96cc-f36a690a9424]: NIO udp-f7d64a87-b14d-46cd-aafb-9ea1dfc494d3 bound to port 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-DB" [bb192270-3ad7-4e2f-96cc-f36a690a9424]: port 1 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/bb192270-3ad7-4e2f-96cc-f36a690a9424/adapters/0/ports/1/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "USR01" [462c10d3-2054-4a30-b8ab-7d537ef8da02]: NIO UDP added to adapter 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/462c10d3-2054-4a30-b8ab-7d537ef8da02/adapters/0/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-USERS" [5b610a3b-8284-4b27-86b0-6230d565af73]: NIO udp-f83e46bf-ff52-40c9-ab78-ad0abc339c66 bound to port 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-USERS" [5b610a3b-8284-4b27-86b0-6230d565af73]: port 1 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/5b610a3b-8284-4b27-86b0-6230d565af73/adapters/0/ports/1/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "ATK01" [485f6315-fd5c-43dd-be64-234ae692750d]: NIO UDP added to adapter 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/485f6315-fd5c-43dd-be64-234ae692750d/adapters/0/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-ATTACK" [4687a037-e893-45ff-b578-46935abd1e0d]: NIO udp-63661e8e-c3b6-472d-9761-a8b6780fc7a8 bound to port 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-ATTACK" [4687a037-e893-45ff-b578-46935abd1e0d]: port 1 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/4687a037-e893-45ff-b578-46935abd1e0d/adapters/0/ports/1/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: NIO UDP added to adapter 6
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/a8b8a69e-39f2-4246-a552-a49e31b9b654/adapters/6/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-DB" [bb192270-3ad7-4e2f-96cc-f36a690a9424]: NIO udp-18671127-480c-4e38-92b7-43b68ef292d5 bound to port 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-DB" [bb192270-3ad7-4e2f-96cc-f36a690a9424]: port 0 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/bb192270-3ad7-4e2f-96cc-f36a690a9424/adapters/0/ports/0/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: NIO UDP added to adapter 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/a8b8a69e-39f2-4246-a552-a49e31b9b654/adapters/0/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-MGMT" [426e1f31-a8b1-47a3-b589-9654e7546106]: NIO udp-245b3803-e756-43c8-9c48-a3d572cfeb68 bound to port 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-MGMT" [426e1f31-a8b1-47a3-b589-9654e7546106]: port 0 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/426e1f31-a8b1-47a3-b589-9654e7546106/adapters/0/ports/0/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: NIO UDP added to adapter 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/a8b8a69e-39f2-4246-a552-a49e31b9b654/adapters/1/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO cloud.py:396 Cloud "MAINT-NAT" [8b5e16f9-8b17-4050-abdc-ffc9fcbd9493]: NIO NIO UDP bound to port 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/nat/nodes/8b5e16f9-8b17-4050-abdc-ffc9fcbd9493/adapters/0/ports/0/nio HTTP/1.1" 201 378 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: NIO UDP added to adapter 2
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/a8b8a69e-39f2-4246-a552-a49e31b9b654/adapters/2/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-ATTACK" [4687a037-e893-45ff-b578-46935abd1e0d]: NIO udp-f81ddfaa-fe6b-415c-9c26-a85d92d73b76 bound to port 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-ATTACK" [4687a037-e893-45ff-b578-46935abd1e0d]: port 0 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/4687a037-e893-45ff-b578-46935abd1e0d/adapters/0/ports/0/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: NIO UDP added to adapter 3
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/a8b8a69e-39f2-4246-a552-a49e31b9b654/adapters/3/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-USERS" [5b610a3b-8284-4b27-86b0-6230d565af73]: NIO udp-e8d65c14-4171-4da5-89b4-bb3f9e150d48 bound to port 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-USERS" [5b610a3b-8284-4b27-86b0-6230d565af73]: port 0 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/5b610a3b-8284-4b27-86b0-6230d565af73/adapters/0/ports/0/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: NIO UDP added to adapter 4
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/a8b8a69e-39f2-4246-a552-a49e31b9b654/adapters/4/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-DMZ" [fde9c2bf-de06-475e-924a-3136e5ab98d1]: NIO udp-ae365703-6a75-49f1-9f4f-7b9be4e05d2c bound to port 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-DMZ" [fde9c2bf-de06-475e-924a-3136e5ab98d1]: port 0 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/fde9c2bf-de06-475e-924a-3136e5ab98d1/adapters/0/ports/0/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "FW01" [a8b8a69e-39f2-4246-a552-a49e31b9b654]: NIO UDP added to adapter 5
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/a8b8a69e-39f2-4246-a552-a49e31b9b654/adapters/5/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-APP" [4e2d8f36-1d88-4237-8fe1-ae1d6061c5ff]: NIO udp-f87b2e74-4eff-457e-8c9c-66e8006509d3 bound to port 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-APP" [4e2d8f36-1d88-4237-8fe1-ae1d6061c5ff]: port 0 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/4e2d8f36-1d88-4237-8fe1-ae1d6061c5ff/adapters/0/ports/0/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ports/udp HTTP/1.1" 201 244 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO qemu_vm.py:1484 QEMU VM "DESK01" [7b86ae81-7af7-4027-9b3f-b2f7f4dda565]: NIO UDP added to adapter 0
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/qemu/nodes/7b86ae81-7af7-4027-9b3f-b2f7f4dda565/adapters/0/ports/0/nio HTTP/1.1" 201 379 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:275 Ethernet switch "SW-MGMT" [426e1f31-a8b1-47a3-b589-9654e7546106]: NIO udp-130ea19b-5333-4355-9e91-197d6014a438 bound to port 3
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO ethernet_switch.py:365 Ethernet switch "SW-MGMT" [426e1f31-a8b1-47a3-b589-9654e7546106]: port 3 set as an access port in VLAN 1
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_log.py:232 127.0.0.1 [28/Oct/2026:06:36:46 +0000] "POST /v2/compute/projects/0a8625b8-eca7-4fe2-91d5-85cbd2ca0128/ethernet_switch/nodes/426e1f31-a8b1-47a3-b589-9654e7546106/adapters/0/ports/3/nio HTTP/1.1" 201 390 "-" "Python/3.12 aiohttp/3.13.5"
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_server.py:247 Computing image checksums...
+Oct 28 06:36:46 gns3 gns3server[65711]: 2026-10-28 06:36:46 INFO web_server.py:249 Finished computing image checksums
+Oct 28 06:36:46 gns3 unattended-upgrade[65167]: All upgrades installed

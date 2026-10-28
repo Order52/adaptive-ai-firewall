@@ -18,8 +18,9 @@ The system runs end to end on a real 13-node GNS3 lab:
 
 It is **not complete** against the directive's acceptance gates. The attack half of the
 evaluation needs team-run attack scenarios. Online adaptation is shown on recorded real
-drift, not yet live. Its most important measured weakness: models trained on about
-15 minutes of six users raise many false positives on new legitimate users.
+drift, not yet live. Its most important measured weakness: the v2 models, trained on one
+5.4-minute run of six addresses, raise many false positives when the legitimate workload
+changes (`RESULTS.md` §3, corrected 2026-10-28).
 
 ## 2. Gates
 

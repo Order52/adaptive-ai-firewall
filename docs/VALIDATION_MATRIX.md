@@ -31,7 +31,7 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 | Real telemetry from multiple sensor types | WAF access + audit, app events (mTLS), Suricata IDS (FW01); `test_telemetry*.py`, `test_provenance.py` | `m2-2026-10-27/live-provenance.txt`, `m5-2026-10-27/live-envelope.txt` | MET |
 | Demonstrated live inference | Live controller scoring real windows; IDS-only view live | `real-benign-baseline-2026-10-17.md`, `m2-2026-10-27/live-shadow-final.txt` | MET |
 | Reproducible labelled attack evaluation | M6 harness (`test_scenario_harness.py`, 14 tests); `afw experiment evaluate` | Harness only; **no team attack runs exist** | BLOCKED-EXT |
-| Correct false-positive and false-negative measurements | FPR on held-out real benign runs, with source-level CIs (M4); FN requires attack runs | `m3-2026-10-27/m4-adaptation.json`; FN: none | PARTIAL: FPR measured (and high on new benign sources, see RESULTS §3); FN BLOCKED-EXT |
+| Correct false-positive and false-negative measurements | FPR on held-out real benign runs, with source-level CIs (M4); FN requires attack runs | `m3-2026-10-27/m4-adaptation.json`; FN: none | PARTIAL: FPR measured (high under a workload shift, RESULTS §3; unseen users: P1); FN BLOCKED-EXT |
 
 ## Gate C: Genuine adaptation
 
@@ -60,7 +60,7 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 |---|---|---|---|
 | Fair comparisons against static rules and non-adaptive ML | M0/M1/M2 replay through the identical pipeline (`test_experiments.py`) | `real-benign-baseline-2026-10-17.md` (benign only) | PARTIAL: benign-only (equal safety, different cost) |
 | Quantified incremental benefit where demonstrated | `afw experiment evaluate` with run-level CIs | none | BLOCKED-EXT (needs attack runs) |
-| Honest documentation where adaptation does not help | RESULTS §3 (champion FPR on new sources), M4 caveats | `RESULTS.md`, `engineering/M4_ADAPTATION_EXPERIMENTS.md` | MET |
+| Honest documentation where adaptation does not help | RESULTS §3 (champion FPR under a workload shift, corrected), M4 caveats | `RESULTS.md`, `engineering/M4_ADAPTATION_EXPERIMENTS.md` | MET |
 
 ## Gate F: Security and operations
 

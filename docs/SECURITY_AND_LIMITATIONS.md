@@ -33,9 +33,11 @@ the known gaps.
   of the AI under attack are **BLOCKED** on team-run attack scenarios. This project
   does not generate attack traffic. The M6 harness and the evaluation machinery are
   complete and tested; benign-side training, inference and FPR are real and measured.
-- **High false-positive rate on new legitimate users.** Frozen detectors trained on
-  about 15 min of six users flagged 13 % (robust stats) to 72 % (Isolation Forest) of
-  new users' windows (`RESULTS.md` §3). Do not run enforce mode on this profile.
+- **High false-positive rate under a workload shift.** The v2 detectors, trained on one
+  5.4-minute run of six addresses at one request cadence, flagged 13 % (robust stats) to
+  72 % (Isolation Forest) of windows when the same personas ran at a slower cadence ten
+  days later (`RESULTS.md` §3; P1 measures unseen users). Do not run enforce mode on
+  this profile.
 - **Online learning not yet observed live.** The live challenger learned 0 windows,
   because champion proposals tainted every new source (fail-closed). Adaptation is
   shown on recorded real drift only, and the gate refuses the adapted challenger.

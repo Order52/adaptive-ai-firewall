@@ -19,6 +19,7 @@ from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
 from datetime import datetime
 from ipaddress import IPv4Address
+from typing import Any
 
 import numpy as np
 
@@ -89,6 +90,34 @@ def _conditional(
     normal = np.asarray(det.score(_rows(base))) < thr  # type: ignore[attr-defined]
     keep = [p for i, p in enumerate(probes) if normal[i // k]]
     return (_rate(det, keep, thr), len(keep)) if keep else (0.0, 0)
+
+
+def matched_sensitivity(
+    champ_det: object,
+    champ_thr: float,
+    ch_det: object,
+    ch_thr: float,
+    bases: Sequence[FeatureVector],
+    profile: BehaviorProfile,
+) -> dict[str, Any]:
+    """Per sensitive feature, the probe flag rate of each model over the base windows
+    that BOTH models score normal (same windows, so margin/population cannot confound)."""
+    k = len(SENSITIVE)
+    probes = sensitive_probes(bases, profile)
+    if not bases:
+        return {"matched_bases": 0, "per_feature": {}, "probes": probes}
+    x = _rows(bases)
+    both = (np.asarray(champ_det.score(x)) < champ_thr) & (  # type: ignore[attr-defined]
+        np.asarray(ch_det.score(x)) < ch_thr  # type: ignore[attr-defined]
+    )
+    per: dict[str, dict[str, float]] = {}
+    for j, name in enumerate(SENSITIVE):
+        sel = [probes[i * k + j] for i in np.flatnonzero(both)]
+        per[name] = {
+            "champion": _rate(champ_det, sel, champ_thr),
+            "challenger": _rate(ch_det, sel, ch_thr),
+        }
+    return {"matched_bases": int(both.sum()), "per_feature": per, "probes": probes}
 
 
 def _rows(windows: Sequence[FeatureVector]) -> np.ndarray:
@@ -229,39 +258,41 @@ def evaluate_challenger(
             "champion_recall": round(champ_rec, 4),
         }
 
-    # Conditional sensitivity: of the probes built on base windows the *same model*
-    # scores normal, how many does it flag? Raw probe rates are confounded by drift
-    # (a champion that flags most drifted benign windows also "flags" their probes).
-    k = len(SENSITIVE)
-    probes = sensitive_probes(test, profile)
-    ch_cond, ch_n = _conditional(ch_det, test, probes, thr, k)
-    champ_cond, champ_n = _conditional(champ_det, test, probes, champ_thr, k)
-    champ_raw = _rate(champ_det, probes, champ_thr)
-    # If the drifted holdout leaves the champion too few normal bases, its raw probe
-    # rate (>= its conditional rate in practice) is the stricter reference.
-    ref, ref_kind = (
-        (champ_cond, "conditional")
-        if champ_n >= pc.min_holdout_windows
-        else (champ_raw, "raw (champion has too few normal bases)")
-    )
-    enough = ch_n >= pc.min_holdout_windows
+    # Sensitivity on MATCHED bases (P2, 2026-10-28). Each model's own-normal bases are
+    # different populations with different distances to the threshold, so comparing
+    # own-normal flag rates confounds sensitivity with margin (a model whose normal
+    # windows sit deep inside dense regions flags fewer one-feature probes). The check
+    # therefore uses only base windows BOTH models score normal, and requires, for
+    # every sensitive feature separately, challenger rate >= champion rate - tolerance.
+    # Too few matched bases is a failure (no evidence of invariance), never a pass.
+    sens = matched_sensitivity(champ_det, champ_thr, ch_det, thr, test, profile)
+    worst = min((f["challenger"] - f["champion"], name) for name, f in sens["per_feature"].items())
+    enough = sens["matched_bases"] >= pc.min_holdout_windows
     checks.append(
         GateCheck(
             name="sensitive_invariance",
-            passed=enough and ch_cond >= ref - pc.sensitive_tolerance,
-            value=round(ch_cond, 4),
-            limit=round(ref - pc.sensitive_tolerance, 4),
-            detail=f"flag rate on attack-like probes of windows the model scores normal; "
-            f"champion reference {ref_kind} {ref:.4f}; probes {ch_n}/{champ_n}; raw "
-            f"{_rate(ch_det, probes, thr):.4f}/{champ_raw:.4f}"
-            + ("" if enough else "; too few challenger-normal base windows"),
+            passed=enough and worst[0] >= -pc.sensitive_tolerance,
+            value=round(worst[0], 4),
+            limit=-pc.sensitive_tolerance,
+            detail=f"worst per-feature (challenger - champion) probe flag rate on "
+            f"{sens['matched_bases']} matched normal bases: {worst[1]}"
+            + ("" if enough else f"; fewer than {pc.min_holdout_windows} matched bases"),
         )
     )
+    ch_cond, _ = _conditional(ch_det, test, sens["probes"], thr, len(SENSITIVE))
+    champ_cond, _ = _conditional(champ_det, test, sens["probes"], champ_thr, len(SENSITIVE))
     metrics |= {
-        "sensitive_challenger": round(ch_cond, 4),
-        "sensitive_champion": round(champ_cond, 4),
-        "sensitive_raw_challenger": round(_rate(ch_det, probes, thr), 4),
-        "sensitive_raw_champion": round(champ_raw, 4),
+        "sensitive_matched_bases": sens["matched_bases"],
+        **{
+            f"sensitive_{n}_{who}": round(f[who], 4)
+            for n, f in sens["per_feature"].items()
+            for who in ("challenger", "champion")
+        },
+        # reported for transparency; not decisive (population/margin confounded)
+        "sensitive_own_normal_challenger": round(ch_cond, 4),
+        "sensitive_own_normal_champion": round(champ_cond, 4),
+        "sensitive_raw_challenger": round(_rate(ch_det, sens["probes"], thr), 4),
+        "sensitive_raw_champion": round(_rate(champ_det, sens["probes"], champ_thr), 4),
     }
     test_scores = np.asarray(ch_det.score(_rows(test)))
     return GateResult(tuple(checks), thr, benign_quantiles(test_scores), metrics)

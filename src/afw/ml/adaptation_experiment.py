@@ -39,7 +39,7 @@ from afw.domain.learning import ChallengerEvaluation, ProbationStatus
 from afw.domain.profiles import BehaviorProfile
 from afw.features.extract import EndpointCatalog
 from afw.features.windows import replay_windows
-from afw.ml.challenger_gate import Holdout, evaluate_challenger, tumbling
+from afw.ml.challenger_gate import Holdout, evaluate_challenger, matched_sensitivity, tumbling
 from afw.ml.inference import LoadedModel
 from afw.ml.online import OnlineChallenger
 from afw.ml.online_replay import Stream, learn_stream
@@ -252,6 +252,7 @@ def run_adaptation(
     )
     a["gate_checks"] = [c.model_dump(mode="json") for c in gate.checks]
     a["gate_passed"] = all(c.passed for c in gate.checks)
+    a["gate_metrics"] = gate.metrics
     half = len(hold_windows) // 2
     test = hold_windows[half:]
     a["holdout_test_half"] = {
@@ -267,6 +268,21 @@ def run_adaptation(
         "calibrated_threshold": round(gate.threshold, 6),
         "champion_threshold": round(hst.record.threshold, 6),
     }
+    # Diagnostic only (not a gate input): separates what the learned model state does to
+    # sensitivity from what recalibrating its threshold does, on the same matched bases.
+    tt = tumbling(test)
+    decomposition: dict[str, Any] = {}
+    for name, thr in (("champion", hst.record.threshold), ("calibrated", gate.threshold)):
+        sens = matched_sensitivity(
+            hst.detector, hst.record.threshold, ch.detector, thr, tt, profile
+        )
+        decomposition[f"challenger_at_{name}_threshold"] = {
+            "matched_bases": sens["matched_bases"],
+            "per_feature": {
+                f: {k: round(v, 4) for k, v in r.items()} for f, r in sens["per_feature"].items()
+            },
+        }
+    a["sensitivity_decomposition"] = decomposition
     report["A_legitimate_drift"] = a
 
     # ---------------------------------------------------------- B: poisoning

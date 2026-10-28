@@ -63,7 +63,7 @@ never be trusted just because it disagrees with the champion.
 | `holdout_size` | >= 30 non-overlapping benign windows in each half | small or overlapping samples overstate confidence (Phase 0 finding) |
 | `benign_fpr_not_worse` | challenger FPR (calibrated threshold) <= max(champion FPR, 2 x target) on the test half | adaptation must not add false alarms |
 | `attack_recall_regression` | challenger recall >= champion recall - 0.05 on labelled **real** attack runs | **fails** with no attack runs, and **fails** if any attack run is synthetic |
-| `sensitive_invariance` | challenger flag rate on attack-like probes of windows *it* scores normal >= the champion's same conditional rate - 0.05 (the champion's raw probe rate if it has too few normal bases) | learning must never make high auth failure, login rate, usernames or client errors normal. Conditional because raw rates are confounded by drift (M4 §2) |
+| `sensitive_invariance` | on holdout windows that **both** models score normal (champion at its threshold, challenger at its calibrated threshold), for **each** sensitive feature: challenger probe flag rate >= champion rate - 0.05; fails if fewer than `min_holdout_windows` matched windows (ADR-034, revised 2026-10-28) | learning must never make high auth failure, login rate, usernames or client errors normal. Matched windows remove the population/margin confound of the earlier own-normal version; per feature so one lost feature cannot hide behind three intact ones |
 
 Calibration: threshold = (1 - target_fpr) quantile of challenger scores on the
 chronologically first half of the benign holdout; FPR is measured on the second half.
@@ -79,7 +79,15 @@ Synthetic feature vectors that prove the mechanism, not detection quality:
 * gate fails with no attack runs or synthetic ones, below a full window, on holdout
   leakage, on a later-tainted ledger source, on a too-small holdout;
 * a challenger deliberately poisoned toward attack-like sensitive features fails
-  `sensitive_invariance`;
+  `sensitive_invariance` with a real deficit on at least `min_holdout_windows` matched
+  windows (not merely for lack of evidence);
+* sensitivity regression benchmark (ADR-034): for each of the four sensitive features,
+  a challenger that learned that feature's probe perturbation alongside normal traffic
+  fails, and the detail names that feature; an unchanged champion copy passes in its
+  own regime; the same copy recalibrated on a drift holdout (threshold raised to absorb
+  drift) fails; a drift-only holdout with no matched windows fails closed; the adapted
+  challenger whose own-normal rate is lower than the champion's passes on matched
+  windows (the earlier confound);
 * a passing evaluation freezes a CANDIDATE and changes nothing active; a failing one
   registers nothing and cannot be promoted;
 * promotion activates exactly the evaluated snapshot; it is refused when stale,
@@ -91,7 +99,10 @@ Synthetic feature vectors that prove the mechanism, not detection quality:
 Mutation check: disabling each guard (probation exclusivity, sensitive invariance,
 ledger taint, holdout leakage, rate rollback, champion-changed, probation persistence)
 makes the corresponding test fail (evidence:
-`artifacts/evidence/m3-2026-10-27/mutation-check.txt`).
+`artifacts/evidence/m3-2026-10-27/mutation-check.txt`). The ADR-034 revision has its own
+check: 6/6 mutants caught (no matched-window minimum, challenger-normal bases only, best
+instead of worst feature, champion threshold for the challenger, widened tolerance,
+feature mix-up; `artifacts/evidence/p1-2026-10-28/p2-mutation-check.txt`).
 
 ## 5. Interfaces
 

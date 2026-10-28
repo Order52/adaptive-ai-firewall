@@ -1,0 +1,542 @@
+{
+ "profile": 2,
+ "models": {},
+ "real-benign-train2": {
+  "purpose": "train",
+  "start": "2026-10-17T19:00:50+00:00",
+  "end": "2026-10-17T19:06:14+00:00",
+  "observations": 2464,
+  "windows": 361,
+  "sources": 6,
+  "req_per_source_per_min": 76.05,
+  "robust_stats": {
+   "window_fpr": 0.0,
+   "per_source_fpr": {
+    "10.77.20.10": 0.0,
+    "10.77.20.11": 0.0,
+    "10.77.20.12": 0.0,
+    "10.77.20.13": 0.0,
+    "10.77.20.14": 0.0,
+    "10.77.20.15": 0.0
+   },
+   "top_driver_counts": {}
+  },
+  "isolation_forest": {
+   "window_fpr": 0.0166,
+   "per_source_fpr": {
+    "10.77.20.10": 0.0,
+    "10.77.20.11": 0.0,
+    "10.77.20.12": 0.017,
+    "10.77.20.13": 0.017,
+    "10.77.20.14": 0.017,
+    "10.77.20.15": 0.05
+   },
+   "top_driver_counts": {
+    "distinct_usernames": 2,
+    "req_rate": 2,
+    "route_count": 1,
+    "req_bytes_p95": 1
+   }
+  },
+  "half_space_trees": {
+   "window_fpr": 0.0305,
+   "per_source_fpr": {
+    "10.77.20.10": 0.0,
+    "10.77.20.11": 0.0,
+    "10.77.20.12": 0.033,
+    "10.77.20.13": 0.017,
+    "10.77.20.14": 0.033,
+    "10.77.20.15": 0.1
+   },
+   "top_driver_counts": {
+    "route_count": 9,
+    "req_bytes_p95": 2
+   }
+  },
+  "feature_q50_q95": {
+   "req_rate": [
+    1.333,
+    1.7
+   ],
+   "route_count": [
+    9.0,
+    9.0
+   ],
+   "route_entropy": [
+    3.008,
+    3.106
+   ],
+   "unknown_route_frac": [
+    0.0,
+    0.0
+   ],
+   "novel_method_frac": [
+    0.0,
+    0.0
+   ],
+   "write_frac": [
+    0.316,
+    0.404
+   ],
+   "client_err_frac": [
+    0.22,
+    0.271
+   ],
+   "server_err_frac": [
+    0.0,
+    0.0
+   ],
+   "login_rate": [
+    10.0,
+    14.0
+   ],
+   "auth_fail_frac": [
+    0.0,
+    0.286
+   ],
+   "distinct_usernames": [
+    4.0,
+    6.0
+   ],
+   "req_bytes_p95": [
+    227.8,
+    244.5
+   ],
+   "interarrival_cv": [
+    1.064,
+    1.427
+   ]
+  }
+ },
+ "real-benign-val": {
+  "purpose": "validation",
+  "start": "2026-10-17T18:56:23+00:00",
+  "end": "2026-10-17T19:00:03+00:00",
+  "observations": 1049,
+  "windows": 154,
+  "sources": 4,
+  "req_per_source_per_min": 71.52,
+  "robust_stats": {
+   "window_fpr": 0.013,
+   "per_source_fpr": {
+    "10.77.20.10": 0.0,
+    "10.77.20.11": 0.0,
+    "10.77.20.12": 0.0,
+    "10.77.20.13": 0.051
+   },
+   "top_driver_counts": {
+    "auth_fail_frac": 2
+   }
+  },
+  "isolation_forest": {
+   "window_fpr": 0.013,
+   "per_source_fpr": {
+    "10.77.20.10": 0.026,
+    "10.77.20.11": 0.0,
+    "10.77.20.12": 0.0,
+    "10.77.20.13": 0.026
+   },
+   "top_driver_counts": {
+    "auth_fail_frac": 2
+   }
+  },
+  "half_space_trees": {
+   "window_fpr": 0.013,
+   "per_source_fpr": {
+    "10.77.20.10": 0.026,
+    "10.77.20.11": 0.026,
+    "10.77.20.12": 0.0,
+    "10.77.20.13": 0.0
+   },
+   "top_driver_counts": {
+    "route_count": 2
+   }
+  },
+  "feature_q50_q95": {
+   "req_rate": [
+    1.3,
+    1.633
+   ],
+   "route_count": [
+    9.0,
+    9.0
+   ],
+   "route_entropy": [
+    3.023,
+    3.124
+   ],
+   "unknown_route_frac": [
+    0.0,
+    0.0
+   ],
+   "novel_method_frac": [
+    0.0,
+    0.0
+   ],
+   "write_frac": [
+    0.342,
+    0.444
+   ],
+   "client_err_frac": [
+    0.237,
+    0.308
+   ],
+   "server_err_frac": [
+    0.0,
+    0.0
+   ],
+   "login_rate": [
+    10.0,
+    16.0
+   ],
+   "auth_fail_frac": [
+    0.2,
+    0.4
+   ],
+   "distinct_usernames": [
+    4.0,
+    6.0
+   ],
+   "req_bytes_p95": [
+    228.0,
+    249.067
+   ],
+   "interarrival_cv": [
+    1.081,
+    1.464
+   ]
+  }
+ },
+ "real-benign-train": {
+  "purpose": "train",
+  "start": "2026-10-17T18:51:23+00:00",
+  "end": "2026-10-17T18:55:58+00:00",
+  "observations": 1306,
+  "windows": 191,
+  "sources": 4,
+  "req_per_source_per_min": 71.24,
+  "robust_stats": {
+   "window_fpr": 0.0105,
+   "per_source_fpr": {
+    "10.77.20.10": 0.0,
+    "10.77.20.11": 0.0,
+    "10.77.20.12": 0.042,
+    "10.77.20.13": 0.0
+   },
+   "top_driver_counts": {
+    "auth_fail_frac": 2
+   }
+  },
+  "isolation_forest": {
+   "window_fpr": 0.0262,
+   "per_source_fpr": {
+    "10.77.20.10": 0.0,
+    "10.77.20.11": 0.021,
+    "10.77.20.12": 0.062,
+    "10.77.20.13": 0.021
+   },
+   "top_driver_counts": {
+    "auth_fail_frac": 3,
+    "route_count": 1,
+    "distinct_usernames": 1
+   }
+  },
+  "half_space_trees": {
+   "window_fpr": 0.0209,
+   "per_source_fpr": {
+    "10.77.20.10": 0.0,
+    "10.77.20.11": 0.043,
+    "10.77.20.12": 0.021,
+    "10.77.20.13": 0.021
+   },
+   "top_driver_counts": {
+    "req_bytes_p95": 2,
+    "route_count": 1,
+    "write_frac": 1
+   }
+  },
+  "feature_q50_q95": {
+   "req_rate": [
+    1.3,
+    1.717
+   ],
+   "route_count": [
+    9.0,
+    9.0
+   ],
+   "route_entropy": [
+    3.039,
+    3.117
+   ],
+   "unknown_route_frac": [
+    0.0,
+    0.0
+   ],
+   "novel_method_frac": [
+    0.0,
+    0.0
+   ],
+   "write_frac": [
+    0.333,
+    0.419
+   ],
+   "client_err_frac": [
+    0.231,
+    0.283
+   ],
+   "server_err_frac": [
+    0.0,
+    0.0
+   ],
+   "login_rate": [
+    10.0,
+    14.0
+   ],
+   "auth_fail_frac": [
+    0.0,
+    0.4
+   ],
+   "distinct_usernames": [
+    4.0,
+    6.0
+   ],
+   "req_bytes_p95": [
+    228.0,
+    244.7
+   ],
+   "interarrival_cv": [
+    1.072,
+    1.732
+   ]
+  }
+ },
+ "real-drift-learn-20261027": {
+  "purpose": "drift",
+  "start": "2026-10-27T18:03:09+00:00",
+  "end": "2026-10-27T18:48:09+00:00",
+  "observations": 3603,
+  "windows": 751,
+  "sources": 6,
+  "req_per_source_per_min": 13.34,
+  "robust_stats": {
+   "window_fpr": 0.1651,
+   "per_source_fpr": {
+    "10.77.20.11": 0.153,
+    "10.77.20.12": 0.154,
+    "10.77.20.13": 0.217,
+    "10.77.20.14": 0.185,
+    "10.77.20.15": 0.152,
+    "10.77.20.16": 0.148
+   },
+   "top_driver_counts": {
+    "interarrival_cv": 76,
+    "auth_fail_frac": 42,
+    "route_entropy": 6
+   }
+  },
+  "isolation_forest": {
+   "window_fpr": 0.5566,
+   "per_source_fpr": {
+    "10.77.20.11": 0.532,
+    "10.77.20.12": 0.506,
+    "10.77.20.13": 0.642,
+    "10.77.20.14": 0.63,
+    "10.77.20.15": 0.529,
+    "10.77.20.16": 0.548
+   },
+   "top_driver_counts": {
+    "interarrival_cv": 112,
+    "distinct_usernames": 106,
+    "req_rate": 64,
+    "auth_fail_frac": 41,
+    "route_count": 32
+   }
+  },
+  "half_space_trees": {
+   "window_fpr": 0.4927,
+   "per_source_fpr": {
+    "10.77.20.11": 0.492,
+    "10.77.20.12": 0.449,
+    "10.77.20.13": 0.509,
+    "10.77.20.14": 0.533,
+    "10.77.20.15": 0.507,
+    "10.77.20.16": 0.489
+   },
+   "top_driver_counts": {
+    "route_count": 266,
+    "interarrival_cv": 60,
+    "req_bytes_p95": 37,
+    "auth_fail_frac": 6,
+    "route_entropy": 1
+   }
+  },
+  "feature_q50_q95": {
+   "req_rate": [
+    0.333,
+    0.7
+   ],
+   "route_count": [
+    8.0,
+    9.0
+   ],
+   "route_entropy": [
+    2.873,
+    3.125
+   ],
+   "unknown_route_frac": [
+    0.0,
+    0.0
+   ],
+   "novel_method_frac": [
+    0.0,
+    0.0
+   ],
+   "write_frac": [
+    0.308,
+    0.5
+   ],
+   "client_err_frac": [
+    0.222,
+    0.333
+   ],
+   "server_err_frac": [
+    0.0,
+    0.0
+   ],
+   "login_rate": [
+    2.0,
+    6.0
+   ],
+   "auth_fail_frac": [
+    0.0,
+    0.5
+   ],
+   "distinct_usernames": [
+    1.0,
+    3.0
+   ],
+   "req_bytes_p95": [
+    211.0,
+    241.2
+   ],
+   "interarrival_cv": [
+    1.598,
+    2.57
+   ]
+  }
+ },
+ "real-drift-hold-20261027": {
+  "purpose": "test",
+  "start": "2026-10-27T18:48:39+00:00",
+  "end": "2026-10-27T19:18:09+00:00",
+  "observations": 2253,
+  "windows": 480,
+  "sources": 6,
+  "req_per_source_per_min": 12.73,
+  "robust_stats": {
+   "window_fpr": 0.1313,
+   "per_source_fpr": {
+    "10.77.20.11": 0.182,
+    "10.77.20.12": 0.094,
+    "10.77.20.13": 0.122,
+    "10.77.20.14": 0.127,
+    "10.77.20.15": 0.146,
+    "10.77.20.16": 0.13
+   },
+   "top_driver_counts": {
+    "interarrival_cv": 35,
+    "auth_fail_frac": 24,
+    "route_entropy": 4
+   }
+  },
+  "isolation_forest": {
+   "window_fpr": 0.5458,
+   "per_source_fpr": {
+    "10.77.20.11": 0.621,
+    "10.77.20.12": 0.479,
+    "10.77.20.13": 0.716,
+    "10.77.20.14": 0.521,
+    "10.77.20.15": 0.479,
+    "10.77.20.16": 0.506
+   },
+   "top_driver_counts": {
+    "distinct_usernames": 74,
+    "interarrival_cv": 54,
+    "req_rate": 41,
+    "auth_fail_frac": 32,
+    "route_count": 24
+   }
+  },
+  "half_space_trees": {
+   "window_fpr": 0.5,
+   "per_source_fpr": {
+    "10.77.20.11": 0.606,
+    "10.77.20.12": 0.49,
+    "10.77.20.13": 0.676,
+    "10.77.20.14": 0.479,
+    "10.77.20.15": 0.385,
+    "10.77.20.16": 0.416
+   },
+   "top_driver_counts": {
+    "route_count": 176,
+    "interarrival_cv": 35,
+    "req_bytes_p95": 27,
+    "auth_fail_frac": 2
+   }
+  },
+  "feature_q50_q95": {
+   "req_rate": [
+    0.333,
+    0.7
+   ],
+   "route_count": [
+    8.0,
+    9.0
+   ],
+   "route_entropy": [
+    2.811,
+    3.107
+   ],
+   "unknown_route_frac": [
+    0.0,
+    0.0
+   ],
+   "novel_method_frac": [
+    0.0,
+    0.0
+   ],
+   "write_frac": [
+    0.3,
+    0.5
+   ],
+   "client_err_frac": [
+    0.231,
+    0.321
+   ],
+   "server_err_frac": [
+    0.0,
+    0.0
+   ],
+   "login_rate": [
+    2.0,
+    6.0
+   ],
+   "auth_fail_frac": [
+    0.0,
+    0.5
+   ],
+   "distinct_usernames": [
+    1.0,
+    3.0
+   ],
+   "req_bytes_p95": [
+    209.3,
+    241.35
+   ],
+   "interarrival_cv": [
+    1.55,
+    2.574
+   ]
+  }
+ }
+}

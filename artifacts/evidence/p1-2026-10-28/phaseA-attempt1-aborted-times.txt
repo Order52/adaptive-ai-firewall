@@ -1,0 +1,3 @@
+A_START=2026-10-28T06:31:32
+A_END=2026-10-28T06:38:32
+ABORTED: all lab VMs stopped at 06:36:43Z (unattended-upgrades -> needrestart restarted gns3server); see lab-outage-2026-10-28.log. Data from this attempt is not used.

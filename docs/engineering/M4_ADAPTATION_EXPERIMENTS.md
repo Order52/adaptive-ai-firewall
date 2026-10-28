@@ -14,9 +14,13 @@ Evidence: `artifacts/evidence/m3-2026-10-27/m4-adaptation.json` (after the fix i
 ## 1. Data (real, benign)
 
 One 75-minute live run on 2026-10-27, 18:03:09–19:18:09Z: `traffic/benign_personas.py`
-(the same persona journeys used for the trusted v2 profile) from **six new client IPs**
+(the same persona journeys used for the trusted v2 profile) from client IPs
 10.77.20.11–16, over mTLS-authenticated telemetry. 992 sessions. The v2 champion was
-trained on 3 runs of about 5 min each from other IPs.
+trained on one 5.4-minute run from 10.77.20.10–15. **Correction (2026-10-28):** this
+section first called these "six new client IPs" and said v2 had three training runs.
+Five of the six addresses were in the training run; the drift is a workload change (one
+shared generator process, about 13 instead of 71–76 requests per source per minute), not
+new users (`P1_BENIGN_GENERALIZATION.md` §1).
 
 * `real-drift-learn-20261027` (drift, 18:03:09–18:48:09, 3603 observations): learning stream
 * `real-drift-hold-20261027` (test, 18:48:39–19:18:09, 2253 observations): disjoint later holdout
@@ -72,18 +76,44 @@ to about 3–6 %. Two caveats:
 |---|---|
 | min_learning 227 >= 180, holdout_not_learned, ledger_clean, holdout_size 96 >= 30, benign_fpr 0.031 <= 0.650 | pass |
 | attack_recall_regression | **fail**: no labelled real attack runs exist |
-| sensitive_invariance | **fail**: challenger flags 0.162 of attack-like probes on windows it scores normal, champion 0.419 (limit 0.369) |
+| sensitive_invariance | **fail** (ADR-034 matched-window version, rerun 2026-10-28): on 32 test windows both models score normal, challenger vs champion probe flag rate: client_err_frac 0.438 vs 0.875, auth_fail_frac 0.281 vs 0.469 (limit: champion - 0.05); distinct_usernames 0.250 vs 0.063 and login_rate 0.469 vs 0.250 are higher |
 
-The sensitive-invariance failure is a real loss of sensitivity to high-auth-failure and
-high-login-rate variants of the drifted traffic, so this challenger must not be promoted.
+This challenger must not be promoted, and the gate keeps it in shadow.
 
-The metric was revised once, before this result. The first version compared raw probe
-flag rates (challenger 0.188 vs champion 0.794). Those rates were confounded: the
-champion flags 65 % of the *unperturbed* drifted windows, so it "flags" their probes
-regardless of sensitivity. The revised check uses only probes whose base window the same
-model scores normal, and falls back to the stricter raw champion rate when the champion
-has too few normal bases. Both versions reject this challenger; both numbers are in the
-check detail.
+**Why it lost sensitivity (P2 investigation, 2026-10-28).** The original M4 write-up
+called this "a real loss of sensitivity" based on an own-normal comparison (challenger
+0.162 vs champion 0.419, each model on the windows *it* scores normal). The P2
+investigation tested four hypotheses:
+
+| Hypothesis | Test | Result |
+|---|---|---|
+| H1 population confound: own-normal sets differ (challenger normals include drifted windows the champion flags) | compare on windows both models score normal | confirmed as a confound: champion 70, challenger 184, common 64 normal windows on the full holdout |
+| H2 learned state desensitized the model | matched windows, **both models at the champion threshold** | **rejected**: challenger at least as sensitive on every feature (auth 0.567 vs 0.433, client_err 1.000 vs 0.867, usernames 0.233 vs 0.067, login 0.767 vs 0.200; 30 windows) |
+| H3 HST dilution: single-feature probes of deep-normal windows rarely cross the threshold | champion own-normal probe rates on in-distribution 10-17 data | confirmed, and it affects the champion too (auth 0.031, client_err 0.188, usernames 0, login 0.031) |
+| H4 threshold calibration | same matched windows, challenger at its **calibrated** threshold (0.837 vs champion 0.806) | **confirmed as the mechanism**: client_err falls 1.000 → 0.438 and auth 0.567 → 0.281 |
+
+So the learned model state is not what loses sensitivity. Recalibrating the threshold
+to the target FPR on the drifted calibration half raises it just enough that
+single-feature client-error and auth-failure probes of normal windows fall below it. The
+gate evaluates the threshold that would actually be deployed, so rejecting is correct.
+The check itself was revised (ADR-034) to compare on matched windows and per feature, so
+a lost feature can neither hide behind the others nor be faked by a population shift.
+
+Two caveats:
+
+* The revised check was designed after seeing this holdout, so this rerun is not an
+  independent test of the check. Its independent evidence is the regression benchmark
+  in `test_challenger_lifecycle.py` (a deliberately desensitized challenger per feature
+  fails; an unchanged copy passes).
+* Calibration is **not** changed in response to this result: changing it after looking
+  at this holdout would tune to it. Whether to cap the calibrated threshold at the
+  champion's is an open, predeclared question for the next independent benign test
+  (`P1_BENIGN_GENERALIZATION.md`).
+
+Evidence: `artifacts/evidence/p1-2026-10-28/m4-adaptation-p2-gate.json`
+(`gate_checks`, `gate_metrics`, `sensitivity_decomposition`),
+`p2-sensitive-investigation.json`, `p2_sensitive.py`. The earlier own-normal metric is
+still reported in `gate_metrics` for comparison.
 
 ## 3. Scenario B: poisoning, and a vulnerability this experiment found
 

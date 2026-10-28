@@ -22,13 +22,14 @@ from test_online_learning import SHIFT, NullAudit, W, _record, fv, rows
 from afw.config import PromotionConfig
 from afw.domain.detection import DetectionResult, DetectorKind, ModelStatus
 from afw.domain.learning import LearnedWindow, ProbationStatus
-from afw.ml.challenger_gate import Holdout, evaluate_challenger, tumbling
+from afw.ml.challenger_gate import Holdout, evaluate_challenger, sensitive_probes, tumbling
 from afw.ml.detectors.hst import HalfSpaceTreesDetector
 from afw.ml.inference import LoadedModel
 from afw.ml.online import CheckpointStore, OnlineChallenger, fingerprint
 from afw.ml.registry import ArtifactStore
 from afw.persistence.db import make_engine, upgrade
 from afw.persistence.repositories import SqlLearningRepository, SqlModelRepository
+from afw.profiling.eligibility import SENSITIVE
 from afw.services.challenger import ChallengerLifecycle, PromotionRefused
 
 DRIFT = {**BENIGN, **SHIFT}  # a legitimate application change
@@ -78,13 +79,18 @@ def _learn(ch: OnlineChallenger, windows) -> list[LearnedWindow]:
 
 LEARN_SRCS = ("10.77.20.11", "10.77.20.12", "10.77.20.13", "10.77.20.14")
 HOLD_SRCS = ("10.77.20.21", "10.77.20.22", "10.77.20.23")
+# Held-out users still in the champion's regime: the champion flags every drifted window,
+# so sensitivity can only be compared on windows BOTH models score normal (matched bases).
+REF_SRCS = ("10.77.20.31", "10.77.20.32", "10.77.20.33")
 
 
 def _holdout(attack: bool = True, synthetic: bool = False, n: int = 20) -> Holdout:
-    benign = _windows(DRIFT, HOLD_SRCS, n, 20_000)
+    benign = _windows(DRIFT, HOLD_SRCS, n, 20_000) + _windows(BENIGN, REF_SRCS, n, 20_000)
     atk = _windows(ATTACK, ("10.77.10.66",), 30, 20_000) if attack else []
     end = T0 + timedelta(seconds=20_000 + 30 * (n + 1))
-    spans = tuple((IPv4Address(s), T0 + timedelta(seconds=20_000), end) for s in HOLD_SRCS)
+    spans = tuple(
+        (IPv4Address(s), T0 + timedelta(seconds=20_000), end) for s in HOLD_SRCS + REF_SRCS
+    )
     return Holdout(
         benign=benign,
         attack=atk,
@@ -119,6 +125,14 @@ def _gate(adapted, **kw):
         "pc": PC,
     }
     return evaluate_challenger(**{**args, **kw})
+
+
+def _ref_holdout() -> Holdout:
+    """Holdout of the champion's own regime only (no drift to inflate calibration)."""
+    h = _holdout()
+    return Holdout(
+        **{**h.__dict__, "benign": [w for w in h.benign if str(w.source_ip) in REF_SRCS]}
+    )
 
 
 def _by_name(res):
@@ -187,8 +201,69 @@ def test_gate_catches_a_challenger_poisoned_toward_attack_like_behaviour(adapted
     bad = {**DRIFT, "auth_fail_frac": 0.9, "login_rate": 6.0, "distinct_usernames": 8.0}
     lineage = _learn(poisoned, _windows(bad, LEARN_SRCS, 2 * W // len(LEARN_SRCS), 0))
     res = _gate(adapted, challenger=poisoned, lineage=lineage)
-    failed = {c.name for c in res.checks if not c.passed}
-    assert "sensitive_invariance" in failed, res.checks
+    chk = _by_name(res)["sensitive_invariance"]
+    # a genuine deficit on matched bases, not merely missing evidence
+    assert not chk.passed and res.metrics["sensitive_matched_bases"] >= PC.min_holdout_windows
+    assert chk.value < -PC.sensitive_tolerance, res.checks
+
+
+@pytest.mark.parametrize("feature", SENSITIVE)
+def test_a_single_desensitized_feature_is_enough_to_fail(adapted, feature):
+    """Regression benchmark: a challenger that learned, alongside normal traffic, the exact
+    perturbation probed for ONE sensitive feature has lost that feature only. The check is
+    per feature, so this must fail even though the other three are unchanged."""
+    champion, _, _ = adapted
+    ch = OnlineChallenger.from_champion(champion.detector, champion.record)
+    j = SENSITIVE.index(feature)
+    normal = _windows(BENIGN, LEARN_SRCS, W // len(LEARN_SRCS), 0)
+    perturbed = sensitive_probes(normal, _profile())[j :: len(SENSITIVE)]
+    lineage = _learn(ch, [w for pair in zip(normal, perturbed, strict=True) for w in pair])
+    res = _gate(adapted, challenger=ch, lineage=lineage, holdout=_ref_holdout())
+    chk = _by_name(res)["sensitive_invariance"]
+    assert not chk.passed and chk.detail.endswith(feature), (chk, res.metrics)
+    assert res.metrics["sensitive_matched_bases"] >= PC.min_holdout_windows
+
+
+def test_sensitivity_is_compared_on_matched_bases_not_each_models_own_normals(adapted):
+    """P2 regression: the adapted challenger's own-normal windows include the drifted
+    regime, which the champion flags wholesale; comparing each model on its own normal
+    windows reported a sensitivity 'loss' that disappears on the same windows."""
+    res = _gate(adapted)
+    m = res.metrics
+    assert m["sensitive_own_normal_challenger"] < m["sensitive_own_normal_champion"] - 0.05
+    assert _by_name(res)["sensitive_invariance"].passed
+
+
+def test_an_unchanged_champion_copy_is_sensitivity_invariant_in_its_own_regime(adapted):
+    champion, _, _ = adapted
+    same = OnlineChallenger.from_champion(champion.detector, champion.record)
+    chk = _by_name(_gate(adapted, challenger=same, lineage=[], holdout=_ref_holdout()))[
+        "sensitive_invariance"
+    ]
+    assert chk.passed and abs(chk.value) <= PC.sensitive_tolerance
+
+
+def test_raising_the_threshold_to_absorb_drift_is_not_adaptation(adapted):
+    """The unchanged champion, recalibrated on a holdout containing the drift, gets a
+    threshold high enough to accept the drifted windows and stops flagging probes of
+    normal windows. The matched-base check must reject this (directive: do not merely
+    raise thresholds)."""
+    champion, _, _ = adapted
+    same = OnlineChallenger.from_champion(champion.detector, champion.record)
+    chk = _by_name(_gate(adapted, challenger=same, lineage=[]))["sensitive_invariance"]
+    assert not chk.passed and chk.value < -PC.sensitive_tolerance
+
+
+def test_sensitivity_without_matched_bases_fails_closed(adapted):
+    """Drift-only holdout: the champion has no normal windows, so invariance is unproven."""
+    h = _holdout()
+    drift_only = Holdout(
+        **{**h.__dict__, "benign": [w for w in h.benign if str(w.source_ip) in HOLD_SRCS]}
+    )
+    res = _gate(adapted, holdout=drift_only)
+    chk = _by_name(res)["sensitive_invariance"]
+    assert not chk.passed and "fewer than" in chk.detail
+    assert res.metrics["sensitive_matched_bases"] < PC.min_holdout_windows
 
 
 # --------------------------------------------------- promotion / rollback

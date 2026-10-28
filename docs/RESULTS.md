@@ -58,10 +58,15 @@ behaviour, rather than synthetic fixtures, is what removes the false positives.
   threshold; all bars below the 1.0 threshold line.
 - Evidence: `artifacts/evidence/real-benign-baseline-2026-10-17.md`.
 
-## 3. The zero-FP result does not generalise to new benign users (2026-10-27)
+## 3. The zero-FP result does not survive a workload shift (2026-10-27)
 
-§2 holds for the population the profile was trained on. It was then tested on
-**six new benign client addresses** (10.77.20.11–16). They ran the same persona journeys
+§2 holds for the conditions the profile was trained on. It was then tested on a run
+ten days later from 10.77.20.11–16. **Correction (2026-10-28):** this section first
+called these "six new benign client addresses"; five of them (.11–.15) were in the
+training run. What changed was the time and the workload: one shared generator process
+at about 13 requests per source per minute, instead of one process per address at
+71–76 (`engineering/P1_BENIGN_GENERALIZATION.md` §1). Unseen-user generalization is
+measured separately in P1. The run used the same persona journeys
 for 75 minutes (992 sessions) over authenticated telemetry. The frozen champion
 detectors, at their trusted thresholds, on the later 30 minutes (193 tumbling windows;
 95 % CIs bootstrapped over the 6 sources):
@@ -74,9 +79,10 @@ detectors, at their trusted thresholds, on the later 30 minutes (193 tumbling wi
 
 Live, the controller raised **89 proposals** (46 rate limit, 43 watch) against these
 benign sources. It was in monitor mode, so none was enforced. The training set was
-three runs of about 5 minutes from six other addresses, and it under-represents
-legitimate variation. **This is the most important negative result of the project.**
-In enforce mode, the v2 profile would have harmed new legitimate users. The statistical
+**one 5.4-minute run** from six addresses (361 windows) at a single workload intensity,
+and it under-represents legitimate variation. **This is the most important negative
+result of the project.** In enforce mode, the v2 profile would have harmed legitimate
+users whose request cadence differs from the training run. The statistical
 detector degrades far less than the ML detectors. The headline in §2 must always be
 quoted together with this section.
 
@@ -239,7 +245,7 @@ Evidence: `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt`;
    latencies and memory figures are indicative of the architecture, not of a
    production-scale deployment.
 6. **Small training population.** The trusted profile came from about 15 minutes of
-   traffic from six addresses; §3 shows this is not enough for new users.
+   traffic from six addresses; §3 shows this is not enough under a workload shift.
 7. **One drift run.** The adaptation CIs are over six sources in one run, not over runs.
 
 ## 9. Summary
@@ -266,7 +272,7 @@ is blocked on team-run attack scenarios. The harness for it (M6) is complete.
 | Detector latency, M0/M1/M2 benign replay | `afw experiment replay` | held-out real benign | 2026-10-17 | same |
 | Soak | live, 60 min | — | 2026-10-20 | `soak-2026-10-20.md` |
 | Cold restart | `afw lab stop/start` | — | 2026-10-18 | `cold-restart-2026-10-18.md` |
-| New-user FPR, online adaptation, poisoning, rollback | `afw experiment adaptation --learn real-drift-learn-20261027 --hold real-drift-hold-20261027` | 75-min run, 10.77.20.11–16 | 2026-10-27 18:03–19:18 | `m3-2026-10-27/m4-adaptation*.json` |
+| Workload-shift FPR, online adaptation, poisoning, rollback | `afw experiment adaptation --learn real-drift-learn-20261027 --hold real-drift-hold-20261027` | 75-min run, 10.77.20.11–16 | 2026-10-27 18:03–19:18 | `m3-2026-10-27/m4-adaptation*.json` |
 | Online replay (pivot, restore) | `afw experiment online-replay` | real-benign and drift datasets | 2026-10-27 | `m2-2026-10-27/m2-replay-*.json` |
 | Telemetry recovery | scripted restarts (see file) | live | 2026-10-27 20:15–20:48 | `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt` |
 | Isolation, live-lab suite | `afw lab verify`; `AFW_LAB=1 pytest tests/lab` | live | 2026-10-27 20:59–21:00 | `m9-2026-10-27/` |

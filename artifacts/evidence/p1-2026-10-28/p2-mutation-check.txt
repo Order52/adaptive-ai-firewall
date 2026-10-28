@@ -1,0 +1,7 @@
+P2 sensitive_invariance mutation check, tests/unit/test_challenger_lifecycle.py
+CAUGHT    drop the matched-bases minimum
+CAUGHT    use challenger-normal bases only (old confound)
+CAUGHT    best feature instead of worst
+CAUGHT    challenger scored at champion threshold
+CAUGHT    tolerance widened
+CAUGHT    wrong probe stride (feature mix-up)

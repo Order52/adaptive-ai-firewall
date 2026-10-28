@@ -11,7 +11,7 @@ Sub-questions and where they are answered:
 
 | # | Question | Status |
 |---|---|---|
-| RQ1 | Does behavioural detection on real application telemetry stay within a false-positive budget on legitimate users? | Answered, partly negatively: yes on the training population, **no on new users** (`RESULTS.md` §2–3) |
+| RQ1 | Does behavioural detection on real application telemetry stay within a false-positive budget on legitimate users? | Answered, partly negatively: yes under training conditions, **no under a workload shift** (`RESULTS.md` §2–3); unseen-user generalization measured in P1 (`engineering/P1_BENIGN_GENERALIZATION.md`) |
 | RQ2 | Does ML (Isolation Forest) add detection value over robust statistics at equal FPR? | Benign side: equal safety, about 800× cost. Attack side **BLOCKED-EXT** |
 | RQ3 | Can an online learner adapt to real legitimate drift while resisting poisoning? | Offline on recorded real drift: yes for the HST arm (FPR about 0.65 → 0.03), with a poisoning flaw found and fixed. Not yet shown live (`RESULTS.md` §6b) |
 | RQ4 | Can adaptation be governed so that no model change reaches enforcement unvalidated? | Yes by design and test: gate, human promotion, probation rollback (ADR-030) |
@@ -59,9 +59,11 @@ arms, with real scoring latency M1 ~63 µs vs M2 ~11.9 ms. `recall = null` — n
 data yet (honest). Attack recall and scenarios A/B/E remain **BLOCKED** on
 team-supplied attack traces. Full evidence: `artifacts/evidence/real-benign-baseline-2026-10-17.md`.
 
-**Correction (2026-10-27):** the 0-FP result holds for the training population only. On
-six new benign sources the frozen detectors had FPR 0.13 (robust stats), 0.72 (IF) and
-0.64 (HST). See `RESULTS.md` §3.
+**Correction (2026-10-27, revised 2026-10-28):** the 0-FP result holds under training
+conditions only. Ten days later, under a slower shared-generator workload from largely
+the same addresses (not new users, as first stated), the frozen detectors had FPR 0.13
+(robust stats), 0.72 (IF) and 0.64 (HST). See `RESULTS.md` §3 and
+`engineering/P1_BENIGN_GENERALIZATION.md`.
 
 The synthetic fixtures below remain **software-correctness tests only** and are never
 cited as accuracy results.

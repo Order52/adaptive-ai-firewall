@@ -434,6 +434,19 @@ class LearningService:
         ]
         return prof, loaded
 
+    def load_version(self, app_id: str, version: int) -> tuple[BehaviorProfile, list[LoadedModel]]:
+        """Any stored profile version and its models, whatever their status (read-only
+        evaluation of candidates; loading never activates anything)."""
+        prof = self.profiles.get(app_id, version)
+        if prof is None:
+            raise ValueError(f"no profile v{version} for {app_id}")
+        loaded = [
+            LoadedModel(record=r, detector=self.artifacts.load(r))
+            for r in self.models.list(app_id)
+            if r.profile_version == version
+        ]
+        return prof, loaded
+
 
 def _rows(vectors: Sequence[FeatureVector]) -> np.ndarray:
     from afw.domain.features import FEATURE_NAMES
