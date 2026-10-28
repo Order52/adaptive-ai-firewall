@@ -8,8 +8,8 @@ addresses, safety limits): `config/lab.yaml`.
 
 | Node | Zone | Address | Role | Main services / ports |
 |---|---|---|---|---|
-| FW01 | all | .1 in every zone | OPNsense 26.7: zone firewall, `AFW_BLOCK_WEB` / `AFW_HEARTBEAT` aliases, Suricata (pcap) on ATTACK+USERS, heartbeat watchdog, NAT egress | REST API (TLS, lab CA); syslog-ng → CTRL01:5515 |
-| CTRL01 | MGMT | 10.77.50.10 | Controller (`afw serve`, systemd `afw-controller`, user `afwctl`) | API + dashboard :8080 (HTTP, MGMT only); syslog mTLS :5514 (WAF01, APP01); syslog plain :5515 (FW01 only) |
+| FW01 | all | .1 in every zone | OPNsense 26.7: zone firewall, `AFW_BLOCK_WEB` / `AFW_HEARTBEAT` aliases, Suricata (pcap) on ATTACK+USERS, heartbeat watchdog, NAT egress | REST API (TLS, lab CA); syslog-ng over mTLS → CTRL01:5514 (client cert `fw01-telemetry`) |
+| CTRL01 | MGMT | 10.77.50.10 | Controller (`afw serve`, systemd `afw-controller`, user `afwctl`) | API + dashboard :8080 (HTTP, MGMT only); syslog mTLS :5514 (WAF01, APP01, FW01); no plaintext listener |
 | DESK01 | MGMT | 10.77.50.20 | Operator desktop (XFCE/VNC, Firefox, Claude CLI) | — |
 | WAF01 | DMZ | 10.77.30.10 | nginx + OWASP CRS 4.25.2; policy helper | 443 (clients); helper 9443 (CTRL01 only); rsyslog mTLS sender; heartbeat timer |
 | APP01 | APP | 10.77.40.10 | Rental application v1.0.0 | 8000 (WAF01 only); rsyslog mTLS sender; heartbeat timer |

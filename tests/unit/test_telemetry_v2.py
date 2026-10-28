@@ -151,3 +151,21 @@ def test_silent_sensor_after_restart_marks_evidence_degraded(ctl, monkeypatch):
     ctl.ingest_line(APP, hb_line(), "app")
     assert not any(h["stale"] for h in ctl.sensor_health().values())
     assert not ctl.degraded()
+
+
+def test_ids_alerts_on_the_authenticated_channel_need_the_ids_identity(ctl):
+    """P5: FW01's IDS feed over mTLS. Only the ids identity may send Suricata lines;
+    a WAF or APP sensor forging IDS alerts on its own channel is dropped."""
+    ctl.ingest_line(FW, ids_line(flow_id=1), "ids")
+    ctl.ingest_line(WAF, ids_line(flow_id=2), "waf")
+    ctl.ingest_line(FW, ids_line(flow_id=3))  # plaintext, still accepted while enabled
+    counts = ctl.stats.snapshot()["counts"]
+    assert counts["role_mismatch"] == 1
+    assert counts["ids_authenticated"] == 1 and counts["ids_unauthenticated"] == 1
+    assert len(ctl.correlation._ids[IPv4Address(SCANNER)]) == 2
+
+
+def test_ids_identity_cannot_send_http_telemetry(ctl):
+    ctl.ingest_line(FW, access_line(), "ids")
+    assert ctl.correlator.pending == 0
+    assert ctl.stats.snapshot()["counts"]["role_mismatch"] == 1

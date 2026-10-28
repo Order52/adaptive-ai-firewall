@@ -62,6 +62,8 @@ class _SourceTrack:
     block_until: datetime | None = None
     ratelimit_until: datetime | None = None
     first_contained_at: datetime | None = None
+    # [start, end) of every traffic-affecting action, for per-request impact
+    contained: list[tuple[datetime, datetime]] = field(default_factory=list)
 
 
 @dataclass
@@ -88,7 +90,8 @@ class ArmReport:
     attack_sources_contained: int = 0
     benign_sources: int = 0
     benign_sources_flagged: int = 0
-    # Legitimate-traffic impact
+    # Legitimate-traffic impact, per request (each benign observation counted once;
+    # impacted if its source was rate limited or blocked at the request's own time)
     benign_requests: int = 0
     benign_requests_impacted: int = 0
     legit_request_success: float | None = None
@@ -245,9 +248,11 @@ def _run_arm(
             decision_counts[intent.kind.value] = decision_counts.get(intent.kind.value, 0) + 1
             if intent.kind is PolicyKind.SOURCE_BLOCK:
                 track.block_until = now + timedelta(seconds=intent.duration_s or 0)
+                track.contained.append((now, track.block_until))
                 correlation.note_enforcement(fv.source_ip, now)
             elif intent.kind is PolicyKind.RATE_LIMIT:
                 track.ratelimit_until = now + timedelta(seconds=intent.duration_s or 0)
+                track.contained.append((now, track.ratelimit_until))
 
         contained_now = (
             block_active or rl_active or (intent is not None and intent.kind in _TRAFFIC_AFFECTING)
@@ -265,10 +270,8 @@ def _run_arm(
                 report.fn += 1
         elif role is Role.BENIGN:
             report.n_benign_windows += 1
-            report.benign_requests += fv.n_requests
             if contained_now:
                 report.fp += 1
-                report.benign_requests_impacted += fv.n_requests
             else:
                 report.tn += 1
         elif role is None:
@@ -277,6 +280,9 @@ def _run_arm(
 
     _finalize_sources(report, tracks, labels, first_attack_obs)
     report.attack_requests_exposed = _exposed_attack_requests(observations, tracks, labels)
+    report.benign_requests, report.benign_requests_impacted = _benign_request_impact(
+        observations, tracks, labels
+    )
     _finalize_rates(report)
     report.decisions = decision_counts
     if score_latencies_us and strategy is not Strategy.STATIC:
@@ -337,6 +343,25 @@ def _exposed_attack_requests(
         if not dropped:
             total += 1
     return total
+
+
+def _benign_request_impact(
+    observations: Sequence[HttpObservation],
+    tracks: dict[IPv4Address, _SourceTrack],
+    labels: LabelIndex,
+) -> tuple[int, int]:
+    """(benign requests, of which impacted). Each observation counts once (overlapping
+    windows would otherwise count a request several times); it is impacted if a rate
+    limit or block on its source was in force at the time it was observed."""
+    total = hit = 0
+    for o in observations:
+        if labels.role_at(o.client_ip, o.observed_at) is not Role.BENIGN:
+            continue
+        total += 1
+        track = tracks.get(o.client_ip)
+        if track is not None and any(a <= o.observed_at < b for a, b in track.contained):
+            hit += 1
+    return total, hit
 
 
 def _finalize_rates(report: ArmReport) -> None:

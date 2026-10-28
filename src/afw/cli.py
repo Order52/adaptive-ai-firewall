@@ -376,27 +376,45 @@ def experiment_benign_generalization(
     out: Annotated[Path, typer.Option(help="JSON report path")],
     app_id: str = "rental",
     seed: int = 0,
+    sensitivity_ref: Annotated[
+        int | None, typer.Option(help="also compare probe sensitivity against this version")
+    ] = None,
 ) -> None:
     """P1: false positives of frozen profiles on held-out benign runs, per window
     (tumbling, source CIs), per user and per request, plus decision-level impact."""
-    from afw.ml.benign_generalization import evaluate_benign
+    from afw.ml.benign_generalization import evaluate_benign, matched_probe_sensitivity
 
     c = _container()
+    vs = [int(x) for x in versions.split(",") if x]
+    dss = [d for d in datasets.split(",") if d]
+    loaded = {
+        v: c.learning.load_version(app_id, v)
+        for v in {*vs, *([sensitivity_ref] if sensitivity_ref else [])}
+    }
+    obs = {ds: c.datasets.observations(ds) for ds in dss}
+    wins = {
+        (v, ds): c.learning.windows(obs[ds], c.learning.catalog(app_id, loaded[v][0]))
+        for v in loaded
+        for ds in dss
+    }
     rows = []
-    for v in [int(x) for x in versions.split(",") if x]:
-        profile, models = c.learning.load_version(app_id, v)
-        catalog = c.learning.catalog(app_id, profile)
-        for ds in [d for d in datasets.split(",") if d]:
-            obs = c.datasets.observations(ds)
+    for v in vs:
+        profile, models = loaded[v]
+        for ds in dss:
             res = evaluate_benign(
                 cfg=c.cfg,
                 profile=profile,
                 models=models,
                 manifest=c.datasets.manifest(ds),
-                observations=obs,
-                windows=c.learning.windows(obs, catalog),
+                observations=obs[ds],
+                windows=wins[(v, ds)],
                 seed=seed,
             )
+            if sensitivity_ref is not None and v != sensitivity_ref:
+                r = sensitivity_ref
+                res[f"sensitivity_vs_v{r}"] = matched_probe_sensitivity(
+                    (*loaded[r], wins[(r, ds)]), (profile, models, wins[(v, ds)])
+                )
             rows.append(res)
             dets = " ".join(
                 f"{k}={d['rate']}[{d['users']['with_any_flag']}/{d['users']['n']}u]"
@@ -509,13 +527,20 @@ def experiment_evaluate(
         bool, typer.Option(help="permit synthetic data (output labelled NOT A RESULT)")
     ] = False,
     out: Annotated[Path | None, typer.Option(help="write the JSON report here")] = None,
+    version: Annotated[
+        int | None, typer.Option(help="evaluate this stored profile version (default: trusted)")
+    ] = None,
 ) -> None:
     """M6: M0/M1/M2 across labelled attack runs with run-level confidence intervals."""
     from afw.ml.experiments import run_experiment
     from afw.ml.run_evaluation import aggregate, is_synthetic
 
     c = _container()
-    loaded = c.learning.load_active(app_id)
+    loaded = (
+        c.learning.load_active(app_id)
+        if version is None
+        else c.learning.load_version(app_id, version)
+    )
     if loaded is None:
         typer.echo(f"no trusted profile for {app_id}")
         raise typer.Exit(1)
@@ -788,9 +813,15 @@ def lab_deploy(
 
 
 @lab_app.command("provision-ids")
-def lab_provision_ids() -> None:
+def lab_provision_ids(
+    plaintext: Annotated[bool, typer.Option(help="old plaintext feed to 5515")] = False,
+    feed_only: Annotated[bool, typer.Option(help="only (re)apply the syslog feed")] = False,
+) -> None:
     """Enable Suricata IDS on FW01 and forward its alerts to CTRL01 (API, idempotent)."""
-    from afw.lab.provision_ids import client, provision
+    from afw.lab.provision_ids import client, destination, provision
 
     with client() as c:
-        provision(c, log=typer.echo)
+        if feed_only:
+            destination(c, plaintext, log=typer.echo)
+        else:
+            provision(c, log=typer.echo, plaintext=plaintext)

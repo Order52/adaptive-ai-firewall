@@ -25,7 +25,7 @@ Node, port and entry-point details are in `COMPONENT_INVENTORY.md`.
        WAF01 .10 :443 ------------->    APP01 .10 :8000 ------>  DB01 .10 :5432
        OWASP CRS 4 + helper :9443       rental app               PostgreSQL 16
                                    MGMT 10.77.50.0/24
-                     CTRL01 .10 (controller, API/dashboard :8080, syslog 5514/5515)
+                     CTRL01 .10 (controller, API/dashboard :8080, syslog mTLS 5514)
                      DESK01 .20 (operator desktop)    HOST-MGMT TAP .254 (host)
 ```
 
@@ -49,7 +49,7 @@ mypy runs in strict mode.
 
 ```
  syslog 5514 (mTLS, WAF01/APP01)  ─┐
- syslog 5515 (plain, FW01 IDS)    ─┼─► telemetry: parse ▸ role check ▸ dedup ▸ correlate (rid join)
+ syslog 5514 (mTLS, FW01 IDS)     ─┼─► telemetry: parse ▸ role check ▸ dedup ▸ correlate (rid join)
                                    │        │
                                    │        ▼ HttpObservation / IdsAlert (envelope v2)
                                    │   features: 30 s windows, 5 s hop, 13 behavioural features
@@ -105,7 +105,7 @@ The control loop:
 | Clients → WAF01 | HTTPS 443 through FW01 pf | Untrusted. Client identity is the WAF's TCP peer only; forged XFF/X-Request-ID are overwritten (ADR-007) |
 | WAF01 → APP01 | HTTP 8000, APP host firewall allows WAF01 only | App trusts identity headers from WAF01's IP only |
 | WAF01/APP01 → CTRL01 | rsyslog over **mutual TLS** on 5514, lab CA; client CN mapped to sensor role (ADR-029) | A sensor may only speak for its own role. Only authenticated telemetry is eligible for learning |
-| FW01 Suricata → CTRL01 | **plaintext** syslog on 5515, source-IP allowlist | Unauthenticated: supporting evidence only, never learned from, never blocks alone |
+| FW01 Suricata → CTRL01 | syslog-ng over **mutual TLS** on 5514 with its own client certificate (CN `fw01-telemetry.lab.afw` → role `ids`, ADR-035). The plaintext 5515 listener is disabled | Authenticated; still supporting evidence only and never blocks alone. No heartbeat (OPNsense cannot send one), so FW01 feed liveness is not observable |
 | Sensors → CTRL01 heartbeat | 30 s line over the same mTLS channel | Liveness counts only on an authenticated channel; 150 s silence marks evidence degraded (ADR-031) |
 | CTRL01 → FW01 | OPNsense REST over TLS (lab CA), least-privilege API user: alias membership and state queries only (ADR-017/018) | A stolen controller key cannot rewrite rules |
 | CTRL01 → WAF01 helper | HTTPS 9443, token, CTRL01 only | Deny-list and rate-limit membership only |

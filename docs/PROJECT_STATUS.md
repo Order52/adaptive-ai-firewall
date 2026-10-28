@@ -6,7 +6,8 @@ in `VALIDATION_MATRIX.md`. Older status files are in `docs/archive/` and are sup
 
 ## 1. Summary
 
-The system runs end to end on a real 13-node GNS3 lab:
+The system runs end to end on a real GNS3 lab (8 VMs, 6 zone switches, 2 host
+connectors; `GNS3_TOPOLOGY.md`):
 
 * real telemetry from WAF, application and IDS sensors (mTLS-authenticated where the
   sensor supports it);

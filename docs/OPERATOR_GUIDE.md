@@ -7,7 +7,7 @@ on CTRL01 as user `afwctl`; its data dir is `/var/lib/afw`.
 ## Lab lifecycle
 
 ```bash
-afw lab status            # node inventory + run state (6 guests, 5 switches, cloud, NAT)
+afw lab status            # node inventory + run state (8 VMs, 6 switches, cloud, NAT)
 afw lab start | stop      # power the GNS3 project on/off
 afw lab layout            # (re)apply the professional zone canvas (idempotent)
 afw lab verify            # 37 zone-isolation checks from inside the guests

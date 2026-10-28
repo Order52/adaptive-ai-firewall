@@ -27,7 +27,7 @@ LEAVES = {
 }
 # Sensor client certificates for the mutually authenticated telemetry channel
 # (ADR-029). CN = "<name>.lab.afw"; mapped to a role in config/lab.yaml.
-CLIENT_LEAVES = ("WAF01-telemetry", "APP01-telemetry")
+CLIENT_LEAVES = ("WAF01-telemetry", "APP01-telemetry", "FW01-telemetry")
 
 
 def _write_secret(path: Path, value: str) -> None:

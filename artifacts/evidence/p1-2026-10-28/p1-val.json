@@ -1,0 +1,43 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-28T06:44:25+00:00",
+ "end": "2026-10-28T07:30:00+00:00",
+ "scenario": "P1 Phase A validation: 8 persona users",
+ "seed": 202,
+ "generator": "traffic/benign_personas.py AFW_MODE=personas AFW_SOURCES=10.77.20.37-44 AFW_SEED=202",
+ "notes": "P1 predeclared protocol",
+ "sources": [
+  {
+   "ip": "10.77.20.37",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.38",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.39",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.40",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.41",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.42",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.43",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.44",
+   "role": "benign"
+  }
+ ]
+}

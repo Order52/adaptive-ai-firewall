@@ -42,7 +42,12 @@ there is no direct client→APP path and no direct client/WAF→DB path (gate G1
 verifies both). OPNsense is **one enforcement backend**; the AI controller (CTRL01)
 is the project's primary contribution.
 
-## Node inventory (14 nodes, 14 links)
+## Node inventory (16 nodes, 15 links)
+
+16 GNS3 nodes = 8 VMs (FW01, CTRL01, DESK01, WAF01, APP01, DB01, USR01, ATK01) +
+6 zone switches + 2 host connectors (HOST-MGMT cloud, MAINT-NAT). Earlier documents
+said 13 (7 VMs + 6 switches, before DESK01 was added on 2026-10-22) or 15 (the same
+plus the 2 connectors); `lab/gns3/topology.yaml` and `afw lab status` are authoritative.
 
 | Node | GNS3 type | Role | Address | Zone |
 |---|---|---|---|---|

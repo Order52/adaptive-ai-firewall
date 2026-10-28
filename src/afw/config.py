@@ -108,15 +108,15 @@ class WafHelperConfig(_Cfg):
 
 class TelemetryConfig(_Cfg):
     listen_host: str = "0.0.0.0"  # noqa: S104 - bound to the MGMT NIC on CTRL01
-    listen_port: int = 5514
+    listen_port: int | None = 5514  # plaintext listener; None disables it
     allowed_senders: tuple[IPv4Address, ...] = ()
     queue_size: int = 2000
     max_line_bytes: int = 65536
     join_wait_s: float = 2.0
     waf_sensor_ips: tuple[IPv4Address, ...] = ()
     # Mutually authenticated TLS channel (ADR-029). Each client certificate
-    # common name maps to the one sensor role allowed to send on it ("waf" or
-    # "app"). Lines of another kind on that channel are dropped.
+    # common name maps to the one sensor role allowed to send on it ("waf", "app"
+    # or "ids"). Lines of another kind on that channel are dropped.
     tls_port: int | None = None
     tls_allowed_senders: tuple[IPv4Address, ...] = ()
     tls_cert: Path | None = None

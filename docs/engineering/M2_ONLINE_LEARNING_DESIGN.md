@@ -211,3 +211,42 @@ that the model is anomalous without the correlated features. It does **not** pro
 causal independence of the remaining evidence: remaining features can still be
 statistically coupled to the same events, for example `req_rate` during a login burst.
 This is tracked as open item SV-1 in the progress file.
+
+## 9. Why the live challenger learned nothing (P4 investigation, 2026-10-28)
+
+The question: was "0 windows learned" caused by a lack of eligible traffic, a bug,
+over-restriction, or deliberate security?
+
+Evidence: `artifacts/evidence/p1-2026-10-28/p4-live-taint-snapshot.txt`, a read-only
+dump of `source_reputation` taken while P1 Phase A was running.
+
+* Every 10-27 persona source (10.77.20.11–16) is tainted with reason
+  `policy:rate_limit`. So are 21 of the 24 P1 Phase A persona users within 40 minutes.
+  Two infrastructure addresses (10.77.10.10, 10.77.50.254) are tainted by `ids_alert`.
+* The taint is written in `runtime._decide` whenever the controller *proposes* a
+  traffic-affecting policy, even in monitor mode where nothing is enforced. It lasts
+  24 h and is refreshed by every new proposal.
+* Shadow learning excludes tainted sources at stage 1 and, for late taint, at stage 2.
+
+**Classification: deliberate security, not a bug.** A source the trusted detectors
+consider suspicious must not train the model that judges it. Otherwise an attacker who
+triggers detection would be learned as normal. The code does what ADR-028 says.
+
+**Consequence: a circular dependency.** When the champion is wrong about a benign
+population (P1: v2 flags most users whose cadence differs from its single training
+run), it also vetoes learning from that population. Online learning therefore cannot
+correct the champion's own false positives. Operator FALSE_POSITIVE feedback does not
+clear the taint either; it only feeds the drift detector.
+
+The protections are **not relaxed**. Lifting taint on operator FP feedback was
+considered and rejected for now: the champion re-proposes against the same source on
+its next window, so the source would immediately be re-tainted unless FP feedback also
+suppressed future taint, which would be an allowlist an attacker could exploit after a
+single mistaken label. The route out is the reviewed one: a better champion (P1 v3)
+promoted through the gate once real attack runs exist.
+
+**Live demonstration under conditions the champion handles.** To show predict-before-
+learn, durable updates, pivots and restart recovery live, 16 fresh users
+(10.77.20.67–82) run the workload v2 was trained on (one generator process per user)
+for 2.5 h from 07:12Z (`p4-live-times.txt`). After 7 minutes, 14 of the 16 were
+untainted; v2 proposed against 2, which are excluded as designed. Results: §10.

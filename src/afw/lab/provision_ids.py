@@ -7,8 +7,10 @@ The controller's own key cannot change these settings (ADR-017).
   opt2 USERS). HOME_NET is the protected side (DMZ, APP, MGMT) so client zones
   are EXTERNAL_NET and inbound signatures apply to client → WAF traffic.
 - ET Open categories relevant to an HTTPS-fronted web service.
-- EVE alerts → local syslog (program ``suricata``) → TCP to CTRL01:5515 (plaintext, FW01 only).
-  Only Suricata is forwarded.
+- EVE alerts → local syslog (program ``suricata``) → CTRL01. Default: mutually
+  authenticated TLS to 5514 with the ``fw01-telemetry.lab.afw`` client certificate (role
+  ``ids``, P5); ``plaintext=True`` restores the earlier TCP feed to 5515. Only Suricata
+  is forwarded.
 """
 
 from __future__ import annotations
@@ -30,6 +32,8 @@ RULESETS = [
     "emerging-dos.rules",
     "emerging-attack_response.rules",
 ]
+CA_DESCR = "AFW lab CA"
+CLIENT_DESCR = "AFW FW01 telemetry client (mTLS to CTRL01)"
 DESTINATION = {
     "enabled": "1",
     "transport": "tcp4",
@@ -64,7 +68,66 @@ def _post(c: httpx.Client, path: str, body: dict[str, Any] | None = None) -> dic
     return data
 
 
-def provision(c: httpx.Client, log: Callable[[str], None] = print) -> None:
+def _rows(c: httpx.Client, path: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = c.post(path, json={"rowCount": -1}).json().get("rows", [])
+    return rows
+
+
+def ensure_trust(c: httpx.Client, log: Callable[[str], None] = print) -> str:
+    """Import the lab CA and FW01's telemetry client certificate into the FW01 trust
+    store (once, matched by description); return the client certificate's refid."""
+    pki = SECRETS / "pki"
+    if not any(r.get("descr") == CA_DESCR for r in _rows(c, "/trust/ca/search")):
+        _post(
+            c,
+            "/trust/ca/add",
+            {
+                "ca": {
+                    "action": "existing",
+                    "descr": CA_DESCR,
+                    "crt_payload": (pki / "lab-ca.pem").read_text(),
+                }
+            },
+        )
+        log("lab CA imported into the FW01 trust store")
+    found = [r for r in _rows(c, "/trust/cert/search") if r.get("descr") == CLIENT_DESCR]
+    if not found:
+        _post(
+            c,
+            "/trust/cert/add",
+            {
+                "cert": {
+                    "action": "import",
+                    "descr": CLIENT_DESCR,
+                    "crt_payload": (pki / "FW01-telemetry.pem").read_text(),
+                    "prv_payload": (pki / "FW01-telemetry.key").read_text(),
+                }
+            },
+        )
+        found = [r for r in _rows(c, "/trust/cert/search") if r.get("descr") == CLIENT_DESCR]
+        log("FW01 telemetry client certificate imported")
+    return str(found[0]["refid"])
+
+
+def destination(c: httpx.Client, plaintext: bool, log: Callable[[str], None] = print) -> None:
+    dest = dict(DESTINATION)
+    if not plaintext:
+        dest |= {"transport": "tls4", "port": "5514", "certificate": ensure_trust(c, log)}
+    dests = c.get("/syslog/settings/get").json()["syslog"]["destinations"]["destination"]
+    existing = [
+        uuid
+        for uuid, d in (dests or {}).items()
+        if d.get("description") == DESTINATION["description"]
+    ]
+    if existing:
+        _post(c, f"/syslog/settings/set_destination/{existing[0]}", {"destination": dest})
+    else:
+        _post(c, "/syslog/settings/add_destination", {"destination": dest})
+    _post(c, "/syslog/service/reconfigure")
+    log(f"syslog destination CTRL01:{dest['port']} ({dest['transport']}, suricata only) applied")
+
+
+def provision(c: httpx.Client, log: Callable[[str], None] = print, plaintext: bool = False) -> None:
     _post(
         c,
         "/ids/settings/set",
@@ -87,18 +150,7 @@ def provision(c: httpx.Client, log: Callable[[str], None] = print) -> None:
     _post(c, f"/ids/settings/toggle_ruleset/{','.join(RULESETS)}/1")
     log(f"enabled {len(RULESETS)} ET Open categories")
 
-    dests = c.get("/syslog/settings/get").json()["syslog"]["destinations"]["destination"]
-    existing = [
-        uuid
-        for uuid, d in (dests or {}).items()
-        if d.get("description") == DESTINATION["description"]
-    ]
-    if existing:
-        _post(c, f"/syslog/settings/set_destination/{existing[0]}", {"destination": DESTINATION})
-    else:
-        _post(c, "/syslog/settings/add_destination", {"destination": DESTINATION})
-    _post(c, "/syslog/service/reconfigure")
-    log("syslog destination CTRL01:5515 (suricata only) applied")
+    destination(c, plaintext, log)
 
     _post(c, "/ids/service/update_rules")
     log("rule download started")

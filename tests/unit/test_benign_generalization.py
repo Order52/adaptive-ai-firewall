@@ -58,3 +58,44 @@ def test_a_quiet_population_has_zero_rates_with_real_denominators():
 def test_threshold_is_the_stored_one(threshold):
     r = detector_rates(_user("10.77.20.49", 4, hot={0}), _model(threshold))
     assert r["rate"] == (1.0 if threshold < 0.1 else 0.0)
+
+
+def test_benign_request_impact_counts_each_request_once_at_its_own_time():
+    from datetime import timedelta
+    from ipaddress import IPv4Address
+    from types import SimpleNamespace
+
+    from conftest import T0
+
+    from afw.ml.datasets import Role
+    from afw.ml.experiments import _benign_request_impact, _SourceTrack
+
+    ip = IPv4Address("10.77.20.50")
+    obs = [SimpleNamespace(client_ip=ip, observed_at=T0 + timedelta(seconds=s)) for s in range(10)]
+    labels = SimpleNamespace(role_at=lambda _ip, _t: Role.BENIGN)
+    track = _SourceTrack(contained=[(T0 + timedelta(seconds=3), T0 + timedelta(seconds=6))])
+    assert _benign_request_impact(obs, {ip: track}, labels) == (10, 3)  # seconds 3, 4, 5
+    assert _benign_request_impact(obs, {}, labels) == (10, 0)
+
+
+class ByFeature:
+    def __init__(self, name: str | None) -> None:
+        self.j = FEATURE_NAMES.index(name) if name else None
+
+    def score(self, x: np.ndarray) -> np.ndarray:
+        return x[:, self.j] if self.j is not None else np.zeros(len(x))
+
+
+def test_matched_probe_sensitivity_finds_a_blind_new_model():
+    from afw.ml.benign_generalization import matched_probe_sensitivity
+
+    prof = _profile()
+    ws = _user("10.77.20.51", 6, hot=set())
+    rec = _record(prof).model_copy(update={"threshold": 0.5})
+    ref = [LoadedModel(record=rec, detector=ByFeature("auth_fail_frac"))]
+    blind = [LoadedModel(record=rec, detector=ByFeature(None))]
+    r = matched_probe_sensitivity((prof, ref, ws), (prof, blind, ws))
+    d = r["detectors"]["half_space_trees"]
+    assert r["aligned_windows"] == 6 and d["matched_bases"] == 6
+    assert d["per_feature"]["auth_fail_frac"] == {"reference": 1.0, "new": 0.0}
+    assert d["per_feature"]["login_rate"] == {"reference": 0.0, "new": 0.0}

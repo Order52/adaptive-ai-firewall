@@ -65,7 +65,7 @@ Scope: the GNS3 lab and the AFW control plane. Trust boundaries and flows are in
 
 | Threat | Mitigation | Residual |
 |---|---|---|
-| Forged sensor lines | mTLS with client CN mapped to role; a sensor may only send its own kind (ADR-029) | FW01 IDS feed is plaintext (source-IP allowlist only) |
+| Forged sensor lines | mTLS with client CN mapped to role; a sensor may only send its own kind (ADR-029) | FW01 has no heartbeat, so a silently stopped IDS feed is not detected (alerts are event-driven) |
 | Replayed lines inflating evidence | Request-id UNIQUE; content-hash IDS ids (ADR-031) | — |
 | Silencing a sensor | Heartbeat staleness at 150 s marks evidence degraded and pauses automation | Lines written into a dead session (about 100 s) are lost |
 

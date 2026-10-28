@@ -18,7 +18,7 @@ malicious traffic, silently redefine "normal".
 
 Read `docs/PROJECT_STATUS.md` first. In short:
 
-- **Works end to end on a real 13-node GNS3 lab:**
+- **Works end to end on a real GNS3 lab** (8 VMs, 6 zone switches, 2 host connectors):
   * mTLS sensor telemetry with liveness;
   * behavioural detection and evidence correlation;
   * verified enforcement on OPNsense and the WAF;

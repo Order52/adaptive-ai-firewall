@@ -59,7 +59,12 @@ HEARTBEAT_STALE_S = (
     150  # sensors send one every 30 s  # re-assess an IDS-only source at most this often
 )
 WATCH_RETENTION = timedelta(days=7)
-_ROLE_OF_KIND = {"afw-waf-access": "waf", "afw-waf-audit": "waf", "afw-app": "app"}
+_ROLE_OF_KIND = {
+    "afw-waf-access": "waf",
+    "afw-waf-audit": "waf",
+    "afw-app": "app",
+    "suricata": "ids",
+}
 
 
 @dataclass
@@ -188,6 +193,7 @@ class Controller:
                         parse_suricata(payload, sensor_id=str(sender)), self.clock()
                     )
                     self.stats.seen("ids")
+                    self.stats.inc("ids_authenticated" if role else "ids_unauthenticated")
                     if not self.events.add_ids_alerts([alert]):
                         self.stats.inc("duplicate_ids_event")  # replayed line: count once
                         return
@@ -226,7 +232,9 @@ class Controller:
             return {}
         uptime = time.monotonic() - self._started_at
         out: dict[str, dict[str, object]] = {}
-        for role in sorted(set(self.cfg.telemetry.tls_identities.values())):
+        # FW01 (role "ids") runs OPNsense's syslog and cannot emit heartbeat lines; its
+        # alerts are event-driven, so silence there is not evidence of a dead feed.
+        for role in sorted(set(self.cfg.telemetry.tls_identities.values()) - {"ids"}):
             age = self.stats.age(f"heartbeat:{role}")
             stale = (age is None and uptime > HEARTBEAT_STALE_S) or (
                 age is not None and age > HEARTBEAT_STALE_S

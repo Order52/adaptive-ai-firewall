@@ -104,6 +104,9 @@ def test_replay_arms_and_confusion_invariants(trained):
     # Legitimate traffic must stay essentially unaffected under the ML arm.
     assert by_arm["M2"].benign_sources_flagged == 0
     assert by_arm["M2"].legit_request_success == 1.0
+    # Requests are counted once each, not once per overlapping window (P1).
+    n_benign = sum(1 for o in test_obs if str(o.client_ip) in BENIGN)
+    assert all(a.benign_requests == n_benign for a in report.arms)
 
     # A contained attacker gets a finite detection latency recorded.
     assert ATTACKER in by_arm["M2"].detection_latency_s

@@ -193,7 +193,8 @@ showed transient `max_risk ≈ 21` that never escalated — noted as the behavio
 enforce-mode band threshold would need to tolerate.
 
 **Cold-restart recovery.** A full power cycle (`afw lab stop` → `start`) returned the
-lab to a working state from a single command path: 13/13 nodes started, the trusted
+lab to a working state from a single command path: 13/13 nodes started (2026-10-18,
+before DESK01 was added; 7 VMs + 6 switches), the trusted
 profile v2 and three models **auto-restored** from the database with no retraining,
 zone isolation intact (26/26), the organised canvas and annotations persisted, and
 MCP reconnected.

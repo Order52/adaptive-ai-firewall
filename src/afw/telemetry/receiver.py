@@ -6,7 +6,7 @@ Two listeners share one bounded queue:
   Its lines are ``UNVERIFIED`` and never feed online learning (ADR-029).
 * mutually authenticated TLS (``tls_port``, optional): the client certificate
   must chain to the lab CA and its common name must be a configured sensor
-  identity; that identity's role ("waf"/"app") travels with every line.
+  identity; that identity's role ("waf", "app" or "ids") travels with every line.
 
 Only configured sender addresses are accepted. Lines above ``max_line_bytes``
 are dropped and counted. When the queue is full new lines are dropped (never
@@ -131,12 +131,13 @@ class SyslogReceiver:
 
     async def _serve(self) -> None:
         limit = self.cfg.max_line_bytes + 1
-        self._servers.append(
-            await asyncio.start_server(
-                self._handle, self.cfg.listen_host, self.cfg.listen_port, limit=limit
+        if self.cfg.listen_port is not None:
+            self._servers.append(
+                await asyncio.start_server(
+                    self._handle, self.cfg.listen_host, self.cfg.listen_port, limit=limit
+                )
             )
-        )
-        log.info("syslog_listening", host=self.cfg.listen_host, port=self.cfg.listen_port)
+            log.info("syslog_listening", host=self.cfg.listen_host, port=self.cfg.listen_port)
         if self.cfg.tls_port is not None:
             self._servers.append(
                 await asyncio.start_server(

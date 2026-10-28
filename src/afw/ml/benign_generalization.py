@@ -29,10 +29,11 @@ from afw.domain.events import HttpObservation
 from afw.domain.features import FeatureVector
 from afw.domain.profiles import BehaviorProfile
 from afw.ml.adaptation_experiment import source_ci
-from afw.ml.challenger_gate import tumbling
+from afw.ml.challenger_gate import sensitive_probes, tumbling
 from afw.ml.datasets import DatasetManifest, Role
 from afw.ml.experiments import run_experiment
 from afw.ml.inference import LoadedModel
+from afw.profiling.eligibility import SENSITIVE
 
 
 def detector_rates(
@@ -111,3 +112,51 @@ def evaluate_benign(
             for a in report.arms
         },
     }
+
+
+def matched_probe_sensitivity(
+    ref: tuple[BehaviorProfile, Sequence[LoadedModel], Sequence[FeatureVector]],
+    new: tuple[BehaviorProfile, Sequence[LoadedModel], Sequence[FeatureVector]],
+) -> dict[str, Any]:
+    """Per detector and sensitive feature: probe flag rate of the reference and the new
+    model on the SAME (source, window) bases that both score normal (ADR-034 applied to
+    two profiles). Each profile computes its own feature vector for a window (catalogs
+    differ); probe values come from the reference profile, so both models are asked
+    about the same attack-like change."""
+    ref_prof, ref_models, ref_w = ref
+    _, new_models, new_w = new
+    key = {(w.source_ip, w.window_start): w for w in tumbling(new_w)}
+    pairs = [
+        (w, key[(w.source_ip, w.window_start)])
+        for w in tumbling(ref_w)
+        if (w.source_ip, w.window_start) in key
+    ]
+    k = len(SENSITIVE)
+    out: dict[str, Any] = {"aligned_windows": len(pairs), "detectors": {}}
+    for rm in ref_models:
+        nm = next((m for m in new_models if m.record.detector == rm.record.detector), None)
+        if nm is None or not pairs:
+            continue
+        a = [p[0] for p in pairs]
+        b = [p[1] for p in pairs]
+        both = (_score(rm, a) < rm.record.threshold) & (_score(nm, b) < nm.record.threshold)
+        sel = np.flatnonzero(both)
+        pa = sensitive_probes([a[i] for i in sel], ref_prof)
+        pb = sensitive_probes([b[i] for i in sel], ref_prof)
+        fa = _score(rm, pa) >= rm.record.threshold if pa else np.array([], dtype=bool)
+        fb = _score(nm, pb) >= nm.record.threshold if pb else np.array([], dtype=bool)
+        out["detectors"][rm.record.detector.value] = {
+            "matched_bases": int(both.sum()),
+            "per_feature": {
+                f: {
+                    "reference": round(float(fa[j::k].mean()), 4) if len(fa) else None,
+                    "new": round(float(fb[j::k].mean()), 4) if len(fb) else None,
+                }
+                for j, f in enumerate(SENSITIVE)
+            },
+        }
+    return out
+
+
+def _score(m: LoadedModel, ws: Sequence[FeatureVector]) -> np.ndarray:
+    return np.asarray(m.detector.score(np.array([w.as_row() for w in ws], dtype=float)))
