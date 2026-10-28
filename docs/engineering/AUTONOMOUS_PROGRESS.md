@@ -6,7 +6,7 @@ Status words: **DONE** (implemented, tested, evidence exists), **PARTIAL** (some
 acceptance criteria open, listed), **BLOCKED-EXT** (needs something only the team can
 supply), **TODO**.
 
-Last updated: 2026-10-28 ~08:45Z (M0–M9 plus directive priorities P1–P5 worked through; remaining gaps are BLOCKED-EXT or listed below).
+Last updated: 2026-10-28 ~17:30Z (M0–M9, P1–P5, P6 result; N0–N7 table below).
 
 ## Milestones
 
@@ -38,6 +38,19 @@ Last updated: 2026-10-28 ~08:45Z (M0–M9 plus directive priorities P1–P5 work
 | P3 | Independent attack evaluation | BLOCKED-EXT: harness ready; precise team runbook written; `experiment evaluate --version` evaluates candidates too | `docs/engineering/P3_TEAM_ATTACK_RUNBOOK.md` |
 | P4 | Real online adaptation | DONE for the governed loop (live learning, pivots, restart restore, live gate rejection); no live promotion (needs attack runs; sensitivity fails) | `M2_ONLINE_LEARNING_DESIGN.md` §9–10 |
 | P5 | Hardening | DONE: FW01 IDS feed mTLS, plaintext listener removed (ADR-035); API HTTPS by default with tunnel-safe certificate (ADR-023 revised); directional real-country enforcement on FW01 with read-back, egress-probe proof and watchdog fail-safe (ADR-036; found and fixed a live read-back defect); FW01 IDS-feed heartbeat (ADR-037); RELP for WAF01/APP01 telemetry, dead-session loss 105/150 → 0/150 (ADR-038); node count reconciled (16); replay request denominators fixed. Inbound country blocks verifiable by read-back only | `p5-*.txt`, `GNS3_TOPOLOGY.md`, `M7_GEOIP.md` §5 |
+
+## Network-wide self-learning directive (N0–N7, started 2026-10-28)
+
+| N | Scope | Status | Commits | Evidence |
+|---|---|---|---|---|
+| N0 | Finish P6, preserve baseline, define criteria | P6 run once: **no candidate eligible** (RESULTS §3b); A2 predeclared before P7 data (`a197a87`); P7 Phase C′ collected 16:31–18:01Z, D′/selection next | `a197a87`, `4e3e7d7` | `p6-2026-10-28/`, `p7-2026-10-28/` |
+| N1 | Network visibility: Suricata flow/dns/tls/ssh/anomaly as versioned `NetworkEvent` (dedup, bounded buffer, datasets) | Code DONE + tests; FW01 export and live verification pending (after P7 captures, to keep the receiver load unchanged during them) | `15fb3a5`, `875ca96` | ADR-042; `tests/unit/test_network_events.py` |
+| N2 | Multi-horizon residual network features + novelty detector (shadow) + calibration | Code DONE + tests (incl. poisoned calibration, cost); calibration on real benign flows pending N1 live | `875ca96`, `e34756f` | ADR-042; `test_network_features.py`, `test_network_detector.py` |
+| N3 | Supervised known-threat classifier, run-grouped splits, abstention | Code DONE (tests on SYNTHETIC vectors); evaluation **BLOCKED-EXT** (team attack runs) | `9dbe7fc` | `ml/supervised.py`, `afw experiment supervised` |
+| N4 | Novelty on withheld families | Protocol + code DONE; **BLOCKED-EXT** | `9dbe7fc` | `withheld_family()` |
+| N5 | Governed adaptation, poisoning defences | Existing for the HTTP path (ADR-028/030/034/040, M4); network calibration bounded by fixed ceilings; classifier labels from manifests only. No live promotion path for the classifier | — | M4 doc, ADR-042 |
+| N6 | Response-policy states, shared-address guard | DONE (code + tests); live deploy pending | `505bc5d` | ADR-043, `test_response_states.py` |
+| N7 | §8 new-threat experiment, evaluation, recovery, archive | §8 protocol + offline core DONE; run **BLOCKED-EXT**; recovery/archive pending | `1771b9f` | `docs/NEW_THREAT_EXPERIMENT.md` |
 
 ## Tests (latest full run)
 
