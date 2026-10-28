@@ -11,6 +11,7 @@ import hashlib
 import itertools
 import random
 import time
+from collections import Counter
 from datetime import timedelta
 from ipaddress import IPv4Address
 from pathlib import Path
@@ -362,6 +363,38 @@ def test_single_source_flood_is_capped(lab_cfg, tmp_path, champion):
     env.feed(tumbling("10.77.10.66", 60, step=30))
     assert env.learner.challenger.n_learned == 5
     assert env.learner.excluded["source_rate"] >= 50
+
+
+def test_per_source_rate_cap_holds_with_many_sources(lab_cfg, tmp_path, champion):
+    """Regression (P4, found live 2026-10-28): the hourly per-source cap was counted
+    over the share-window deque, so with more sources than share_window / cap the
+    oldest admissions fell out and every source exceeded its cap."""
+    env = Env(
+        lab_cfg,
+        tmp_path,
+        champion,
+        max_windows_per_source_per_hour=5,
+        share_window=20,
+        max_source_share=1.0,
+    )
+    srcs = [f"10.77.20.{i}" for i in range(100, 110)]
+    env.feed([item for i in range(20) for item in (tumbling(s, 20)[i] for s in srcs)])
+    per = Counter(str(w.source_ip) for w in env.learner.unflushed)
+    assert set(per) == set(srcs) and max(per.values()) == 5, per
+
+
+def test_per_source_rate_cap_survives_a_restart(lab_cfg, tmp_path, champion):
+    env = Env(lab_cfg, tmp_path, champion, max_windows_per_source_per_hour=5)
+    first = tumbling("10.77.20.120", 10)
+    env.feed(first[:5])
+    env.learner.checkpoint_now(first[4][0].window_end + timedelta(seconds=61))
+    restarted = env.new_learner()
+    for v, ra in first[5:]:
+        restarted.submit(v, ra)
+    restarted.process(first[-1][0].window_end)
+    restarted.process(first[-1][0].window_end + timedelta(seconds=61))
+    assert restarted.challenger.n_learned == 5
+    assert restarted.excluded["source_rate"] == 5
 
 
 def test_share_cap_bounds_one_source_influence(lab_cfg, tmp_path, champion):

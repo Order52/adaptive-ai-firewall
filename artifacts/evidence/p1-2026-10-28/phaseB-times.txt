@@ -1,1 +1,2 @@
 B_START=2026-10-28T07:38:19
+B_END=2026-10-28T08:08:19 (AFW_DURATION=1800; both generators reported done)

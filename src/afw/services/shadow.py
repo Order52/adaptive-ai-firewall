@@ -94,6 +94,10 @@ class ShadowLearner:
         self.quarantine: list[Candidate] = []
         self.unflushed: list[LearnedWindow] = []
         self.admitted: deque[_Admitted] = deque(maxlen=self.lc.share_window)
+        # Per-source admission times for the hourly rate cap. Kept apart from the
+        # bounded share window: with many sources that deque evicts a source's recent
+        # admissions and the cap leaked (found live, P4 2026-10-28).
+        self.rate_log: dict[IPv4Address, deque[datetime]] = {}
         self._shadow_buf: list[ShadowScore] = []
         self._last_ckpt_at: datetime | None = None
         self._last_purge: datetime | None = None
@@ -117,8 +121,14 @@ class ShadowLearner:
                 self.challenger, self.checkpoint = restored
                 self.watermarks = dict(restored[1].watermarks)
                 self.candidate_end = dict(self.watermarks)
-                for w in reversed(self.repo.learned(self.app_id, self.lc.share_window)):
+                recent = self.repo.learned(self.app_id, self._rate_restore_limit())
+                for w in reversed(recent[: self.lc.share_window]):
                     self.admitted.append(_Admitted(w.window_end, w.source_ip, frozenset()))
+                if recent:
+                    hour = recent[0].window_end - timedelta(hours=1)
+                    for w in reversed(recent):
+                        if w.window_end > hour:
+                            self.rate_log.setdefault(w.source_ip, deque()).append(w.window_end)
                 event = "challenger.restore"
             else:
                 self.challenger = OnlineChallenger.from_champion(champion.detector, champion.record)
@@ -310,9 +320,17 @@ class ShadowLearner:
             self._reject(why)
 
     def _rate_exceeded(self, src: IPv4Address, at: datetime) -> bool:
+        log_ = self.rate_log.get(src)
+        if not log_:
+            return False
         hour = at - timedelta(hours=1)
-        n = sum(1 for a in self.admitted if a.source == src and a.at > hour)
-        return n >= self.lc.max_windows_per_source_per_hour
+        while log_ and log_[0] <= hour:
+            log_.popleft()
+        return len(log_) >= self.lc.max_windows_per_source_per_hour
+
+    def _rate_restore_limit(self) -> int:
+        """Ledger rows to read on restore: enough for every source's last hour."""
+        return max(self.lc.share_window, 50 * self.lc.max_windows_per_source_per_hour)
 
     def _share_exceeded(self, src: IPv4Address) -> bool:
         cap = math.ceil(self.lc.max_source_share * self.lc.share_window)
@@ -351,6 +369,7 @@ class ShadowLearner:
         src = str(fv.source_ip)
         self.watermarks[src] = max(fv.window_end, self.watermarks.get(src, fv.window_end))
         self.admitted.append(_Admitted(fv.window_end, fv.source_ip, c.signature, c.scaled))
+        self.rate_log.setdefault(fv.source_ip, deque()).append(fv.window_end)
         self.unflushed.append(
             LearnedWindow(
                 fingerprint=c.fingerprint,

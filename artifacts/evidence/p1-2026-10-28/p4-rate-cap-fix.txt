@@ -1,0 +1,4 @@
+P4 rate-cap fix mutation check (tests/unit/test_online_learning.py)
+CAUGHT    old behaviour: count over the share deque
+CAUGHT    no rate-log restore after restart
+CAUGHT    rate log never appended
