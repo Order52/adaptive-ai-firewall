@@ -22,6 +22,11 @@ Last updated: 2026-10-28 ~08:45Z (M0–M9 plus directive priorities P1–P5 work
 | M7 | Real GeoIP: DB-IP Lite, integrity, freshness, preview (ADR-033) | DONE (lookup + preview, live); directional real-country enforcement added 2026-10-28 (P5, ADR-036) | `81e8d76`, P5 commits | `docs/engineering/M7_GEOIP.md` |
 | M8 | Dashboard: shadow learning (eligibility exclusions, learned-window fingerprints), gate/probation, sensor liveness, IDS-only, GeoIP freshness | DONE: deployed and rendered live (headless Chromium, no console errors); screenshot committed (`dashboard-m8.png`, lab data only) | `2148038` | `artifacts/evidence/m8-2026-10-27/dashboard-panels.txt` |
 | M9 | Docs consolidation: the 13 Phase 11 deliverables, validation matrix, single project status | DONE: superseded status files moved to `docs/archive/`; RESULTS corrected | `19d401c` | `docs/PROJECT_STATUS.md`, `docs/VALIDATION_MATRIX.md`, `artifacts/evidence/m9-2026-10-27/` |
+| P6 | Generalization without sensitivity loss: predeclared protocol, generator v2 archetypes, regression suite, security path, A1 adaptation stress | IN PROGRESS: protocol `197eda3`, A1 `c461f59` (both before selection data); Phase C data collected 13:07–14:38Z; selection pending | `197eda3`, `c461f59`, `34a732b` | `docs/engineering/P6_GENERALIZATION_AND_SENSITIVITY.md`, `artifacts/evidence/p6-2026-10-28/` |
+| D5 | Attack-run preparation: `afw dataset validate`; runbook (free addresses, validate step, ADR-039 expectation) | DONE | `f8ca25e` | `tests/unit/test_dataset_validation.py` |
+| D6 | Four-way comparison: S-ML and HYB arms; IDS alerts captured with datasets and replayed (defect: evaluation ran without IDS evidence) | DONE (harness); results BLOCKED-EXT | `5c72cef` | runbook §4.1, `tests/integration/test_experiments.py` |
+| D7 | Bounded automatic promotion review | DONE (review only; not enabled) | see git log | `docs/engineering/AUTO_PROMOTION_REVIEW.md` |
+| D8 | Reliability: SV-1 counterfactual independence (ADR-039); crash-consistent promotion/rollback and profile switch (ADR-040) | DONE (defects demonstrated by test/fault injection, fixed, mutation-checked); RELP crash loss and IDS hang liveness: pending live tests | `3e14354`, `6a4ad64`, `04f6e3a` | `artifacts/evidence/p6-2026-10-28/sv1-p1val.json` |
 
 
 ## Directive priorities (2026-10-28)
@@ -94,9 +99,12 @@ attack-detection results stays **failed/blocked** until real labelled attack run
 
 All achievable directive work is done and verified; the rest is external:
 
-1. Team attack runs (`P3_TEAM_ATTACK_RUNBOOK.md`) → Gate B, Gate E, M3 live gate, SV-1,
-   and the decision on v3 (`afw experiment evaluate --version 3`).
-2. Team demonstration (Gate G).
+1. P6: capture Phase C, run Phase D, selection, freeze, Phase E, final evaluation once.
+2. Live checks between phases: RELP crash loss (kill -9 during dedicated benign
+   traffic), whether a hung Suricata still heartbeats (pgrep-based).
+3. Team attack runs (`P3_TEAM_ATTACK_RUNBOOK.md`) → Gate B, Gate E, M3 live gate, live
+   SV-1 confirmation, the four-way comparison.
+4. Team demonstration (Gate G).
 
 Engineering follow-ups that need no team input but were not required: ~~RELP for
 loss-free telemetry~~ (done, ADR-038); ~~API TLS by default~~ (done); a training-data design that keeps ML

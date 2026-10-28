@@ -42,7 +42,7 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | M | Scope | Status |
 |---|---|---|
 | M0 | Audit, baseline, hygiene | DONE |
-| M1 | Provenance-aware corroboration | DONE (SV-1 open, needs attack runs) |
+| M1 | Provenance-aware corroboration | DONE; SV-1 fixed by counterfactual residual windows (ADR-039), live attack confirmation pending |
 | M2 | Online shadow learning, eligibility, mTLS provenance | DONE (live learning observed 2026-10-28; rate-cap bug found and fixed) |
 | M3 | Champion/challenger gate, promotion, probation, rollback | DONE; live gate BLOCKED-EXT |
 | M4 | Adaptation experiments on real drift | DONE (poisoning flaw fixed; sensitivity loss traced to threshold calibration) |
@@ -56,18 +56,21 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | P3 | Independent attack evaluation | BLOCKED-EXT (`engineering/P3_TEAM_ATTACK_RUNBOOK.md`) |
 | P4 | Real online adaptation | DONE for the governed loop; no promotion |
 | P5 | Hardening | DONE: IDS mTLS, API HTTPS by default, directional real-country enforcement, node count reconciled |
+| P6 | Generalization without sensitivity loss (predeclared, `engineering/P6_GENERALIZATION_AND_SENSITIVITY.md`) | IN PROGRESS: protocol + A1 committed before data; development data collected; selection pending |
+| Directive 10-28 items 5–8 | Attack-run preparation, four-way comparison, promotion review, reliability | DONE where not blocked: `afw dataset validate`; S-ML/HYB arms and IDS alerts in datasets (runbook §4.1); `engineering/AUTO_PROMOTION_REVIEW.md` (not enabled); crash-consistent switches (ADR-040) |
 
 ## 4. Outstanding gaps, in priority order
 
 1. **Team attack runs (unblocks B, E, the M3 live gate, half of G).** At least 3 runs
    per scenario family through `afw scenario begin/mark/end` → `afw scenario manifest`
-   → `afw dataset capture` → `afw experiment evaluate`. Procedure:
-   `engineering/P3_TEAM_ATTACK_RUNBOOK.md`. Also decides v3 and SV-1.
+   → `afw dataset capture` → `afw dataset validate` → `afw experiment evaluate
+   --streaming`. Procedure: `engineering/P3_TEAM_ATTACK_RUNBOOK.md`. Also confirms the
+   SV-1 fix live (pure brute force is expected to be rate limited, not blocked).
 2. **A champion that both generalizes and stays sensitive.** v2 has too many false
    positives on unseen users; v3 has too little single-feature ML sensitivity
-   (`engineering/P1_BENIGN_GENERALIZATION.md` §4). Next design step: keep benign variety
-   in training but constrain the sensitive features (e.g. monotone constraints), then
-   re-run the same predeclared protocol on fresh users.
+   (`engineering/P1_BENIGN_GENERALIZATION.md` §4). P6 compares more data, evidence-weighted
+   features, cohort thresholds and a one-sided security path with fixed ceilings, under
+   a predeclared protocol with separate selection and final sets.
 3. **Online learning cannot correct the champion's own false positives** (policed
    sources are tainted, fail-closed by design; `M2_ONLINE_LEARNING_DESIGN.md` §9). An
    operator FALSE_POSITIVE path is the governed way to clear taint.
@@ -77,8 +80,7 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 5. **Hardening.** Done: FW01 IDS-feed heartbeat (ADR-037) and RELP for WAF01/APP01 (ADR-038).
    Left: FW01's IDS feed cannot use RELP (OPNsense), so it keeps a ~100 s loss window.
    Real-country inbound enforcement can only be verified by read-back in this lab.
-6. **Residual poisoning risk** from 4 or more colluding similar sources; SV-1
-   (occlusion is not a causal-independence proof).
+6. **Residual poisoning risk** from 4 or more colluding similar sources.
 
 ## 5. Is it ready as a final-year project?
 

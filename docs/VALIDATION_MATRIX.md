@@ -36,7 +36,7 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 |---|---|---|---|
 | Real telemetry from multiple sensor types | WAF access + audit, app events (mTLS), Suricata IDS (FW01); `test_telemetry*.py`, `test_provenance.py` | `m2-2026-10-27/live-provenance.txt`, `m5-2026-10-27/live-envelope.txt` | MET |
 | Demonstrated live inference | Live controller scoring real windows; IDS-only view live | `real-benign-baseline-2026-10-17.md`, `m2-2026-10-27/live-shadow-final.txt` | MET |
-| Reproducible labelled attack evaluation | M6 harness (`test_scenario_harness.py`, 14 tests); `afw experiment evaluate` | Harness only; **no team attack runs exist** | BLOCKED-EXT |
+| Reproducible labelled attack evaluation | M6 harness (`test_scenario_harness.py`, 14 tests); `afw dataset validate` (`test_dataset_validation.py`); `afw experiment evaluate [--streaming]` with IDS alerts replayed | Harness only; **no team attack runs exist** | BLOCKED-EXT |
 | Correct false-positive and false-negative measurements | P1 predeclared protocol: FP per tumbling window (CIs over users), per user and per request (each counted once), on unseen users, a later period and workload shifts (`afw experiment benign-generalization`, `test_benign_generalization.py`); FN requires attack runs | `p1-2026-10-28/p1-eval.json`; FN: none | PARTIAL: FP measured with real denominators (v2: 13/16 unseen users restricted; v3 candidate: 0/16, but fails the sensitivity criterion); FN BLOCKED-EXT |
 
 ## Gate C: Genuine adaptation
@@ -50,7 +50,7 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 | Distribution-shift experiment shows an actual benefit | M4 scenario A on real drift: HST holdout FPR 0.650 → 0.031 (calibrated) | `m3-2026-10-27/m4-adaptation.json` | PARTIAL: benefit shown offline for the HST arm only; IF and robust stats unchanged; gate fails, so no live promotion |
 | No silent sensitivity loss | Matched-window, per-feature `sensitive_invariance` (ADR-034) with a regression benchmark of deliberately desensitized challengers; cross-profile matched probes in P1 | `p1-2026-10-28/p2-mutation-check.txt` (6/6), `m4-adaptation-p2-gate.json`, `p1-eval.json` | MET: the M4 challenger and the v3 candidate both show measured losses and neither is promoted |
 | Poisoning and regressions do not silently corrupt the trusted model | M4 scenarios B and C; `test_benign_drift_cannot_vouch_for_poison_sharing_a_driver_name` | `m4-adaptation.json` (0/180 poison learned after fix), `m4-adaptation-v1-name-corroboration.json` (140/180 before) | MET, with a documented residual (4+ colluding sources) |
-| Rejected candidates and rollback demonstrated | Gate failure, probation auto-rollback (M4 C, unit tests) | `m4-adaptation.json` (rollback after 100 windows) | MET (replay and unit); no live promotion has been performed |
+| Rejected candidates and rollback demonstrated | Gate failure, probation auto-rollback (M4 C, unit tests); fault injection at every status write of promotion and rollback (ADR-040, `test_profile_switch.py`, 5 new lifecycle tests) | `m4-adaptation.json` (rollback after 100 windows) | MET (replay and unit); no live promotion has been performed |
 
 ## Gate D: Enforcement
 
@@ -66,7 +66,7 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 
 | Criterion | Tests / procedure | Evidence | Status |
 |---|---|---|---|
-| Fair comparisons against static rules and non-adaptive ML | M0/M1/M2 replay through the identical pipeline (`test_experiments.py`) | `real-benign-baseline-2026-10-17.md` (benign only) | PARTIAL: benign-only (equal safety, different cost) |
+| Fair comparisons against static rules and non-adaptive ML | M0/M1/M2 plus streaming-ML and hybrid arms through the identical pipeline (`test_experiments.py`); predeclared four-way protocol (runbook §4.1) | `real-benign-baseline-2026-10-17.md` (benign only) | PARTIAL: benign-only (equal safety, different cost); four-way comparison BLOCKED-EXT |
 | Quantified incremental benefit where demonstrated | `afw experiment evaluate` with run-level CIs | none | BLOCKED-EXT (needs attack runs) |
 | Honest documentation where adaptation does not help | RESULTS §3 (champion FPR under a workload shift, corrected), M4 caveats | `RESULTS.md`, `engineering/M4_ADAPTATION_EXPERIMENTS.md` | MET |
 
