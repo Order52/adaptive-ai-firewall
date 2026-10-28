@@ -163,6 +163,9 @@ def test_independent_behaviour_still_corroborates_auth(lab_cfg):
         req_rate=40.0,
         req_bytes_p95=9000.0,
     )
+    # without the failed logins the window is still large and fast
+    rest = {**BENIGN, "req_rate": 40.0, "req_bytes_p95": 9000.0}
+    fv = fv.model_copy(update={"residuals": {"auth": rest}})
     dets = _engine().score(fv)
     assert "auth" in dets[0].independent_of
     ra = CorrelationEngine(lab_cfg.risk).assess(fv, dets, fv.window_end)
@@ -203,7 +206,10 @@ def test_side_effects_of_failed_logins_are_not_independent(lab_cfg):
         "req_rate": 40.0,
     }
     legacy = _fv(AUTH_ATTACK, **attack)
-    assert "auth" in _engine().score(legacy)[0].independent_of  # occlusion fallback
+    # occlusion would have said independent (the SV-1 defect)
+    row = np.array([legacy.values[n] for n in FEATURE_NAMES])
+    det = RobustStatsDetector(_profile())
+    assert det.anomalous_without(row, EVIDENCE_FEATURES[EvidenceCategory.AUTH], 4.0)
     fv = legacy.model_copy(update={"residuals": {"auth": dict(BENIGN)}})
     dets = _engine().score(fv)
     assert dets[0].is_anomalous and "auth" not in dets[0].independent_of
@@ -262,3 +268,24 @@ def test_compute_features_records_residuals_per_present_category():
     assert rest == compute_features(page, WindowSpec(), cat, T0, end).values
     assert compute_features(fails, WindowSpec(), cat, T0, end).residuals == {"auth": None}
     assert compute_features(page, WindowSpec(), cat, T0, end).residuals == {}
+
+
+def test_legacy_vectors_never_authorize_a_block(lab_cfg):
+    """A vector without residuals (recorded before ADR-039) is independent of nothing:
+    even an anomaly that occlusion would call independent adds no corroboration."""
+    legacy = _fv(
+        AUTH_ATTACK,
+        login_rate=60.0,
+        auth_fail_frac=1.0,
+        distinct_usernames=30.0,
+        client_err_frac=0.9,
+        req_rate=40.0,
+        req_bytes_p95=9000.0,
+    )
+    assert legacy.residuals is None
+    dets = _engine().score(legacy)
+    assert dets[0].is_anomalous and dets[0].independent_of == ()
+    ra = CorrelationEngine(lab_cfg.risk).assess(legacy, dets, legacy.window_end)
+    assert set(ra.corroborating_categories) == {EvidenceCategory.AUTH}
+    intent = DecisionEngine(lab_cfg).decide(ra, 0, legacy.window_end)
+    assert intent is None or intent.kind is not PolicyKind.SOURCE_BLOCK
