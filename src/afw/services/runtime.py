@@ -315,7 +315,13 @@ class Controller:
         t0 = time.perf_counter()
         now = now or self.clock()
         obs = self.correlator.flush()
+        protected = [p.network for p in self.cfg.safety.protected]
         for e in self._flush_net():
+            if any(e.src_ip in n for n in protected):
+                # stored as evidence, but never assessed: a protected (management)
+                # source can never be acted on, and its admin traffic is not behaviour
+                self.stats.inc("net_protected_source")
+                continue
             self.net_windows.add(e)
         for v in self.net_windows.emit(now):
             verdict = self.net_detector.assess(v)

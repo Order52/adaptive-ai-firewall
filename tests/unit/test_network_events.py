@@ -178,3 +178,12 @@ def test_datasets_carry_network_events_with_an_integrity_check(tmp_path):
     p.write_bytes(p.read_bytes()[:-4] + b"xxxx")
     with pytest.raises(ValueError, match="integrity"):
         store.net_events("team-bf-1")
+
+
+def test_protected_management_sources_are_stored_but_never_assessed(ctl):  # noqa: F811
+    for port in range(1000, 1030):
+        ctl.ingest_line(FW, line(flow(pkts_tc=0, port=port, src="10.77.50.254")), "ids")
+    ctl.tick(T)
+    ctl.tick(T + dt.timedelta(seconds=60))
+    assert list(ctl.net_verdicts) == []
+    assert ctl.stats.snapshot()["counts"]["net_protected_source"] == 30

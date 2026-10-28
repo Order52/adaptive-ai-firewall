@@ -4,8 +4,10 @@
 # put http/tls in eve.json but sends only alerts over syslog and has no flow or dns
 # option. Suricata replaces a list from an included file instead of merging it, so this
 # file restates the outputs OPNsense renders today (outputs 1-4, unchanged) and adds
-# output 5: flow/dns/tls/ssh/anomaly metadata over the same syslog program
+# output 5: flow/dns/tls/ssh metadata over the same syslog program
 # ("suricata"), which FW01's syslog-ng already forwards to CTRL01 over mutual TLS.
+# Anomaly events stay in eve.json only: Suricata allows one anomaly logger per instance
+# ("only one 'anomaly' logger can be enabled"; IDS failed to start, 2026-10-28 18:52Z).
 # Consequence: OPNsense GUI changes to these outputs are shadowed while this file
 # exists (remove it and reload OPNsense/IDS to go back).
 outputs:
@@ -66,5 +68,3 @@ outputs:
         - tls:
             extended: no
         - ssh
-        - anomaly:
-            enabled: yes

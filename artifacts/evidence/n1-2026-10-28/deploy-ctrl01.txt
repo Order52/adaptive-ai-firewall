@@ -1,0 +1,8 @@
+skipping: no hosts matched
+
+PLAY [desktop] *****************************************************************
+skipping: no hosts matched
+
+PLAY RECAP *********************************************************************
+ctrl01                     : ok=21   changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
