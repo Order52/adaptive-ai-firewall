@@ -9,7 +9,7 @@ from ipaddress import IPv4Address
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
-from sqlalchemy import Engine, Table, delete, desc, insert, select, union, update
+from sqlalchemy import Connection, Engine, Table, delete, desc, insert, select, union, update
 from sqlalchemy.exc import IntegrityError
 
 from afw.domain.adaptation import CandidateEvaluation, DriftReport, Feedback
@@ -291,13 +291,28 @@ class SqlProfileRepository(_Repo):
     def set_status(
         self, app_id: str, version: int, status: ProfileStatus, reviewer: str | None, note: str
     ) -> BehaviorProfile:
+        return self.switch(app_id, version, status, reviewer, note, ())
+
+    def switch(
+        self,
+        app_id: str,
+        version: int,
+        status: ProfileStatus,
+        reviewer: str | None,
+        note: str,
+        activate: Sequence[ModelRecord],
+    ) -> BehaviorProfile:
+        """Set a profile's status and activate ``activate`` in ONE transaction (ADR-040).
+        Trusting a profile retires the previously trusted one; activating a model retires
+        the other active models of its detector. Nothing changes if any write fails."""
         prof = self.get(app_id, version)
         if prof is None:
             raise KeyError(f"profile {app_id} v{version} not found")
+        profiles = []
         if status is ProfileStatus.TRUSTED:
             current = self.trusted(app_id)
             if current and current.version != version:
-                self.save(current.model_copy(update={"status": ProfileStatus.RETIRED}))
+                profiles.append(current.model_copy(update={"status": ProfileStatus.RETIRED}))
         updated = prof.model_copy(
             update={
                 "status": status,
@@ -306,7 +321,17 @@ class SqlProfileRepository(_Repo):
                 "review_note": note,
             }
         )
-        self.save(updated)
+        profiles.append(updated)
+        models = SqlModelRepository(self.engine)
+        changes = models.status_changes([(m.model_id, ModelStatus.ACTIVE) for m in activate])
+        with self.engine.begin() as c:
+            for p in profiles:
+                c.execute(
+                    update(t.profiles)
+                    .where(t.profiles.c.profile_id == p.profile_id)
+                    .values(status=p.status.value, body=p.model_dump_json())
+                )
+            models.write_statuses(c, changes)
         return updated
 
     def next_version(self, app_id: str) -> int:
@@ -359,6 +384,11 @@ class SqlModelRepository(_Repo):
     def set_statuses(self, changes: Sequence[tuple[str, ModelStatus]]) -> None:
         """Apply several status changes atomically (one transaction). Activating a model
         retires the other active models of its detector, unless ``changes`` sets them."""
+        recs = self.status_changes(changes)
+        with self.engine.begin() as c:
+            self.write_statuses(c, recs)
+
+    def status_changes(self, changes: Sequence[tuple[str, ModelStatus]]) -> Sequence[ModelRecord]:
         recs = []
         for model_id, status in changes:
             rec = self.get(model_id)
@@ -373,13 +403,16 @@ class SqlModelRepository(_Repo):
                     for o in self.active(r.app_id, r.detector.value)
                     if o.model_id not in named
                 ]
-        with self.engine.begin() as c:
-            for r in recs:
-                c.execute(
-                    update(t.models)
-                    .where(t.models.c.model_id == r.model_id)
-                    .values(status=r.status.value, body=r.model_dump_json())
-                )
+        return recs
+
+    @staticmethod
+    def write_statuses(c: Connection, recs: Sequence[ModelRecord]) -> None:
+        for r in recs:
+            c.execute(
+                update(t.models)
+                .where(t.models.c.model_id == r.model_id)
+                .values(status=r.status.value, body=r.model_dump_json())
+            )
 
 
 class SqlPolicyRepository(_Repo):

@@ -394,8 +394,9 @@ class LearningService:
                 [c.name for c in evals[0].checks if not c.passed] if evals else ["no evaluation"]
             )
             raise GateFailed(f"profile v{version} has not passed the evaluation gate: {failed}")
-        prof = self.profiles.set_status(app_id, version, ProfileStatus.TRUSTED, reviewer, note)
-        self._activate_models(app_id, version)
+        prof = self.profiles.switch(
+            app_id, version, ProfileStatus.TRUSTED, reviewer, note, self._models_of(app_id, version)
+        )
         self.audit.record(reviewer, "profile.promote", f"{app_id}:v{version}", {"note": note})
         return prof
 
@@ -403,8 +404,9 @@ class LearningService:
         prof = self.profiles.get(app_id, version)
         if prof is None or prof.status not in (ProfileStatus.RETIRED, ProfileStatus.TRUSTED):
             raise ValueError("can only roll back to a previously trusted profile")
-        prof = self.profiles.set_status(app_id, version, ProfileStatus.TRUSTED, reviewer, note)
-        self._activate_models(app_id, version)
+        prof = self.profiles.switch(
+            app_id, version, ProfileStatus.TRUSTED, reviewer, note, self._models_of(app_id, version)
+        )
         self.audit.record(reviewer, "profile.rollback", f"{app_id}:v{version}", {"note": note})
         return prof
 
@@ -415,13 +417,13 @@ class LearningService:
                 self.models.set_status(r.model_id, ModelStatus.REJECTED)
         return prof
 
-    def _activate_models(self, app_id: str, version: int) -> None:
+    def _models_of(self, app_id: str, version: int) -> list[ModelRecord]:
+        """The newest model per detector trained for profile ``version``."""
         latest: dict[DetectorKind, ModelRecord] = {}
         for r in self.models.list(app_id):  # newest first
             if r.profile_version == version and r.detector not in latest:
                 latest[r.detector] = r
-        for r in latest.values():
-            self.models.set_status(r.model_id, ModelStatus.ACTIVE)
+        return list(latest.values())
 
     def load_active(self, app_id: str) -> tuple[BehaviorProfile, list[LoadedModel]] | None:
         prof = self.profiles.trusted(app_id)
