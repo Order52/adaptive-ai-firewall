@@ -187,4 +187,31 @@ Failures are reported, not tuned away.
 
 ## 7. Amendments
 
-(none yet)
+**A1 (2026-10-28 ~13:55Z, before any selection or final data existed).**
+
+*Why.* A smoke check of the harness, on P1 training and calibration data only, showed
+every candidate at 1.0 on the must-detect cases. The selection rule therefore could
+not separate candidates on the question in §1: sensitivity that does not *silently
+weaken under adaptation*. That needs an adaptation stress test.
+
+*Adaptation stress.* Each candidate's adaptable thresholds are recalibrated at the
+same target FPR on its calibration windows plus a stress set:
+* the detector thresholds;
+* for S/FS, the calibrated part of the security path (its ceilings are fixed).
+
+The stress set is sub-must attack-shaped windows labelled "benign", amounting to 3 %
+of the calibration windows. They are built on `p6-val` bases with the families at
+their second intensity (brute_force 5, stuffing 5, enumeration 10, idor 10, in equal
+shares).
+
+This emulates retraining on drifted or poisoned data that the eligibility filters did
+not catch. Profiles and fitted models are unchanged. The must-detect flag rates are
+then re-measured on the selection bases.
+
+*Selection rule, step 2, replaced by:* maximise the minimum, over the must-detect
+cases, of the **lower** of the nominal and the stressed enforcing flag rate. Step 1
+(benign eligibility) and step 3 (tie-break) are unchanged.
+
+*Final criteria.* A fifth criterion is added: under the same stress, built on
+`p6-val` bases and evaluated on `p6-final` bases, the must-detect enforcing flag rate
+is ≥ 0.95 for each family.
