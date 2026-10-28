@@ -50,7 +50,7 @@ class NetworkVerdict:
     window_end: str
     unfamiliar: bool  # some quantity above its benign-calibrated level
     strong: bool  # some quantity at or above a fixed ceiling
-    score: float  # max value / effective threshold (>= 1 means unfamiliar)
+    score: float  # max value / max(effective threshold, 1): size relative to the level
     reasons: tuple[str, ...]
 
 
@@ -82,7 +82,9 @@ class NetworkNovelty:
         over = x > self.thresholds
         strong = x >= self.ceilings
         eff = np.minimum(self.ceilings, np.maximum(self.thresholds, 1e-9))
-        ratio = x / eff
+        # score in units of the flagging level, floored at 1 so a level of 0 (no such
+        # activity in benign data) does not turn one event into a ratio of 1e9
+        ratio = x / np.maximum(eff, 1.0)
         reasons = tuple(
             f"{n}={x[i]:g} ({'ceiling' if strong[i] else 'unfamiliar'} at {eff[i]:g})"
             for i, n in enumerate(FEATURE_NAMES)

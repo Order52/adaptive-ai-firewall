@@ -95,3 +95,10 @@ def test_calibration_windows_include_quiet_benign_users_as_zero_vectors():
     active = [v for v in vs if v.n_events]
     assert active and all(v.source_ip == USER for v in active)
     assert max(v.values["dns_queries_300"] for v in active) == 5
+
+
+def test_score_stays_finite_when_benign_level_is_zero():
+    d = NetworkNovelty()
+    d.calibrate([v() for _ in range(40)])  # all-zero benign data
+    r = d.assess(v(udp_flows_60=1))
+    assert r.unfamiliar and not r.strong and r.score == 1.0
