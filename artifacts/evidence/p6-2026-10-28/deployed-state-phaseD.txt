@@ -1,0 +1,8 @@
+# Deployed state, read-only, 2026-10-28T15:46:06Z (during Phase D capture; no changes made)
+deployed commit: 3175203 (sha256 of src/afw/{ml/inference.py,services/runtime.py,services/learning.py} on CTRL01 equal to git show 3175203)
+mode: monitor (health); telemetry_degraded: false; backends opnsense+waf reachable
+profiles: v1 retired; v2 TRUSTED (2026-10-17); v3, v4 candidate (P1, not promoted)
+active models: robust_stats, isolation_forest, half_space_trees, all profile v2
+shadow challenger: 607 windows learned, last checkpoint seq 16 at 14:00:27Z; last gate evaluation 08:35Z FAILED (attack_recall_regression: no attack data)
+probation: none
+NOTE: the live challenger learns from eligible P6 users too; any later challenger gate evaluation must not use P6 datasets whose users it learned from as holdout

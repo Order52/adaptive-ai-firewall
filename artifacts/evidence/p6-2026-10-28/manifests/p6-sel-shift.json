@@ -1,0 +1,35 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-28T15:17:54+00:00",
+ "end": "2026-10-28T16:03:30+00:00",
+ "scenario": "P6 Phase D selection, workload shift: 6 addresses, shared accounts",
+ "seed": 604,
+ "generator": "traffic/benign_personas.py AFW_MODE=shared",
+ "notes": "seed 604, from 2026-10-28T15:17:54+00:00",
+ "sources": [
+  {
+   "ip": "10.77.20.156",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.157",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.158",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.159",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.160",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.161",
+   "role": "benign"
+  }
+ ]
+}

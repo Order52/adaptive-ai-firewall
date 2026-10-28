@@ -1,0 +1,38 @@
+wrote 38932 observations and 0 IDS alerts to /var/lib/afw/datasets/p6-sel
+wrote 3607 observations and 0 IDS alerts to /var/lib/afw/datasets/p6-sel-shift
+p6-sel: test, P6 Phase D selection: 16 v2 persona users, 38932 observations
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 38932 observations, manifest 38932
+PASS time_range: 0 observations outside 2026-10-28 15:17:54+00:00..2026-10-28 16:03:30+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/38932 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+PASS benign_users_unseen: benign addresses also in training/validation datasets (address count): none; results on them are 'unseen users' only for models not fitted on those datasets
+p6-sel-shift: test, P6 Phase D selection, workload shift: 6 addresses, shared accounts, 3607 observations
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 3607 observations, manifest 3607
+PASS time_range: 0 observations outside 2026-10-28 15:17:54+00:00..2026-10-28 16:03:30+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/3607 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+PASS benign_users_unseen: benign addresses also in training/validation datasets (address count): none; results on them are 'unseen users' only for models not fitted on those datasets
+# Completeness: WAF01 access-log lines for the same sources and period: {'p6-sel': 38932, 'p6-sel-shift': 3607}
+# Deployed at the Phase D/E boundary: HEAD 1e5c644 (src = 37ab2e4) at 16:04:36Z, after the generators ended 16:03:05Z and after this capture (reliability/deploy-ctrl01-phaseD-E.txt)
