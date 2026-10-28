@@ -181,6 +181,26 @@ class ProbeConfig(_Cfg):
     timeout_s: float = 6.0
 
 
+class EgressTarget(_Cfg):
+    address: IPv4Address
+    port: int = Field(default=443, ge=1, le=65535)
+
+
+class GeoEnforcementConfig(_Cfg):
+    """Real-country enforcement (ADR-036). FW01 pulls one network list per direction
+    from the controller into the pf tables of two pre-installed rules; the controller
+    verifies by reading the tables back with its least-privilege key."""
+
+    enabled: bool = False
+    inbound_alias: str = "AFW_GEO_IN"
+    outbound_alias: str = "AFW_GEO_OUT"
+    max_networks: int = Field(default=40_000, ge=1, description="per direction, all countries")
+    # Fixed outbound verification targets. The probe agents carry the same list and
+    # accept only these names (no free-form destination). Their country comes from GeoIP.
+    egress_targets: dict[str, EgressTarget] = {}
+    egress_source: IPv4Address | None = None  # agent-owned address in a zone the rule covers
+
+
 class LabConfig(_Cfg):
     name: str
     zones: tuple[ZoneConfig, ...]
@@ -200,6 +220,7 @@ class LabConfig(_Cfg):
     # country -> lab client addresses. Never real geography; policies using it
     # must carry simulated=True and are labelled as such everywhere.
     geo_simulation: dict[str, tuple[IPv4Address, ...]] = {}
+    geo_enforcement: GeoEnforcementConfig = GeoEnforcementConfig()
 
     @model_validator(mode="after")
     def _references(self) -> LabConfig:

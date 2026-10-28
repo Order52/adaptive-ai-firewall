@@ -19,7 +19,7 @@ Last updated: 2026-10-28 ~08:45Z (M0–M9 plus directive priorities P1–P5 work
 | M4 | Adaptation experiments: real drift, poisoning, regression rollback | DONE: found and fixed a real poisoning flaw (driver-name corroboration); gate still FAILS on attack recall (BLOCKED-EXT) and sensitive invariance; P2 traced the latter to threshold calibration, not the learned state | `346f9d9` | `docs/engineering/M4_ADAPTATION_EXPERIMENTS.md`, `artifacts/evidence/m3-2026-10-27/m4-adaptation*.json` |
 | M5 | Telemetry v2: envelope, IDS dedup, IDS-only view, heartbeats, liveness (ADR-031) | DONE: live-verified. Found and fixed two live defects (silent ~55 min stall after restart; heartbeat JSON mangled by systemd quoting). Residual: TCP syslog loses lines written into a dead session (≤ about 100 s), RELP not done | `81e8d76` | `docs/engineering/M5_TELEMETRY_V2.md`, `artifacts/evidence/m5-2026-10-27/` |
 | M6 | Attack-evaluation harness: registry, journal, kill switch, watchdog, run-level CIs (ADR-032) | DONE (harness); Gate B BLOCKED-EXT on team attack runs | `81e8d76` | `docs/engineering/M6_ATTACK_EVALUATION.md`, `artifacts/evidence/m6-2026-10-27/` |
-| M7 | Real GeoIP: DB-IP Lite, integrity, freshness, preview (ADR-033) | DONE (lookup + preview, live); real-country *enforcement* deliberately refused (not implemented, documented) | `81e8d76` | `docs/engineering/M7_GEOIP.md`, `artifacts/evidence/m7-2026-10-27/` |
+| M7 | Real GeoIP: DB-IP Lite, integrity, freshness, preview (ADR-033) | DONE (lookup + preview, live); directional real-country enforcement added 2026-10-28 (P5, ADR-036) | `81e8d76`, P5 commits | `docs/engineering/M7_GEOIP.md` |
 | M8 | Dashboard: shadow learning (eligibility exclusions, learned-window fingerprints), gate/probation, sensor liveness, IDS-only, GeoIP freshness | DONE: deployed and rendered live (headless Chromium, no console errors); screenshot committed (`dashboard-m8.png`, lab data only) | `2148038` | `artifacts/evidence/m8-2026-10-27/dashboard-panels.txt` |
 | M9 | Docs consolidation: the 13 Phase 11 deliverables, validation matrix, single project status | DONE: superseded status files moved to `docs/archive/`; RESULTS corrected | `19d401c` | `docs/PROJECT_STATUS.md`, `docs/VALIDATION_MATRIX.md`, `artifacts/evidence/m9-2026-10-27/` |
 
@@ -32,13 +32,13 @@ Last updated: 2026-10-28 ~08:45Z (M0–M9 plus directive priorities P1–P5 work
 | P2 | Sensitive invariance | DONE: mechanism is threshold recalibration, not the learned state (matched windows, decomposition); gate check rebuilt on matched windows per feature (ADR-034) with a desensitization benchmark (6/6 mutants) | `M4_ADAPTATION_EXPERIMENTS.md` §2, `p2-*`, `m4-adaptation-p2-gate.json` |
 | P3 | Independent attack evaluation | BLOCKED-EXT: harness ready; precise team runbook written; `experiment evaluate --version` evaluates candidates too | `docs/engineering/P3_TEAM_ATTACK_RUNBOOK.md` |
 | P4 | Real online adaptation | DONE for the governed loop (live learning, pivots, restart restore, live gate rejection); no live promotion (needs attack runs; sensitivity fails) | `M2_ONLINE_LEARNING_DESIGN.md` §9–10 |
-| P5 | Hardening | FW01 IDS feed now mTLS, plaintext listener removed (ADR-035); node count reconciled (16 = 8 VMs + 6 switches + 2 connectors); replay request denominators fixed; API stays HTTP on MGMT (ADR-023); directional real-country enforcement not implemented (ADR-033, unchanged) | `p5-ids-mtls.txt`, `GNS3_TOPOLOGY.md` |
+| P5 | Hardening | DONE: FW01 IDS feed mTLS, plaintext listener removed (ADR-035); API HTTPS by default with tunnel-safe certificate (ADR-023 revised); directional real-country enforcement on FW01 with read-back, egress-probe proof and watchdog fail-safe (ADR-036; found and fixed a live read-back defect); node count reconciled (16); replay request denominators fixed. Inbound country blocks verifiable by read-back only | `p5-*.txt`, `GNS3_TOPOLOGY.md`, `M7_GEOIP.md` §5 |
 
 ## Tests (latest full run)
 
 `uv run ruff check . && uv run ruff format --check . && uv run mypy src && uv run pytest -q`
-→ ruff clean, mypy clean (95 files), pytest 174 passed, 9 skipped (lab tests need
-`AFW_LAB=1`). Mutation checks: M5 (in M5 doc), M6 10/10, M7 7/7, P2 6/6, P4 rate cap 3/3 caught.
+→ ruff clean, mypy clean (97 files), pytest 198 passed, 14 skipped (lab tests need
+`AFW_LAB=1`; live: 14/14 lab tests, 37/37 isolation, 2026-10-28 09:52Z). Mutation checks: M5 (in M5 doc), M6 10/10, M7 7/7, P2 6/6, P4 rate cap 3/3, P5 country enforcement 9/9 caught.
 Live (after all M5–M8 deploys, 2026-10-27 20:59–21:00Z): `uv run afw lab verify` 37/37;
 `AFW_LAB=1 uv run pytest tests/lab` 9 passed (`artifacts/evidence/m9-2026-10-27/`).
 

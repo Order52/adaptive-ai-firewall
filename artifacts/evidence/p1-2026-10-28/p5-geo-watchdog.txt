@@ -1,0 +1,20 @@
+# Watchdog fail-safe for country tables (controller stopped while AU outbound enforced)
+09:32:07 policy pol-375e82152895 enforced usr01->1.1.1.1: False
+09:32:37 controller stopped
+09:34:01 usr01->1.1.1.1 open again after 84s: True
+09:34:02 controller started
+09:34:33 blocked again after restart (26s): True state unknown
+    09:30:32 validated -> applying | operator-requested
+    09:30:33 applying -> applied_unverified | applied
+    09:32:06 applied_unverified -> enforced | read-back + egress probe
+    09:32:12 enforced -> unknown | backend unreachable
+09:34:33 revoke -> rolled_back
+# FW01 syslog
+2026-10-28T09:34:30 afw-geo  AFW_GEO_OUT replaced: 12265 networks sha256=e1e17f3576e624b833512e938571a836c5d5fd2694ad02c9efe89e7393d72e48
+2026-10-28T09:34:30 afw-geo  AFW_GEO_IN replaced: 0 networks sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+2026-10-28T09:34:00 afw-watchdog  flushed AFW_BLOCK_WEB AFW_GEO_IN AFW_GEO_OUT (12265 entries): heartbeat age 103s > 90s
+2026-10-28T09:33:30 afw-geo  fetch outbound failed
+2026-10-28T09:33:30 afw-geo  fetch inbound failed
+2026-10-28T09:33:00 afw-geo  fetch outbound failed
+2026-10-28T09:33:00 afw-geo  fetch inbound failed
+2026-10-28T09:32:30 afw-geo  fetch outbound failed

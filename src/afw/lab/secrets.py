@@ -19,6 +19,7 @@ API_PRINCIPALS = [  # name, role, channel
     ("operator", "operator", "api"),
     ("dashboard", "viewer", "api"),
     ("mcp", "operator", "mcp"),
+    ("fw01-geo", "firewall", "api"),  # FW01 pulls real-country tables (ADR-036)
 ]
 LEAVES = {
     "WAF01": ["10.77.30.10"],  # + DNS rental.lab.afw (see pki.ensure_leaf)

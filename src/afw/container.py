@@ -30,6 +30,7 @@ from afw.persistence.repositories import (
     SqlProfileRepository,
     SqlSettingsRepository,
 )
+from afw.policy.geo import GeoTables
 from afw.policy.service import PolicyService
 from afw.policy.validator import PolicyValidator
 from afw.ports.enforcement import EnforcementBackend, TrafficProbe
@@ -67,10 +68,11 @@ class Container:
     simulated: bool
     geoip: GeoIpDatabase | None = None
     geoip_error: str | None = None
+    geo_tables: GeoTables | None = None
 
 
 def _backends(
-    cfg: LabConfig, simulated: bool
+    cfg: LabConfig, simulated: bool, geo: GeoTables | None = None
 ) -> tuple[list[EnforcementBackend], TrafficProbe | None]:
     if simulated:
         mem = MemoryBackend()
@@ -80,7 +82,7 @@ def _backends(
         from afw.enforcement.opnsense import OpnsenseBackend
 
         svc = cfg.service(cfg.applications[0].service)
-        backends.append(OpnsenseBackend(cfg.opnsense, svc))
+        backends.append(OpnsenseBackend(cfg.opnsense, svc, geo))
     else:
         log.warning("opnsense_backend_disabled", reason="no config/secret")
     if cfg.waf_helper and cfg.waf_helper.token_file.exists():
@@ -123,20 +125,22 @@ def build_container(
     stats = TelemetryStats()
     datasets = DatasetStore(Path(settings.data_dir) / "datasets")
     artifacts = ArtifactStore(settings.model_dir())
-    backends, probe = _backends(cfg, simulated)
+    geoip, geoip_error = load_optional(Path(settings.data_dir) / "geo")
+    geo = GeoTables(cfg.geo_enforcement, lambda: geoip) if cfg.geo_enforcement.enabled else None
+    backends, probe = _backends(cfg, simulated, geo)
     policy_service = PolicyService(
         repo=policies_repo,
-        validator=PolicyValidator(cfg),
+        validator=PolicyValidator(cfg, geo),
         backends=backends,
         settings=settings_repo,
         audit=audit,
         probe=probe,
+        geo=geo,
     )
     learning = LearningService(
         cfg, profiles, models, adaptation, events, datasets, artifacts, audit
     )
     learning_repo = SqlLearningRepository(engine)
-    geoip, geoip_error = load_optional(Path(settings.data_dir) / "geo")
     reputation = PersistentReputation(learning_repo, timedelta(seconds=cfg.learning.taint_ttl_s))
     traffic_affecting = set(PolicyKind) - {PolicyKind.WATCH}
     checkpoints = CheckpointStore(
@@ -204,4 +208,5 @@ def build_container(
         simulated=simulated,
         geoip=geoip,
         geoip_error=geoip_error,
+        geo_tables=geo,
     )

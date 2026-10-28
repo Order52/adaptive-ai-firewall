@@ -102,8 +102,12 @@ Full procedure: `engineering/M6_ATTACK_EVALUATION.md` §2.
 
 `GET /api/geo/lookup/<ip>`, `GET /api/geo/preview/<CC>?direction=inbound|outbound` (MCP
 `geo_lookup`, `geo_preview`) show the real country data and what a country policy
-would cover. Real-country *enforcement* is refused; enforced country policies use the
-SIMULATED lab mapping (`country_policy` with `simulated=true`). The **GeoIP** panel shows
+would cover. A real country policy (`country_policy` with `simulated=false`, or
+`POST /api/policies` with a country target) is enforced on FW01 within about a minute
+(ADR-036, `engineering/M7_GEOIP.md` §5).
+* Outbound becomes `enforced` after the egress probe.
+* Inbound stays `applied_unverified` (read-back only), by design.
+* The GeoIP panel shows the published tables. The **GeoIP** panel shows
 the database release and age; refresh monthly (`DEPLOYMENT.md` §7).
 
 ## Via Claude Code (MCP)

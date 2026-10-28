@@ -195,6 +195,6 @@ def country_preview(
         "observed_sources_in_country": [str(ip) for ip in matched],
         "observed_sources_checked": len(set(observed_sources)),
         "lab_effect": _lab_effect(cc, direction, matched),
-        "enforcement": "preview only: real-country enforcement is not implemented (ADR-033)",
+        "enforcement": "preview only: real-country enforcement is not enabled (ADR-036)",
         "database": db.status(now),
     }

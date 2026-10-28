@@ -11,10 +11,11 @@ evidence that support it. Status words:
 Gate definitions are unchanged from the directive. Evidence paths are relative to
 `artifacts/evidence/`. Latest runs (2026-10-28):
 
-* unit/integration: 174 passed, 9 skipped;
-* live lab: `AFW_LAB=1 pytest tests/lab` 9/9 and isolation 37/37, re-run after the P5
-  changes (IDS mTLS, plaintext listener removed) on 2026-10-28 08:41Z
-  (`p1-2026-10-28/p5-final-regression.txt`; earlier: `m9-2026-10-27/`).
+* unit/integration: 198 passed, 14 skipped (skips: live-lab tests without `AFW_LAB=1`);
+* live lab: `AFW_LAB=1 pytest tests/lab` 14/14 and isolation 37/37 after the P5 changes
+  (IDS mTLS, HTTPS API, real-country enforcement) on 2026-10-28 09:52Z
+  (`p1-2026-10-28/p5-final-regression-2.txt`; earlier: `p5-final-regression.txt`,
+  `m9-2026-10-27/`).
 
 ## Gate A: Infrastructure
 
@@ -55,6 +56,7 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 | Verified containment and policy state | Read-back + probe verification before `enforced` | same; `real-benign-baseline-2026-10-17.md` | MET |
 | Expiry, revocation, rollback, crash recovery | Lab tests (revoke); restart restore 5 s; FW watchdog flush 106 s; cold restart | `cold-restart-2026-10-18.md`, `docs/archive/IMPLEMENTATION_STATUS.md` (restart restore 5 s, watchdog flush 106 s) | MET |
 | Mandatory protected-infrastructure restrictions | `test_policy.py`; lab safety tests; MCP refusal | `m9-2026-10-27/pytest-lab.txt` | MET |
+| Directional real-country enforcement (P5) | `test_geo_enforcement.py` (21, 9/9 mutants); `tests/lab/test_geo_enforcement_lab.py`; watchdog fail-safe run | `p1-2026-10-28/p5-geo-*.txt` | MET for outbound (read-back + egress probe + independent connects); inbound read-back only (no real-country traffic reaches the lab) |
 
 ## Gate E: Independent value
 
@@ -91,8 +93,8 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 |---|---|
 | A Infrastructure | **MET** |
 | B Detection | **NOT MET**: attack evaluation BLOCKED-EXT |
-| C Genuine adaptation | **PARTIAL**: works on real recorded drift offline; no live learning or promotion yet |
+| C Genuine adaptation | **PARTIAL**: live learning, pivots and restart restore on CTRL01; no promotion (gate refuses: no attack recall data; sensitivity) |
 | D Enforcement | **MET** |
 | E Independent value | **NOT MET**: benign-only comparison; attack-side value BLOCKED-EXT |
-| F Security and operations | **PARTIAL**: plain-HTTP API on MGMT (all telemetry now mTLS) |
+| F Security and operations | **MET**: HTTPS API (ADR-023 revised), all telemetry mTLS, audited and constrained MCP, tested recovery |
 | G Academic defensibility | **PARTIAL**: team demonstration BLOCKED-EXT |

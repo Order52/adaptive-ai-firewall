@@ -11,7 +11,7 @@ from typing import Annotated, Any, Literal
 
 import psutil
 from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -42,6 +42,7 @@ STATIC = Path(__file__).resolve().parent.parent / "dashboard" / "static"
 Viewer = Annotated[Principal, Depends(require(Role.VIEWER))]
 Operator = Annotated[Principal, Depends(require(Role.OPERATOR))]
 Admin = Annotated[Principal, Depends(require(Role.ADMIN))]
+Firewall = Annotated[Principal, Depends(require(Role.FIREWALL))]
 _PROCESS = psutil.Process(os.getpid())
 _STARTED = time.time()
 
@@ -225,8 +226,25 @@ def create_app(c: Container) -> FastAPI:
     # -------------------------------------------------------------- geoip
     def _geo_status() -> dict[str, Any]:
         if c.geoip is None:
-            return {"loaded": False, "reason": c.geoip_error}
-        return c.geoip.status(utcnow())
+            return {"loaded": False, "reason": c.geoip_error, "enforcement": _geo_enforcement()}
+        return {**c.geoip.status(utcnow()), "enforcement": _geo_enforcement()}
+
+    def _geo_enforcement() -> dict[str, Any]:
+        g = c.geo_tables
+        if g is None:
+            return {"enabled": False}
+        return {
+            "enabled": True,
+            **{
+                d: {
+                    "alias": g.alias(d),
+                    "countries": list(lst.countries),
+                    "networks": len(lst.networks),
+                    "sha256": lst.sha256,
+                }
+                for d, lst in g.published.items()
+            },
+        }
 
     def _geo() -> GeoIpDatabase:
         if c.geoip is None:
@@ -249,9 +267,24 @@ def create_app(c: Container) -> FastAPI:
     ) -> dict[str, Any]:
         seen = c.events.recent_sources(utcnow() - timedelta(hours=24))
         try:
-            return country_preview(_geo(), country_code, direction, seen, utcnow())
+            out = country_preview(_geo(), country_code, direction, seen, utcnow())
         except ValueError as exc:
             raise HTTPException(404, str(exc)) from exc
+        if c.geo_tables is not None:
+            out["enforcement"] = (
+                "available: a real geo_block policy (simulated=false) is enforced on FW01 via "
+                f"{c.geo_tables.cfg.inbound_alias}/{c.geo_tables.cfg.outbound_alias} (ADR-036)"
+            )
+        return out
+
+    @app.get("/api/geo/enforcement/{direction}", response_class=PlainTextResponse)
+    def geo_enforcement_list(
+        _: Firewall, direction: Literal["inbound", "outbound"]
+    ) -> PlainTextResponse:
+        """FW01's pull source: the published networks of one direction (ADR-036)."""
+        if c.geo_tables is None:
+            raise HTTPException(404, "real-country enforcement is not enabled")
+        return PlainTextResponse(c.geo_tables.published[direction].text(direction))
 
     # ------------------------------------------------------------ evidence
     @app.get("/api/events")

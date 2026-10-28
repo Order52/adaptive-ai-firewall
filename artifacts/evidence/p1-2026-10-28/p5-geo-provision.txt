@@ -1,0 +1,53 @@
+Wed Oct 28 09:24:34 AM UTC 2026
+alias AFW_GEO_IN: created
+alias AFW_GEO_OUT: created
+rule 'AFW: real-country inbound block (ADR-036)': created
+rule 'AFW: real-country outbound reject, client zones (ADR-036)': created
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /home/gns3/uot/ai-adaptive-firewall/src/afw/cli.py:755 in lab_provision_geo  │
+│                                                                              │
+│   752 │   g = load_lab_config(Path("config/lab.yaml")).geo_enforcement       │
+│   753 │   ensure_lab_secrets()                                               │
+│   754 │   with client() as c:                                                │
+│ ❱ 755 │   │   provision_api(c, g, log=typer.echo)                            │
+│   756 │   if api_only:                                                       │
+│   757 │   │   return                                                         │
+│   758 │   gc = Gns3Client.from_env()                                         │
+│                                                                              │
+│ /home/gns3/uot/ai-adaptive-firewall/src/afw/lab/provision_geo.py:113 in      │
+│ provision_api                                                                │
+│                                                                              │
+│   110 │   _ok(c.post("/firewall/alias/reconfigure").json(), "alias           │
+│       reconfigure")                                                          │
+│   111 │   for rule in rules(g):                                              │
+│   112 │   │   log(f"rule '{rule['description']}': {ensure_rule(c, rule)}")   │
+│ ❱ 113 │   _ok(c.post("/firewall/filter/apply").json(), "filter apply")       │
+│   114 │   log("filter applied")                                              │
+│   115                                                                        │
+│   116                                                                        │
+│                                                                              │
+│ /home/gns3/uot/ai-adaptive-firewall/src/afw/lab/provision_geo.py:38 in _ok   │
+│                                                                              │
+│    35                                                                        │
+│    36 def _ok(res: dict[str, Any], what: str) -> None:                       │
+│    37 │   if res.get("result") not in ("saved", "ok") and res.get("status")  │
+│       not in ("ok", "done"):                                                 │
+│ ❱  38 │   │   raise RuntimeError(f"{what}: {res}")                           │
+│    39                                                                        │
+│    40                                                                        │
+│    41 def ensure_alias(c: httpx.Client, name: str, descr: str) -> str:       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+RuntimeError: filter apply: {'status': 'OK\n\n'}
+Wed Oct 28 09:24:44 AM UTC 2026
+alias AFW_GEO_IN: exists
+alias AFW_GEO_OUT: exists
+rule 'AFW: real-country inbound block (ADR-036)': updated
+rule 'AFW: real-country outbound reject, client zones (ADR-036)': updated
+filter applied
+Wed Oct 28 09:26:29 AM UTC 2026
+alias AFW_GEO_IN: exists
+alias AFW_GEO_OUT: exists
+rule 'AFW: real-country inbound block (ADR-036)': updated
+rule 'AFW: real-country outbound reject, client zones (ADR-036)': updated
+filter applied
+FW01: CA, pull token and watchdog (with country-table sync) installed

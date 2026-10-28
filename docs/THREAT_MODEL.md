@@ -59,7 +59,7 @@ Scope: the GNS3 lab and the AFW control plane. Trust boundaries and flows are in
 | Train/test leakage | Splits by whole run (`assert_disjoint`); thresholds from validation only; holdout disjointness checked by the gate | Single-run CIs describe source variation, not run variation |
 | Mislabelled attack runs | M6 journal: named operator, exact run windows, attacker addresses validated against the ATTACK zone, manifests generated from the journal | Depends on the team following the procedure |
 | Synthetic data cited as results | Synthetic generators labelled; `aggregate` and the gate refuse synthetic data | — |
-| Wrong geography | DB-IP database hash-verified, freshness reported, private space never mapped; real-country enforcement refused (ADR-033) | Database accuracy is DB-IP's |
+| Wrong geography | DB-IP database hash-verified, freshness reported, private space never mapped; real-country policies human-only, size-bounded, read back and (outbound) probe-verified; FW01 pulls hash-checked lists only while the controller is alive (ADR-036) | Database accuracy is DB-IP's |
 
 ### 3.5 Telemetry
 

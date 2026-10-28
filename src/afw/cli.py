@@ -737,6 +737,32 @@ def lab_provision_fw(project: str = "AI-Adaptive-Firewall", force: bool = False)
     )
 
 
+@lab_app.command("provision-geo")
+def lab_provision_geo(
+    project: str = "AI-Adaptive-Firewall",
+    api_only: Annotated[bool, typer.Option(help="aliases and rules only")] = False,
+) -> None:
+    """Install real-country enforcement on FW01: tables, rules, pull job (ADR-036)."""
+    from afw.config import load_lab_config
+    from afw.lab.gns3 import Gns3Client, Gns3Error
+    from afw.lab.provision_geo import provision_api, provision_console
+    from afw.lab.provision_ids import client
+    from afw.lab.secrets import ensure_lab_secrets
+
+    g = load_lab_config(Path("config/lab.yaml")).geo_enforcement
+    ensure_lab_secrets()
+    with client() as c:
+        provision_api(c, g, log=typer.echo)
+    if api_only:
+        return
+    gc = Gns3Client.from_env()
+    p = gc.find_project(project)
+    if p is None:
+        raise Gns3Error(f"project {project} not found")
+    fw = gc.node_by_name(p["project_id"])["FW01"]
+    provision_console(fw.get("console_host") or "127.0.0.1", int(fw["console"]), typer.echo)
+
+
 @lab_app.command("recreate")
 def lab_recreate(
     nodes: list[str],

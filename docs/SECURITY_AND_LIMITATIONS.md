@@ -63,9 +63,13 @@ the known gaps.
   enforcement budget) but much costlier than the statistical arm (~63 µs).
 - **Not air-gapped.** Guests can reach the Internet for real tests; revert by removing
   the per-zone egress rules in `opnsense_config.lab_rules` and re-provisioning.
-- **Country policies.** Real GeoIP (DB-IP Lite) is used for lookup and preview only;
-  real-country enforcement is refused, and enforced country policies use the
-  SIMULATED lab mapping (ADR-033).
+- **Country policies.** Real-country enforcement runs on FW01 (ADR-036):
+  * inbound is verified only by table read-back, because no real-country traffic
+    reaches the lab;
+  * outbound covers the client zones only and is proven by an egress probe;
+  * countries above 40,000 networks (e.g. US) are refused;
+  * existing connections are not killed;
+  * geography is as accurate as DB-IP.
 - **GNS3 canvas** is a desktop GUI — organised and verified via the API, but not
   captured as a pixel screenshot here.
 

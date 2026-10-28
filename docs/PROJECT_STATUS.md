@@ -34,7 +34,7 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | C Genuine adaptation | **PARTIAL** | Live learning, pivots, restart restore and drift reports observed on CTRL01; no promotion: gate refuses (no attack recall data; sensitive invariance fails) |
 | D Enforcement | **MET** | — |
 | E Independent value | **NOT MET** | Benign-only comparison; value under attack BLOCKED-EXT |
-| F Security and operations | **PARTIAL** | Plain-HTTP API on MGMT (by design, ADR-023); FW01 IDS feed now mTLS (ADR-035) |
+| F Security and operations | **MET** | API HTTPS-only with lab CA (ADR-023 revised); all telemetry mTLS (ADR-035) |
 | G Academic defensibility | **PARTIAL** | Team demonstration only the team can do; attack-side methodology unexercised |
 
 ## 3. Milestones (engineering directive)
@@ -48,14 +48,14 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | M4 | Adaptation experiments on real drift | DONE (poisoning flaw fixed; sensitivity loss traced to threshold calibration) |
 | M5 | Telemetry v2, IDS-only view, liveness | DONE (found and fixed two live defects) |
 | M6 | Attack-evaluation harness | DONE; Gate B BLOCKED-EXT |
-| M7 | Real GeoIP lookup and preview | DONE; real-country enforcement not implemented |
+| M7 | Real GeoIP lookup and preview | DONE; directional real-country enforcement added in P5 (ADR-036) |
 | M8 | Dashboard views for M2–M7 | DONE |
 | M9 | Documentation consolidation | DONE (this set) |
 | P1 | Benign generalization (predeclared protocol) | DONE: v2 fails on unseen users; v3 candidate fails sensitivity; neither promoted |
 | P2 | Sensitive invariance mechanism + matched-window gate | DONE |
 | P3 | Independent attack evaluation | BLOCKED-EXT (`engineering/P3_TEAM_ATTACK_RUNBOOK.md`) |
 | P4 | Real online adaptation | DONE for the governed loop; no promotion |
-| P5 | Hardening | IDS mTLS, node count reconciled; API TLS and country enforcement not done |
+| P5 | Hardening | DONE: IDS mTLS, API HTTPS by default, directional real-country enforcement, node count reconciled |
 
 ## 4. Outstanding gaps, in priority order
 
@@ -74,8 +74,8 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 4. **Calibration side of sensitive invariance** (P2): the gate correctly rejects
    challengers whose recalibrated threshold loses sensitivity; whether to bound
    recalibration is an open design question.
-5. **Hardening.** RELP for loss-free telemetry; TLS for the API if access other than the
-   SSH tunnel is needed; heartbeat for the FW01 IDS feed.
+5. **Hardening.** RELP for loss-free telemetry; a heartbeat for the FW01 IDS feed.
+   Real-country inbound enforcement can only be verified by read-back in this lab.
 6. **Residual poisoning risk** from 4 or more colluding similar sources; SV-1
    (occlusion is not a causal-independence proof).
 

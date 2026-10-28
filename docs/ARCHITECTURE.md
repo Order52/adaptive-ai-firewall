@@ -138,4 +138,4 @@ Full design: `ADAPTATION_DESIGN.md`.
 | Sensor silent or telemetry session dead | Sensor marked stale after 150 s and evidence degraded, so automatic actions pause. TCP retries are bounded so rsyslog reconnects in about 100 s. Lines written into a dead session are lost (residual risk, ADR-031) |
 | Backend unreachable or ambiguous | Policy goes to `unknown` and is resolved on the next reconcile; never reported as enforced without read-back |
 | Bad challenger | Never affects decisions while in shadow; a promoted one is rolled back automatically during probation |
-| GeoIP database missing, stale or tampered | Reported in status; real-country enforcement is not implemented anyway (ADR-033) |
+| GeoIP database missing, stale or tampered | Reported in status; new real-country policies are refused when it is missing or stale; active tables stay as published (ADR-036) |

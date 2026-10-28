@@ -30,6 +30,7 @@ from afw.domain.policy import (
     RateProfile,
     SourceTarget,
 )
+from afw.policy.geo import DIRECTIONS, Direction, GeoTables
 from afw.policy.validator import PolicyValidator, Verdict
 from afw.ports.enforcement import (
     ApplyReport,
@@ -48,6 +49,7 @@ TRACKED_STATES = OWNING_STATES | frozenset(
     {S.VALIDATED, S.PENDING_APPROVAL, S.EXPIRING, S.ROLLBACK_PENDING, S.FAILED}
 )
 MAX_APPLY_ATTEMPTS = 3
+GEO_PROBE_INTERVAL = timedelta(seconds=30)
 
 
 def idempotency_key(intent: PolicyIntent) -> str:
@@ -87,6 +89,7 @@ class PolicyService:
         probe: TrafficProbe | None = None,
         clock: Callable[[], datetime] = utcnow,
         on_enforced: Callable[[Policy], None] | None = None,
+        geo: GeoTables | None = None,
     ) -> None:
         self.repo = repo
         self.validator = validator
@@ -96,6 +99,8 @@ class PolicyService:
         self.probe = probe
         self.clock = clock
         self.on_enforced = on_enforced
+        self.geo = geo
+        self._geo_probed: dict[str, datetime] = {}
         self._lock = threading.RLock()
         self.reconciled_since_start = False
         self._attempts: dict[str, int] = {}
@@ -222,6 +227,7 @@ class PolicyService:
         denied: set[IPv4Address] = set()
         rates: dict[IPv4Address, RateProfile] = {}
         contracts: dict[str, ContractTarget] = {}
+        geo: dict[Direction, set[str]] = {d: set() for d in DIRECTIONS}
         for p in self.repo.in_states(OWNING_STATES):
             if p.is_expired(now):
                 continue
@@ -235,7 +241,11 @@ class PolicyService:
                 if rates.get(t.source_ip) is not RateProfile.STRICT:
                     rates[t.source_ip] = prof
             elif p.kind is PolicyKind.GEO_BLOCK and isinstance(t, CountryTarget):
-                blocked |= self.validator.geo_members(t)
+                if t.simulated:
+                    blocked |= self.validator.geo_members(t)
+                else:
+                    for d in _directions(t):
+                        geo[d].add(t.country_code)
             elif p.kind is PolicyKind.HTTP_CONTRACT and isinstance(t, ContractTarget):
                 cur = contracts.get(t.route)
                 if cur is None or t.revision > cur.revision:
@@ -245,6 +255,13 @@ class PolicyService:
             waf_denied_sources=frozenset(denied),
             rate_limited=rates,
             contracts=tuple(sorted(contracts.values(), key=lambda c: c.route)),
+            geo_inbound=frozenset(geo["inbound"]),
+            geo_outbound=frozenset(geo["outbound"]),
+            geo_watch=frozenset(
+                p.intent.target.country_code
+                for p in self.repo.in_states(frozenset({S.EXPIRING, S.ROLLBACK_PENDING}))
+                if isinstance(p.intent.target, CountryTarget) and not p.intent.target.simulated
+            ),
         )
 
     def reconcile(self) -> ReconcileReport:
@@ -253,6 +270,7 @@ class PolicyService:
             report = ReconcileReport(at=now)
             self._sweep_expiry(now, report)
             desired = self.desired_state(now)
+            geo_error = self._publish_geo(desired)
             observed: dict[str, ObservedState] = {}
             applied: dict[str, ApplyReport] = {}
             for b in self.backends:
@@ -269,7 +287,7 @@ class PolicyService:
                     obs = ObservedState(backend=b.name, reachable=False, error=str(exc))
                 observed[b.name] = obs
                 report.observed.append(obs)
-            self._advance(now, desired, applied, observed, report)
+            self._advance(now, desired, applied, observed, report, geo_error)
             if all(o.reachable for o in observed.values()):
                 self.reconciled_since_start = True
                 for b in self.backends:
@@ -304,6 +322,11 @@ class PolicyService:
         t = p.intent.target
         match p.kind:
             case PolicyKind.GEO_BLOCK:
+                if isinstance(t, CountryTarget) and not t.simulated:
+                    present = [_geo_field(obs, d) for d in _directions(t)]
+                    if any(x is None for x in present):
+                        return None
+                    return all(t.country_code in x for x in present if x is not None)
                 if obs.blocked_sources is None or not isinstance(t, CountryTarget):
                     return None
                 members = self.validator.geo_members(t)
@@ -345,6 +368,11 @@ class PolicyService:
             }.get(p.kind, False)
         if isinstance(t, ContractTarget):
             return t in d.contracts
+        if isinstance(t, CountryTarget) and p.kind is PolicyKind.GEO_BLOCK and not t.simulated:
+            return all(
+                t.country_code in (d.geo_inbound if x == "inbound" else d.geo_outbound)
+                for x in _directions(t)
+            )
         if isinstance(t, CountryTarget) and p.kind is PolicyKind.GEO_BLOCK:
             members = self.validator.geo_members(t)
             return bool(members) and members <= d.blocked_sources
@@ -357,6 +385,7 @@ class PolicyService:
         applied: dict[str, ApplyReport],
         observed: dict[str, ObservedState],
         report: ReconcileReport,
+        geo_error: str | None = None,
     ) -> None:
         for p in self.repo.in_states(OWNING_STATES | {S.EXPIRING, S.ROLLBACK_PENDING, S.FAILED}):
             if p.kind is PolicyKind.WATCH:
@@ -406,6 +435,10 @@ class PolicyService:
                     self._transition(p, S.APPLYING, "reconciler", now, f"retry {n + 1}", report)
                 continue
 
+            if p.state is S.APPLYING and geo_error and _is_real_geo(p):
+                self._attempts[p.policy_id] = MAX_APPLY_ATTEMPTS  # deterministic: no retry
+                self._transition(p, S.FAILED, "reconciler", now, geo_error, report)
+                continue
             if p.state is S.APPLYING:
                 if rep is None or rep.ambiguous:
                     self._transition(
@@ -471,6 +504,10 @@ class PolicyService:
         return frozenset()
 
     def _verify_and_enforce(self, p: Policy, now: datetime, report: ReconcileReport) -> None:
+        t = p.intent.target
+        if p.kind is PolicyKind.GEO_BLOCK and isinstance(t, CountryTarget) and not t.simulated:
+            self._verify_real_geo(p, t, now, report)
+            return
         verification: dict[str, str | bool | float] = {"readback": True}
         traffic: bool | None = None
         sources = self._block_sources(p)
@@ -501,6 +538,73 @@ class PolicyService:
                 self.on_enforced(p)
         else:
             self._store_verification(p, verification)
+
+    def _publish_geo(self, desired: DesiredState) -> str | None:
+        """Expose the desired real-country networks for FW01 to pull (ADR-036). A list
+        over the network budget is not published; the previous one stays."""
+        if self.geo is None:
+            return None
+        errors = []
+        for d in DIRECTIONS:
+            try:
+                self.geo.publish(d, desired.geo_inbound if d == "inbound" else desired.geo_outbound)
+            except ValueError as exc:
+                errors.append(f"geo {d}: {exc}")
+        return "; ".join(errors) or None
+
+    def _verify_real_geo(
+        self, p: Policy, t: CountryTarget, now: datetime, report: ReconcileReport
+    ) -> None:
+        """Read-back already holds. Inbound has no traffic to test (no real-country
+        connection reaches the lab), so it stays APPLIED_UNVERIFIED; outbound is tested
+        with one connect into the country plus one control connect elsewhere."""
+        last = self._geo_probed.get(p.policy_id)
+        if last is not None and now - last < GEO_PROBE_INTERVAL:
+            return
+        self._geo_probed[p.policy_id] = now
+        dirs = _directions(t)
+        v: dict[str, str | bool | float] = {"readback": True}
+        verified = True
+        if "inbound" in dirs:
+            v["traffic_inbound"] = "n/a: no real-country inbound traffic reaches the lab"
+            verified = False
+        if "outbound" in dirs:
+            ok, note = self._egress_blocked(t.country_code)
+            v["traffic_outbound"] = note
+            verified = verified and ok is True
+        v["traffic"] = "blocked (outbound egress probe)" if verified else "read-back only"
+        p = self._store_verification(p, v)
+        if verified:
+            p = self._transition(
+                p, S.ENFORCED, "reconciler", now, "read-back + egress probe", report
+            )
+            if self.on_enforced:
+                self.on_enforced(p)
+
+    def _egress_blocked(self, cc: str) -> tuple[bool | None, str]:
+        g = self.validator.cfg.geo_enforcement
+        if self.probe is None or self.geo is None or g.egress_source is None:
+            return None, "unverified: no egress probe configured"
+        blocked_now = self.desired_state(self.clock()).geo_outbound | {cc}
+        inside = [n for n, e in g.egress_targets.items() if self.geo.country_of(e.address) == cc]
+        control = [
+            n
+            for n, e in g.egress_targets.items()
+            if self.geo.country_of(e.address) not in blocked_now
+        ]
+        if not inside:
+            return None, f"unverified: no egress probe target in {cc}"
+        if not control:
+            return None, "unverified: no control target outside the blocked countries"
+        ctl = self.probe.egress_connects(g.egress_source, control[0])
+        if ctl is not True:
+            return None, f"unverified: control {control[0]} did not connect (outage, not proof)"
+        res = [self.probe.egress_connects(g.egress_source, n) for n in inside]
+        if any(r is None for r in res):
+            return None, "unverified: egress probe unavailable"
+        if any(res):
+            return False, f"NOT blocked: {inside} connected"
+        return True, f"blocked: {', '.join(inside)}; control {control[0]} connected"
 
     def _store_verification(self, p: Policy, v: dict[str, str | bool | float]) -> Policy:
         p = p.model_copy(update={"verification": {**p.verification, **v}})
@@ -544,3 +648,16 @@ class PolicyService:
         if p is None:
             raise PolicyError(f"unknown policy {policy_id}")
         return p
+
+
+def _directions(t: CountryTarget) -> tuple[Direction, ...]:
+    return DIRECTIONS if t.direction == "both" else (t.direction,)
+
+
+def _geo_field(obs: ObservedState, d: Direction) -> frozenset[str] | None:
+    return obs.geo_inbound if d == "inbound" else obs.geo_outbound
+
+
+def _is_real_geo(p: Policy) -> bool:
+    t = p.intent.target
+    return p.kind is PolicyKind.GEO_BLOCK and isinstance(t, CountryTarget) and not t.simulated

@@ -85,7 +85,7 @@ block/unblock/approve; `admin` can change mode and promote profiles.
 - `block_source` / `unblock` — expiring source block + rollback (read-back verified).
 - `approve_policy` / `reject_policy` — act on a pending AI proposal (assisted mode).
 - `set_mode(monitor|assisted|auto)` — operating mode (admin).
-- `country_policy` — simulated geo policy (optional extension).
+- `country_policy` — country policy: `simulated=true` (labelled lab mapping) or `simulated=false` (real DB-IP networks on FW01, ADR-036).
 - `feedback` — analyst label feeding drift/candidate learning.
 
 ## Example natural-language commands

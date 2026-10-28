@@ -15,6 +15,7 @@ def client_with_tokens(settings):
         ("op", "operator", "api"),
         ("admin", "admin", "api"),
         ("claude", "operator", "mcp"),
+        ("fw", "firewall", "api"),
     ]:
         tok, entry = TokenStore.issue(name, role, channel)
         tokens[name] = {"Authorization": f"Bearer {tok}"}
@@ -100,7 +101,7 @@ def test_challenger_lifecycle_endpoints_are_admin_gated_and_refuse_without_a_cha
     assert r.status_code == 409
 
 
-def test_geoip_endpoints_lookup_and_preview_without_enforcing(settings, tmp_path):
+def test_geoip_endpoints_lookup_preview_and_real_country_tables(settings, tmp_path):
     import gzip
 
     from conftest import T0
@@ -137,5 +138,22 @@ def test_geoip_endpoints_lookup_and_preview_without_enforcing(settings, tmp_path
         "reason": "real country",
     }
     r = client.post("/api/policies", json=real, headers=tok["admin"])
-    assert r.status_code in (200, 201, 409)
-    assert "not implemented" in r.text
+    assert r.status_code == 200 and r.json()["state"] == "applied_unverified", r.text
+    assert r.json()["verification"]["traffic_inbound"].startswith("n/a")
+
+    # FW01's pull source: header with sha256 of the body, then the networks
+    import hashlib
+
+    fw = tok["fw"]
+    r = client.get("/api/geo/enforcement/inbound", headers=fw)
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/plain")
+    head, body = r.text.split("\n", 1)
+    assert body == "1.0.1.0/24\n1.0.2.0/23\n"
+    assert head.endswith("sha256=" + hashlib.sha256(body.encode()).hexdigest())
+    assert client.get("/api/geo/enforcement/outbound", headers=fw).text.startswith(
+        "# afw-geo direction=outbound countries=- count=0"
+    )
+    # the firewall credential reads the country tables and nothing else
+    assert client.get("/api/overview", headers=fw).status_code == 403
+    assert client.get("/api/geo/status", headers=fw).status_code == 403
+    assert client.get("/api/geo/enforcement/inbound").status_code == 401

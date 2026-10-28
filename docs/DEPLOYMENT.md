@@ -85,6 +85,11 @@ ssh -F ~/.config/afw/ssh_config ctrl01 'sudo systemctl restart afw-controller'  
 
 Refresh monthly; `/api/geo/status` reports `stale` after 45 days.
 
+Real-country enforcement (ADR-036) is installed once on FW01 with `uv run afw lab
+provision-geo`. It is idempotent and creates the tables, the two rules, the CA, the
+`fw01-geo` pull token and the updated watchdog. The probe agents get their egress
+allowlist from `config/lab.yaml` on `afw lab deploy`.
+
 ## 8. Recovery procedures
 
 | Situation | Procedure | Verified |

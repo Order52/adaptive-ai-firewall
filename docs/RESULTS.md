@@ -270,9 +270,10 @@ Evidence: `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt`;
    behaviour is covered separately by the six-source training/validation capture.
 3. **Infrastructure probes score anomalous** under a user-journey profile (§5);
    enforce-mode deployment requires allowlisting them or modelling them explicitly.
-4. **Country policies.** A real GeoIP database (DB-IP Lite 2026-10) is installed for
-   lookup and preview. Enforced country policies remain simulated on lab addresses
-   (ADR-033).
+4. **Country policies.** Real-country enforcement on FW01 was added on 2026-10-28
+   (ADR-036). Outbound was proven live with an egress probe and independent connects.
+   Inbound can only be verified by read-back, because no real-country traffic reaches
+   the lab.
 5. **Lab scale.** Results are from a small GNS3 lab on a single host; absolute
    latencies and memory figures are indicative of the architecture, not of a
    production-scale deployment.

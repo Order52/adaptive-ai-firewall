@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, IPv4Network
 
 from afw.config import LabConfig
 from afw.domain.policy import (
@@ -17,6 +17,7 @@ from afw.domain.policy import (
     PolicyOrigin,
     SourceTarget,
 )
+from afw.policy.geo import GeoTables
 
 GLOBAL_BODY_CEILING = 1_048_576
 
@@ -32,6 +33,7 @@ class Verdict:
 @dataclass
 class PolicyValidator:
     cfg: LabConfig
+    geo: GeoTables | None = None
     _auto_log: deque[datetime] = field(default_factory=lambda: deque(maxlen=1000))
 
     def validate(
@@ -79,17 +81,13 @@ class PolicyValidator:
             case PolicyKind.GEO_BLOCK:
                 if not isinstance(target, CountryTarget):
                     errors.append("geo_block requires a country target")
+                elif target.simulated:
+                    errors += self._check_simulated_geo(target)
+                    notes.append("SIMULATED geography: lab addresses mapped synthetically")
                 else:
-                    if not target.simulated:
-                        # Real GeoIP is lookup and preview only: enforcement would need
-                        # network-granular aliases and rules that do not exist (ADR-033).
-                        errors.append(
-                            "real-country enforcement is not implemented; "
-                            "use the GeoIP preview (ADR-033)"
-                        )
-                    if target.simulated:
-                        errors += self._check_simulated_geo(target)
-                        notes.append("SIMULATED geography: lab addresses mapped synthetically")
+                    errs, real_notes = self._check_real_geo(intent, target, now)
+                    errors += errs
+                    notes += real_notes
                 errors += self._check_duration(intent.duration_s)
 
         if active_count >= s.max_active_policies:
@@ -151,6 +149,51 @@ class PolicyValidator:
         for ip in mapped:
             errs += [f"geo mapping: {e}" for e in self._check_source(SourceTarget(source_ip=ip))]
         return errs
+
+    def _check_real_geo(
+        self, intent: PolicyIntent, t: CountryTarget, now: datetime
+    ) -> tuple[list[str], list[str]]:
+        """Real-country policies (ADR-036): human-requested, fresh verified database,
+        bounded size, never touching lab or protected space."""
+        g = self.cfg.geo_enforcement
+        if not g.enabled or self.geo is None:
+            return ["real-country enforcement is not enabled (geo_enforcement)"], []
+        errs: list[str] = []
+        if intent.origin is PolicyOrigin.AI:
+            errs.append("country policies are operator decisions; the AI never proposes them")
+        db = self.geo.db()
+        if db is None:
+            return [*errs, "no GeoIP database loaded"], []
+        status = db.status(now)
+        if status.get("stale"):
+            errs.append(f"GeoIP database is stale (release {status.get('release')})")
+        if t.country_code not in db.countries():
+            return [*errs, f"{t.country_code} is not a country in the GeoIP database"], []
+        nets = self.geo.networks(t.country_code)
+        if not nets:
+            errs.append(f"{t.country_code} has no globally routable networks")
+        if len(nets) > g.max_networks:
+            errs.append(
+                f"{t.country_code} has {len(nets)} networks, above the per-direction limit "
+                f"{g.max_networks}"
+            )
+        lab = [z.network for z in self.cfg.zones] + [p.network for p in self.cfg.safety.protected]
+        if any(IPv4Network(n).overlaps(z) for n in nets for z in lab):
+            errs.append("country networks overlap lab or protected space")
+        notes = [
+            f"REAL geography: {len(nets)} networks of {t.country_code} "
+            f"(DB-IP {status.get('release')})",
+        ]
+        if t.direction in ("inbound", "both"):
+            notes.append(
+                "inbound: verified by table read-back only (no real-country traffic "
+                "reaches the lab)"
+            )
+        if t.direction in ("outbound", "both"):
+            notes.append(
+                "outbound: client zones (USERS, ATTACK) only; servers and MGMT are not covered"
+            )
+        return errs, notes
 
     def _check_duration(self, duration: int | None) -> list[str]:
         s = self.cfg.safety

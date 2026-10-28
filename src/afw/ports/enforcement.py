@@ -21,6 +21,11 @@ class DesiredState(DomainModel):
     waf_denied_sources: frozenset[IPv4Address] = frozenset()
     rate_limited: dict[IPv4Address, RateProfile] = Field(default_factory=dict)
     contracts: tuple[ContractTarget, ...] = ()
+    # real-country policies (ADR-036): ISO codes per direction
+    geo_inbound: frozenset[str] = frozenset()
+    geo_outbound: frozenset[str] = frozenset()
+    # countries of expiring/rolled-back real policies whose removal must be read back
+    geo_watch: frozenset[str] = frozenset()
 
 
 class ObservedState(DomainModel):
@@ -31,6 +36,9 @@ class ObservedState(DomainModel):
     rate_limited: dict[IPv4Address, RateProfile] | None = None
     contracts: tuple[ContractTarget, ...] | None = None
     revision: str | None = None
+    # countries whose every network is in the live pf table (read back)
+    geo_inbound: frozenset[str] | None = None
+    geo_outbound: frozenset[str] | None = None
     error: str | None = None
 
 
@@ -60,3 +68,6 @@ class TrafficProbe(Protocol):
 
     def legitimate_ok(self) -> bool | None: ...
     def source_blocked(self, source: IPv4Address) -> bool | None: ...
+    def egress_connects(self, source: IPv4Address, target: str) -> bool | None:
+        """One TCP connect from ``source`` to a fixed, agent-allowlisted egress target."""
+        ...

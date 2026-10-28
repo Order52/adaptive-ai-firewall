@@ -274,6 +274,11 @@ function renderGeo(o) {
   $("#geo").innerHTML = g.loaded
     ? `${kvList({ release: g.release, "age (days)": g.age_days, ranges: g.ranges, sha256: g.sha256.slice(0, 16) + "…", license: g.license })}${g.stale ? badge("var(--critical)", "STALE — install a newer release") : badge("var(--good)", "fresh")}`
     : `<div class="empty">${esc(g.reason || "not loaded")}</div>`;
+  const e = g.enforcement || {};
+  const dir = (d) => d && d.countries.length ? `${esc(d.countries.join(", "))} · ${d.networks} networks in ${esc(d.alias)}` : `none (${esc((d && d.alias) || "")} empty)`;
+  $("#geo").innerHTML += e.enabled
+    ? `<p class="sub" style="margin-top:12px"><b>Real-country enforcement</b> (FW01, ADR-036)</p>${kvList({ inbound: dir(e.inbound), outbound: dir(e.outbound) })}<p class="sub">Published lists; FW01 pulls them and the controller reads the tables back. Inbound is read-back only; outbound is also verified by an egress probe (see the policy's verification).</p>`
+    : `<p class="sub">Real-country enforcement disabled; country policies are SIMULATED.</p>`;
 }
 
 async function renderAudit() {

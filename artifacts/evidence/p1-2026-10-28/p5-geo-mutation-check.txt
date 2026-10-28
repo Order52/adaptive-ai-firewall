@@ -1,0 +1,10 @@
+CAUGHT  inbound claimed enforced
+CAUGHT  control target ignored
+CAUGHT  partial table counts as present
+CAUGHT  AI may request countries
+CAUGHT  firewall role not below viewer
+CAUGHT  non-global networks published
+CAUGHT  budget not enforced
+CAUGHT  stale database accepted
+CAUGHT  read-back of removal skipped
+9/9 mutants caught

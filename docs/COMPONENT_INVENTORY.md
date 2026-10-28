@@ -8,7 +8,7 @@ addresses, safety limits): `config/lab.yaml`.
 
 | Node | Zone | Address | Role | Main services / ports |
 |---|---|---|---|---|
-| FW01 | all | .1 in every zone | OPNsense 26.7: zone firewall, `AFW_BLOCK_WEB` / `AFW_HEARTBEAT` aliases, Suricata (pcap) on ATTACK+USERS, heartbeat watchdog, NAT egress | REST API (TLS, lab CA); syslog-ng over mTLS → CTRL01:5514 (client cert `fw01-telemetry`) |
+| FW01 | all | .1 in every zone | OPNsense 26.7: zone firewall, `AFW_BLOCK_WEB` / `AFW_HEARTBEAT` / `AFW_GEO_IN` / `AFW_GEO_OUT` tables (country tables pulled from CTRL01, ADR-036), Suricata (pcap) on ATTACK+USERS, heartbeat watchdog, NAT egress | REST API (TLS, lab CA); syslog-ng over mTLS → CTRL01:5514 (client cert `fw01-telemetry`) |
 | CTRL01 | MGMT | 10.77.50.10 | Controller (`afw serve`, systemd `afw-controller`, user `afwctl`) | API + dashboard :8080 (HTTPS, lab-CA cert; MGMT only); syslog mTLS :5514 (WAF01, APP01, FW01); no plaintext listener |
 | DESK01 | MGMT | 10.77.50.20 | Operator desktop (XFCE/VNC, Firefox, Claude CLI) | — |
 | WAF01 | DMZ | 10.77.30.10 | nginx + OWASP CRS 4.25.2; policy helper | 443 (clients); helper 9443 (CTRL01 only); rsyslog mTLS sender; heartbeat timer |
@@ -57,6 +57,7 @@ harness also refuses the MGMT and DB networks as attack targets.
 | `mcp/` | MCP server (controller tools + GNS3 tools) |
 | `lab/` | GNS3 automation, OPNsense provisioning, isolation verification, layout, M6 scenario harness |
 | `geoip.py` | DB-IP country lookup, integrity, freshness, preview (M7) |
+| `policy/geo.py` | Published real-country tables per direction (ADR-036) |
 | `cli.py`, `config.py`, `container.py` | Entry point, configuration models, dependency wiring |
 
 Other directories:

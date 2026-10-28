@@ -26,8 +26,10 @@ server = MCPServer(
     instructions=(
         "Inspect and operate the AI-Adaptive-Firewall lab. Risk scores are evidence scores, "
         "not probabilities. Mutations are validated server-side; protected/management "
-        "addresses are always refused. Country policies on lab addresses are SIMULATED unless "
-        "a real GeoIP database is configured. Direction semantics: 'inbound' = connections "
+        "addresses are always refused. Country policies are either SIMULATED (lab addresses "
+        "mapped synthetically) or REAL (simulated=false: DB-IP networks enforced on FW01; "
+        "inbound verified by read-back only, outbound also by an egress probe; client zones "
+        "only). Direction semantics: 'inbound' = connections "
         "initiated from the country toward protected services; 'outbound' = connections "
         "initiated from lab networks toward the country."
     ),
@@ -282,10 +284,11 @@ def country_policy(
     duration_s: int = 3600,
     simulated: bool = True,
 ) -> dict[str, Any]:
-    """OPTIONAL EXTENSION: country-scoped policy, e.g. 'block incoming traffic from China'
-    -> country_code='CN', direction='inbound'. Only clearly-labelled simulated lab mappings
-    can be enforced; real-country policies are refused (use geo_preview to see what one
-    would cover)."""
+    """Country-scoped policy, e.g. 'block outgoing traffic to Australia' -> country_code='AU',
+    direction='outbound', simulated=False. simulated=True uses the labelled lab mapping.
+    Real policies need a fresh GeoIP database and a human request (this tool); check
+    geo_preview first. Inbound real policies can only be verified by table read-back,
+    because no real-country traffic reaches the lab."""
     return _post(
         "/api/policies",
         {

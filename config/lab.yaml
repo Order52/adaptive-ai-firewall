@@ -108,3 +108,18 @@ initial_mode: monitor
 geo_simulation:
   CN: [10.77.10.10, 10.77.10.11, 10.77.10.12]
   RU: [10.77.10.20, 10.77.10.21]
+
+# REAL-country enforcement (ADR-036), from the installed DB-IP database. FW01 pulls
+# the networks of active real geo_block policies into AFW_GEO_IN / AFW_GEO_OUT
+# (afw lab provision-geo installs the rules, aliases and the pull job).
+#   inbound:  block packets entering FW01 from the country (all interfaces)
+#   outbound: reject connections from the client zones (USERS, ATTACK) to the
+#             country; servers and MGMT egress are deliberately not covered
+geo_enforcement:
+  enabled: true
+  max_networks: 40000
+  egress_source: 10.77.20.10
+  # outbound verification: one TCP connect from USR01; country from GeoIP at use
+  egress_targets:
+    cloudflare-dns: {address: 1.1.1.1, port: 443}
+    google-dns: {address: 8.8.8.8, port: 443}
