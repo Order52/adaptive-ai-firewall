@@ -1,6 +1,6 @@
 # Project status
 
-**As of 2026-10-28, branch `engineering-directive`.** This is the single status page.
+**As of 2026-10-28 ~20:05Z, branch `engineering-directive`.** This is the single status page.
 Milestone detail is in `engineering/AUTONOMOUS_PROGRESS.md`; per-criterion evidence is
 in `VALIDATION_MATRIX.md`. Older status files are in `docs/archive/` and are superseded.
 
@@ -56,7 +56,11 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | P3 | Independent attack evaluation | BLOCKED-EXT (`engineering/P3_TEAM_ATTACK_RUNBOOK.md`) |
 | P4 | Real online adaptation | DONE for the governed loop; no promotion |
 | P5 | Hardening | DONE: IDS mTLS, API HTTPS by default, directional real-country enforcement, node count reconciled |
-| P6 | Generalization without sensitivity loss (predeclared, `engineering/P6_GENERALIZATION_AND_SENSITIVITY.md`) | IN PROGRESS: protocol + A1 committed before data; development data collected; selection pending |
+| P6/P7 | Generalization without sensitivity loss (predeclared, `engineering/P6_GENERALIZATION_AND_SENSITIVITY.md`) | DONE, negative: no eligible candidate in P6 or P7 (A2); Phase E never collected. P7 on clean data: FPR ≤ 0.016, ≤ 1/16 users restricted, only by the AUTH rule on one forgetful user (predicted). Human decision needed (`RESULTS.md` §3c) |
+| N1–N2 | Network visibility: Suricata flow/DNS/TLS/SSH metadata; residual network features; novelty detector | Live in **shadow** on ATTACK/USERS segments (ADR-042); calibration degenerate (web-only lab users) |
+| N3–N4 | Supervised known-threat classifier; withheld-family novelty | Code + tests (synthetic); evaluation BLOCKED-EXT |
+| N6 | Response states, shared-address guard | Deployed (ADR-043) |
+| N7 | §8 new-threat experiment; cold restart; dataset archive | Protocol + offline core (run BLOCKED-EXT); restart recovered with no manual step; archive hashed |
 | Directive 10-28 items 5–8 | Attack-run preparation, four-way comparison, promotion review, reliability | DONE where not blocked: `afw dataset validate`; S-ML/HYB arms and IDS alerts in datasets (runbook §4.1); `engineering/AUTO_PROMOTION_REVIEW.md` (not enabled); crash-consistent switches (ADR-040) |
 
 ## 4. Outstanding gaps, in priority order
@@ -66,11 +70,12 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
    → `afw dataset capture` → `afw dataset validate` → `afw experiment evaluate
    --streaming`. Procedure: `engineering/P3_TEAM_ATTACK_RUNBOOK.md`. Also confirms the
    SV-1 fix live (pure brute force is expected to be rate limited, not blocked).
-2. **A champion that both generalizes and stays sensitive.** v2 has too many false
-   positives on unseen users; v3 has too little single-feature ML sensitivity
-   (`engineering/P1_BENIGN_GENERALIZATION.md` §4). P6 compares more data, evidence-weighted
-   features, cohort thresholds and a one-sided security path with fixed ceilings, under
-   a predeclared protocol with separate selection and final sets.
+2. **A decision on the AUTH-rule conflict (human).** On clean data the FS candidate
+   (evidence-weighted features + one-sided security path) has window FPR ≤ 0.009 and
+   stressed synthetic must-detect 1.00, but the brute-force rule rate-limits one
+   "forgetful" legitimate user once, which the predeclared criterion forbids. Accept,
+   change the rule, or change the criterion: each needs a new predeclared amendment and
+   new selection data (`RESULTS.md` §3c). The trusted v2 champion remains in place.
 3. **Online learning cannot correct the champion's own false positives** (policed
    sources are tainted, fail-closed by design; `M2_ONLINE_LEARNING_DESIGN.md` §9). An
    operator FALSE_POSITIVE path is the governed way to clear taint.
@@ -81,6 +86,11 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
    Left: FW01's IDS feed cannot use RELP (OPNsense), so it keeps a ~100 s loss window.
    Real-country inbound enforcement can only be verified by read-back in this lab.
 6. **Residual poisoning risk** from 4 or more colluding similar sources.
+7. **Network-wide visibility is partial.** Only ATTACK and USERS cross FW01's Suricata;
+   DMZ/APP/DB/MGMT and intra-segment traffic are invisible; TLS is opaque beyond
+   SNI/version. Network novelty is calibrated on web-only users and runs in shadow; it
+   needs non-HTTP benign activity and team-run network attacks (scans, SSH guessing) to
+   be evaluated. The supervised classifier has no live promotion path.
 
 ## 5. Is it ready as a final-year project?
 

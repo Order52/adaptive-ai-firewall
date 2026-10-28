@@ -6,7 +6,7 @@ Status words: **DONE** (implemented, tested, evidence exists), **PARTIAL** (some
 acceptance criteria open, listed), **BLOCKED-EXT** (needs something only the team can
 supply), **TODO**.
 
-Last updated: 2026-10-28 ~17:30Z (M0–M9, P1–P5, P6 result; N0–N7 table below).
+Last updated: 2026-10-28 ~20:05Z (M0–M9, P1–P5, P6 result; N0–N7 table below).
 
 ## Milestones
 
@@ -43,14 +43,14 @@ Last updated: 2026-10-28 ~17:30Z (M0–M9, P1–P5, P6 result; N0–N7 table bel
 
 | N | Scope | Status | Commits | Evidence |
 |---|---|---|---|---|
-| N0 | Finish P6, preserve baseline, define criteria | P6 run once: **no candidate eligible** (RESULTS §3b); A2 predeclared before P7 data (`a197a87`); P7 Phase C′ collected 16:31–18:01Z, D′/selection next | `a197a87`, `4e3e7d7` | `p6-2026-10-28/`, `p7-2026-10-28/` |
-| N1 | Network visibility: Suricata flow/dns/tls/ssh/anomaly as versioned `NetworkEvent` (dedup, bounded buffer, datasets) | Code DONE + tests; FW01 export and live verification pending (after P7 captures, to keep the receiver load unchanged during them) | `15fb3a5`, `875ca96` | ADR-042; `tests/unit/test_network_events.py` |
-| N2 | Multi-horizon residual network features + novelty detector (shadow) + calibration | Code DONE + tests (incl. poisoned calibration, cost); calibration on real benign flows pending N1 live | `875ca96`, `e34756f` | ADR-042; `test_network_features.py`, `test_network_detector.py` |
+| N0 | Finish P6, preserve baseline, define criteria | DONE (negative): P6 and P7 (A2) each run once; **no eligible candidate either time**; Phase E never collected. P7 blocker for D/F/S/FS is one AUTH-rule rate limit on a forgetful user (predicted in A2); human decision needed | `a197a87`, `8b246fb` | protocol §8.4, RESULTS §3b–3c, `p7-2026-10-28/select/` |
+| N1 | Network visibility: Suricata flow/dns/tls/ssh as versioned `NetworkEvent` (dedup, bounded buffer, datasets) | DONE for ATTACK+USERS segments, live 19:03Z: ~800 flow + 800 TLS events/min under 36 users, 0 drops, FW01 load ≤ 0.44. One provisioning incident (IDS down 1¾ min, fixed and guarded). DMZ/APP/DB/MGMT and intra-segment traffic not visible | `15fb3a5`, `875ca96`, `63c35c3` | ADR-042; `n1-2026-10-28/` |
+| N2 | Multi-horizon residual network features + novelty detector (shadow) + calibration | DONE in shadow; calibrated on 1,296 real benign windows, but **degenerate**: lab users have no residual network activity, so any non-web activity is 'unfamiliar'. Not used for decisions | `875ca96`, `e34756f`, `ee5f96c` | `n1-2026-10-28/n2-calibration.txt` |
 | N3 | Supervised known-threat classifier, run-grouped splits, abstention | Code DONE (tests on SYNTHETIC vectors); evaluation **BLOCKED-EXT** (team attack runs) | `9dbe7fc` | `ml/supervised.py`, `afw experiment supervised` |
 | N4 | Novelty on withheld families | Protocol + code DONE; **BLOCKED-EXT** | `9dbe7fc` | `withheld_family()` |
 | N5 | Governed adaptation, poisoning defences | Existing for the HTTP path (ADR-028/030/034/040, M4); network calibration bounded by fixed ceilings; classifier labels from manifests only. No live promotion path for the classifier | — | M4 doc, ADR-042 |
-| N6 | Response-policy states, shared-address guard | DONE (code + tests); live deploy pending | `505bc5d` | ADR-043, `test_response_states.py` |
-| N7 | §8 new-threat experiment, evaluation, recovery, archive | §8 protocol + offline core DONE; run **BLOCKED-EXT**; recovery/archive pending | `1771b9f` | `docs/NEW_THREAT_EXPERIMENT.md` |
+| N6 | Response-policy states, shared-address guard | DONE, deployed (live since 18:52Z); guard not yet triggered live | `505bc5d` | ADR-043, `test_response_states.py` |
+| N7 | §8 new-threat experiment, evaluation, recovery, archive | §8 protocol + offline core DONE, run **BLOCKED-EXT**; cold lab restart recovered with no manual step (exact learner restore, 41/41, 14/14; `lab stop` defect fixed); dataset archive with SHA-256 | `1771b9f`, `e73401b` | `NEW_THREAT_EXPERIMENT.md`, `n7-2026-10-28/` |
 
 ## Tests (latest full run)
 
