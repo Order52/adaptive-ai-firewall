@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict
 
 from afw.domain.events import HttpObservation, IdsAlert
 from afw.domain.features import FeatureVector
+from afw.domain.network import NetworkEvent
 
 
 class Purpose(StrEnum):
@@ -65,6 +66,10 @@ class DatasetManifest(BaseModel):
     # before 2026-10-28, which therefore replay without IDS evidence)
     n_ids_alerts: int = 0
     ids_sha256: str = ""
+    # Suricata network events (flow/dns/tls/ssh/anomaly) of the labelled sources (N1;
+    # empty for runs captured before FW01 exported them)
+    n_net_events: int = 0
+    net_sha256: str = ""
     generator: str = ""
     notes: str = ""
 
@@ -136,6 +141,7 @@ class DatasetStore:
         manifest: DatasetManifest,
         observations: Sequence[HttpObservation],
         ids_alerts: Sequence[IdsAlert] = (),
+        net_events: Sequence[NetworkEvent] = (),
     ) -> Path:
         d = self._dir(manifest.dataset_id)
         d.mkdir(parents=True, exist_ok=False)
@@ -151,12 +157,21 @@ class DatasetStore:
                 for a in sorted(ids_alerts, key=lambda a: a.observed_at):
                     fh.write(a.model_dump_json() + "\n")
             ids_digest = hashlib.sha256(ids_path.read_bytes()).hexdigest()
+        net_digest = ""
+        if net_events:
+            net_path = d / "net_events.jsonl.gz"
+            with gzip.open(net_path, "wt") as fh:
+                for e in sorted(net_events, key=lambda e: (e.observed_at, e.event_id)):
+                    fh.write(e.model_dump_json() + "\n")
+            net_digest = hashlib.sha256(net_path.read_bytes()).hexdigest()
         final = manifest.model_copy(
             update={
                 "n_observations": len(observations),
                 "observations_sha256": digest,
                 "n_ids_alerts": len(ids_alerts),
                 "ids_sha256": ids_digest,
+                "n_net_events": len(net_events),
+                "net_sha256": net_digest,
             }
         )
         (d / "manifest.json").write_text(final.model_dump_json(indent=2))
@@ -185,6 +200,16 @@ class DatasetStore:
             raise ValueError(f"dataset {dataset_id} IDS alerts failed integrity check")
         with gzip.open(path, "rt") as fh:
             return [IdsAlert.model_validate(json.loads(line)) for line in fh if line.strip()]
+
+    def net_events(self, dataset_id: str) -> list[NetworkEvent]:
+        m = self.manifest(dataset_id)
+        if not m.net_sha256:
+            return []
+        path = self._dir(dataset_id) / "net_events.jsonl.gz"
+        if hashlib.sha256(path.read_bytes()).hexdigest() != m.net_sha256:
+            raise ValueError(f"dataset {dataset_id} network events failed integrity check")
+        with gzip.open(path, "rt") as fh:
+            return [NetworkEvent.model_validate(json.loads(line)) for line in fh if line.strip()]
 
     def list(self) -> list[DatasetManifest]:
         if not self.root.exists():

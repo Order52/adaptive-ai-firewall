@@ -28,8 +28,10 @@ from afw.domain.network import NetworkEvent
 from afw.domain.policy import Policy, PolicyKind, SourceTarget
 from afw.domain.risk import EvidenceCategory, RiskAssessment, RiskBand
 from afw.features.extract import EndpointCatalog
+from afw.features.network import NetworkWindows
 from afw.features.windows import SlidingWindows
 from afw.ml.inference import InferenceEngine, Strategy
+from afw.ml.network_detector import NetworkNovelty, NetworkVerdict
 from afw.persistence.repositories import (
     SqlAdaptationRepository,
     SqlAnalysisRepository,
@@ -132,6 +134,11 @@ class Controller:
         self.tick_ms: deque[float] = deque(maxlen=120)
         # N1: network events are buffered and stored once per tick (one transaction)
         self._net_pending: list[NetworkEvent] = []
+        # N2: residual network behaviour, assessed in SHADOW (recorded and shown, not
+        # used by any decision until validated on real benign and attack data)
+        self.net_windows = NetworkWindows((s.address, s.port) for s in cfg.services)
+        self.net_detector = NetworkNovelty()
+        self.net_verdicts: deque[NetworkVerdict] = deque(maxlen=500)
         self._drop_samples: deque[tuple[float, int]] = deque(maxlen=1000)
         self._ids_only_at: dict[IPv4Address, datetime] = {}
         self._started_at: float | None = None  # set by start(): heartbeats expected
@@ -292,7 +299,13 @@ class Controller:
         t0 = time.perf_counter()
         now = now or self.clock()
         obs = self.correlator.flush()
-        self._flush_net()
+        for e in self._flush_net():
+            self.net_windows.add(e)
+        for v in self.net_windows.emit(now):
+            verdict = self.net_detector.assess(v)
+            self.net_verdicts.append(verdict)
+            if verdict.unfamiliar:
+                self.stats.inc("net_strong" if verdict.strong else "net_unfamiliar")
         sensors = set(self.cfg.telemetry.waf_sensor_ips)
         if sensors and obs:
             own = [o for o in obs if o.client_ip in sensors]

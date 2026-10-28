@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
@@ -171,6 +171,14 @@ def ds_capture(
     # IDS evidence looks back from each window end
     lookback = CorrelationEngine(c.cfg.risk).ids_lookback
     alerts = [a for a in c.events.ids_alerts_between(start - lookback, end) if a.src_ip in labelled]
+    # network windows look back one long horizon; flows are reported when they end
+    from afw.features.network import HORIZONS_S, LATENESS_S
+
+    net = c.events.net_events_between(
+        start - timedelta(seconds=max(HORIZONS_S)),
+        end + timedelta(seconds=LATENESS_S),
+        sources=sorted(labelled),
+    )
     m = DatasetManifest(
         dataset_id=dataset_id,
         app_id=raw.get("app_id", "rental"),
@@ -184,8 +192,11 @@ def ds_capture(
         generator=raw.get("generator", ""),
         notes=raw.get("notes", ""),
     )
-    path = c.datasets.write(m, obs, alerts)
-    typer.echo(f"wrote {len(obs)} observations and {len(alerts)} IDS alerts to {path}")
+    path = c.datasets.write(m, obs, alerts, net)
+    typer.echo(
+        f"wrote {len(obs)} observations, {len(alerts)} IDS alerts and {len(net)} network "
+        f"events to {path}"
+    )
 
 
 @ds_app.command("validate")

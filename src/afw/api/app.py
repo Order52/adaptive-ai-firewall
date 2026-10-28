@@ -432,6 +432,28 @@ def create_app(c: Container) -> FastAPI:
             "shadow_learner": c.controller.shadow.snapshot() if c.controller.shadow else None,
         }
 
+    @app.get("/api/network")
+    def network(_: Viewer, limit: int = 100) -> dict[str, Any]:
+        """N1/N2 network view (SHADOW: verdicts are not used by any decision)."""
+        ctl = c.controller
+        counts = ctl.stats.snapshot()["counts"]
+        assert isinstance(counts, dict)
+        verdicts = list(ctl.net_verdicts)[-min(limit, 500) :]
+        return {
+            "mode": "shadow (not used for decisions)",
+            "events": {k: v for k, v in counts.items() if k.startswith(("net_", "duplicate_net"))},
+            "windows": {
+                "tracked_sources": ctl.net_windows.tracked_sources,
+                "too_late": ctl.net_windows.too_late,
+                "dropped": ctl.net_windows.dropped,
+            },
+            "detector": {
+                "calibrated_on": ctl.net_detector.n_calibration,
+                "effective_thresholds": ctl.net_detector.effective(),
+            },
+            "recent": [v.__dict__ for v in reversed(verdicts)],
+        }
+
     @app.get("/api/learning/shadow")
     def shadow_learning(_: Viewer, app_id: str = "rental", limit: int = 200) -> dict[str, Any]:
         """Online challenger (shadow only): state, gate outcomes, champion-vs-challenger."""

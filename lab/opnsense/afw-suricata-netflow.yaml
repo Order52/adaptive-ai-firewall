@@ -1,0 +1,70 @@
+%YAML 1.1
+---
+# AFW (N1, ADR-042): network metadata for the controller. OPNsense's IDS template can
+# put http/tls in eve.json but sends only alerts over syslog and has no flow or dns
+# option. Suricata replaces a list from an included file instead of merging it, so this
+# file restates the outputs OPNsense renders today (outputs 1-4, unchanged) and adds
+# output 5: flow/dns/tls/ssh/anomaly metadata over the same syslog program
+# ("suricata"), which FW01's syslog-ng already forwards to CTRL01 over mutual TLS.
+# Consequence: OPNsense GUI changes to these outputs are shadowed while this file
+# exists (remove it and reload OPNsense/IDS to go back).
+outputs:
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      pcap-file: false
+      community-id: false
+      community-id-seed: 0
+      types:
+        - alert:
+            tagged-packets: yes
+        - anomaly:
+            enabled: yes
+        - drop:
+            alerts: yes
+            flows: start
+        - ssh
+  - eve-log:
+      enabled: yes
+      type: syslog
+      identity: "suricata"
+      facility: local5
+      level: Info
+      community-id: true
+      community-id-seed: 0
+      xff:
+        enabled: yes
+        mode: extra-data
+        deployment: reverse
+        header: X-Forwarded-For
+      types:
+        - alert:
+            metadata: yes
+            tagged-packets: yes
+  - stats:
+      enabled: yes
+      filename: stats.log
+      append: yes
+      totals: yes
+      threads: no
+  - syslog:
+      enabled: no
+      facility: local5
+      level: Notice
+  - eve-log:
+      enabled: yes
+      type: syslog
+      identity: "suricata"
+      facility: local5
+      level: Info
+      community-id: true
+      community-id-seed: 0
+      types:
+        - flow
+        - dns
+        - tls:
+            extended: no
+        - ssh
+        - anomaly:
+            enabled: yes

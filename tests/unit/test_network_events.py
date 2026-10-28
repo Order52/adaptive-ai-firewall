@@ -139,3 +139,42 @@ def test_network_events_need_the_ids_identity(ctl):  # noqa: F811
 
 def test_classify_routes_flows_to_the_suricata_kind():
     assert classify(line(flow()))[0] == "suricata"
+
+
+def test_scan_is_assessed_in_shadow_and_never_acted_on(ctl):  # noqa: F811
+    """N2: a vertical scan (unanswered SYNs to 30 ports) yields a strong network
+    verdict after the lateness, and no policy (shadow only until validated)."""
+    for port in range(1000, 1030):
+        ctl.ingest_line(FW, line(flow(pkts_tc=0, port=port)), "ids")
+    ctl.tick(T)  # stored; window not yet due (lateness)
+    assert list(ctl.net_verdicts) == []
+    # flows started 12:00:00; at T+60 s the window ends 12:00:15 (75 s lateness), so
+    # the 60 s horizon contains them
+    ctl.tick(T + dt.timedelta(seconds=60))
+    (v,) = ctl.net_verdicts
+    assert v.strong and v.source_ip == SCANNER
+    assert ctl.stats.snapshot()["counts"]["net_strong"] == 1
+    assert ctl.policies.active() == []
+
+
+def test_datasets_carry_network_events_with_an_integrity_check(tmp_path):
+    from test_dataset_validation import OBS, manifest
+
+    from afw.ml.datasets import DatasetStore
+
+    ev = [
+        parse_suricata_net(flow(), "fw01"),
+        parse_suricata_net(flow(port=22, ts="12:00:20"), "fw01"),
+    ]
+    store = DatasetStore(tmp_path)
+    store.write(manifest(), OBS, (), ev)
+    m = store.manifest("team-bf-1")
+    assert m.n_net_events == 2 and store.net_events("team-bf-1") == sorted(
+        ev, key=lambda e: (e.observed_at, e.event_id)
+    )
+    store.write(manifest(dataset_id="old-run"), OBS)
+    assert store.net_events("old-run") == []  # captured before FW01 exported flows
+    p = tmp_path / "team-bf-1" / "net_events.jsonl.gz"
+    p.write_bytes(p.read_bytes()[:-4] + b"xxxx")
+    with pytest.raises(ValueError, match="integrity"):
+        store.net_events("team-bf-1")

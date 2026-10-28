@@ -59,6 +59,14 @@ def fw_params() -> FwParams:
     )
 
 
+# Lab-owned Suricata includes (OPNsense renders conf.d/*.yaml into suricata.yaml):
+# engine liveness for the watchdog (ADR-041) and network metadata export (ADR-042).
+SURICATA_CONF_D = (
+    ("afw-suricata-liveness.yaml", "afw-liveness.yaml"),
+    ("afw-suricata-netflow.yaml", "afw-netflow.yaml"),
+)
+
+
 class FwShell:
     def __init__(self, con: SerialConsole, log: Callable[[str], None]) -> None:
         self.c = con
@@ -150,14 +158,18 @@ def provision(
             "0644",
         )
         log("FW01: watchdog installed")
-        liveness = (ASSETS / "afw-suricata-liveness.yaml").read_bytes()
-        conf = "/usr/local/etc/suricata/conf.d/afw-liveness.yaml"
-        have = sh.run(f"[ -f {conf} ] && sha256 -q {conf} || echo none").strip()
-        if have != hashlib.sha256(liveness).hexdigest():
-            sh.write_file(conf, liveness, "0644")
+        changed = []
+        for asset, name in SURICATA_CONF_D:
+            body = (ASSETS / asset).read_bytes()
+            conf = f"/usr/local/etc/suricata/conf.d/{name}"
+            have = sh.run(f"[ -f {conf} ] && sha256 -q {conf} || echo none").strip()
+            if have != hashlib.sha256(body).hexdigest():
+                sh.write_file(conf, body, "0644")
+                changed.append(name)
+        if changed:
             sh.run("configctl template reload OPNsense/IDS", timeout=120)  # renders conf.d
             sh.run("configctl ids restart", timeout=300)
-            log("FW01: Suricata stats interval set (ADR-041), IDS restarted")
+            log(f"FW01: Suricata conf.d updated ({', '.join(changed)}), IDS restarted")
         if not already or force:
             con.sendline("reboot")
             log("FW01: rebooting")
