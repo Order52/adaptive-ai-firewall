@@ -1,0 +1,4 @@
+FW01: root shell
+FW01: config already provisioned; refreshing watchdog only
+FW01: watchdog installed
+FW01: Suricata stats interval set (ADR-041), IDS restarted

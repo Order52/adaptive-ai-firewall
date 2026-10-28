@@ -150,6 +150,14 @@ def provision(
             "0644",
         )
         log("FW01: watchdog installed")
+        liveness = (ASSETS / "afw-suricata-liveness.yaml").read_bytes()
+        conf = "/usr/local/etc/suricata/conf.d/afw-liveness.yaml"
+        have = sh.run(f"[ -f {conf} ] && sha256 -q {conf} || echo none").strip()
+        if have != hashlib.sha256(liveness).hexdigest():
+            sh.write_file(conf, liveness, "0644")
+            sh.run("configctl template reload OPNsense/IDS", timeout=120)  # renders conf.d
+            sh.run("configctl ids restart", timeout=300)
+            log("FW01: Suricata stats interval set (ADR-041), IDS restarted")
         if not already or force:
             con.sendline("reboot")
             log("FW01: rebooting")

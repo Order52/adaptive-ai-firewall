@@ -1,0 +1,17 @@
+# IDS stall: SIGSTOP suricata for 300s at 2026-10-28T15:07:48Z
+before: ids {'heartbeat_age_s': 17.4, 'stale': False} degraded False
+fw: 29640   Ss suricata stats.log mtime 15:07:48 15:07:48 
+stopped
++30s ids {'heartbeat_age_s': 48.0, 'stale': False} degraded False | fw: 29640   Ts suricata stats.log mtime 15:07:48 15:08:19 
++61s ids {'heartbeat_age_s': 78.3, 'stale': False} degraded False | fw: 29640   Ts suricata stats.log mtime 15:07:48 15:08:49 
++91s ids {'heartbeat_age_s': 108.6, 'stale': False} degraded False | fw: 29640   Ts suricata stats.log mtime 15:07:48 15:09:19 
++121s ids {'heartbeat_age_s': 138.9, 'stale': False} degraded False | fw: 29640   Ts suricata stats.log mtime 15:07:48 15:09:50 
++152s ids {'heartbeat_age_s': 169.2, 'stale': True} degraded True | fw: 29640   Ts suricata stats.log mtime 15:07:48 15:10:20 
++182s ids {'heartbeat_age_s': 199.5, 'stale': True} degraded True | fw: 29640   Ts suricata stats.log mtime 15:07:48 15:10:50 
++212s ids {'heartbeat_age_s': 229.9, 'stale': True} degraded True | fw: 29640   Ts suricata stats.log mtime 15:07:48 15:11:21 
++243s ids {'heartbeat_age_s': 260.2, 'stale': True} degraded True | fw: 29640   Ts suricata stats.log mtime 15:07:48 15:11:51 
++273s ids {'heartbeat_age_s': 290.5, 'stale': True} degraded True | fw: 29640   Ts suricata stats.log mtime 15:07:48 15:12:21 
++303s ids {'heartbeat_age_s': 320.8, 'stale': True} degraded True | fw: 29640   Ts suricata stats.log mtime 15:07:48 15:12:52 
+resumed
+resumed at 2026-10-28T15:12:52Z
+after: ids {'heartbeat_age_s': 2.3, 'stale': False} degraded False | fw: 29640   Ss suricata stats.log mtime 15:13:30 15:13:32 

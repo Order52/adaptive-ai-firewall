@@ -1,0 +1,37 @@
+wrote 120282 observations and 0 IDS alerts to /var/lib/afw/datasets/p6-train
+wrote 39517 observations and 0 IDS alerts to /var/lib/afw/datasets/p6-val
+p6-train: train, P6 Phase C training: 24 v2 persona users + 4 stratified (forgetful, slow, power), 120282 observations
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 120282 observations, manifest 120282
+PASS time_range: 0 observations outside 2026-10-28 13:07:45+00:00..2026-10-28 14:38:30+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 7/120282 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+p6-val: validation, P6 Phase C calibration: 12 v2 persona users, 39517 observations
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 39517 observations, manifest 39517
+PASS time_range: 0 observations outside 2026-10-28 13:07:45+00:00..2026-10-28 14:38:30+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/39517 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+
+# Completeness: WAF01 access-log lines for the same sources and period: train 120282, val 39517 (equal to the captured observations; zero loss)
+# Deployed before capture: commit 3175203 (controller restarted 14:38:42Z, after the generators ended 14:38:17Z)

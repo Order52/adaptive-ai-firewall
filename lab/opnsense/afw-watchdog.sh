@@ -5,8 +5,10 @@
 # * Heartbeat fresh: the controller is alive, so pull the published real-country
 #   network lists (ADR-036) and atomically replace AFW_GEO_IN / AFW_GEO_OUT when their
 #   sha256 changed. A list whose sha256 does not match its header is never loaded.
-# * Independently, while Suricata runs, one liveness line goes to CTRL01 over FW01's
-#   mTLS syslog feed. Only listed programs are forwarded, so it uses the suricata tag
+# * Independently, while Suricata works, one liveness line goes to CTRL01 over FW01's
+#   mTLS syslog feed. "Works" (ADR-041): the process exists, is not stopped, and has
+#   written stats.log within IDS_STATS_MAX_AGE seconds (stats every 30 s via conf.d);
+#   a frozen engine (found 2026-10-28: SIGSTOP for 240 s went unnoticed) stops it. Only listed programs are forwarded, so it uses the suricata tag
 #   with event_type "afw_heartbeat", which Suricata itself never emits. A silent IDS
 #   feed (Suricata or syslog down) thus shows as a stale "ids" sensor on CTRL01.
 # * Heartbeat older than MAX_AGE seconds, or missing, while any AFW table has entries:
@@ -14,6 +16,8 @@
 #   source blocks nor country blocks can outlive it. Static zone rules are unaffected;
 #   the controller re-applies desired state on its next reconcile.
 MAX_AGE=${AFW_WATCHDOG_MAX_AGE:-90}
+IDS_STATS=/var/log/suricata/stats.log
+IDS_STATS_MAX_AGE=${AFW_IDS_STATS_MAX_AGE:-90}
 TABLES="AFW_BLOCK_WEB AFW_GEO_IN AFW_GEO_OUT"
 HB=AFW_HEARTBEAT
 GEO_URL=https://10.77.50.10:8080/api/geo/enforcement
@@ -55,7 +59,11 @@ geo_sync() {  # $1 = inbound|outbound, $2 = pf table
 }
 
 ids_heartbeat() {
-  /bin/pgrep -qx suricata || return 0
+  pid=$(/bin/pgrep -x suricata | /usr/bin/head -1)
+  [ -n "$pid" ] || return 0
+  case "$(/bin/ps -o state= -p "$pid")" in T*|Z*) return 0 ;; esac
+  [ -f "$IDS_STATS" ] || return 0
+  [ $(( $(/bin/date +%s) - $(/usr/bin/stat -f %m "$IDS_STATS") )) -le "$IDS_STATS_MAX_AGE" ] || return 0
   /usr/bin/logger -t suricata \
     "{\"event_type\":\"afw_heartbeat\",\"hb\":\"$(/bin/date -u +%Y-%m-%dT%H:%M:%SZ)\",\"ids\":\"running\"}"
 }
