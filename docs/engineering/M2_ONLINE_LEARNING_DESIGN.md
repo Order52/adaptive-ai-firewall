@@ -210,7 +210,8 @@ restart.
 that the model is anomalous without the correlated features. It does **not** prove
 causal independence of the remaining evidence: remaining features can still be
 statistically coupled to the same events, for example `req_rate` during a login burst.
-This is tracked as open item SV-1 in the progress file.
+This was tracked as open item SV-1 and is fixed by ADR-039 (counterfactual residual
+windows, 2026-10-28).
 
 ## 9. Why the live challenger learned nothing (P4 investigation, 2026-10-28)
 

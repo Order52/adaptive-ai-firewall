@@ -69,15 +69,8 @@ def test_bootstrap_trains_versioned_models_without_leakage(trained):
         c.learning.bootstrap("rental", ["syn-train"], ["syn-train"])
 
 
-def test_end_to_end_bruteforce_is_blocked_and_legit_users_are_not(trained):
-    c, clock, result = trained
-    assert result.evaluation.passed, result.evaluation.checks
-    c.learning.promote("rental", result.profile.version, "reviewer", "initial baseline")
-    assert c.controller.reload()
-    c.settings_repo.set_mode(OperatingMode.AUTO, "test")
-    c.policy_service.reconcile()
-
-    live = traffic(9, clock(), 300, BENIGN, attack={ATTACKER: "bruteforce"})
+def _run_live(c, clock, attack):
+    live = traffic(9, clock(), 300, BENIGN, attack={ATTACKER: attack})
     t = clock()
     for o in live:
         while o.observed_at > t:
@@ -86,8 +79,42 @@ def test_end_to_end_bruteforce_is_blocked_and_legit_users_are_not(trained):
             clock.now = t
         c.controller.ingest_observations([o])
     c.controller.tick(t)
+    return c.policies_repo.recent(200)
 
-    policies = c.policies_repo.recent(200)
+
+def _auto(c, result):
+    assert result.evaluation.passed, result.evaluation.checks
+    c.learning.promote("rental", result.profile.version, "reviewer", "initial baseline")
+    assert c.controller.reload()
+    c.settings_repo.set_mode(OperatingMode.AUTO, "test")
+    c.policy_service.reconcile()
+
+
+def test_bruteforce_alone_is_rate_limited_not_blocked(trained):
+    """Every attacker request is a failed login: once those requests are removed nothing
+    is left, so the behaviour anomaly is the AUTH evidence again, not corroboration
+    (ADR-027, SV-1). One category never authorizes a block."""
+    c, clock, result = trained
+    _auto(c, result)
+    policies = _run_live(c, clock, "bruteforce")
+    assert not [p for p in policies if p.kind is PolicyKind.SOURCE_BLOCK]
+    limits = [
+        p
+        for p in policies
+        if p.kind is PolicyKind.RATE_LIMIT and str(p.intent.target.source_ip) == ATTACKER
+    ]
+    assert limits
+    for p in policies:
+        if str(p.intent.target.source_ip) in BENIGN:
+            assert p.kind is PolicyKind.WATCH
+
+
+def test_end_to_end_bruteforce_is_blocked_and_legit_users_are_not(trained):
+    """Brute force plus scraping from the same source: without the failed logins the
+    window is still anomalous, so behaviour independently corroborates AUTH."""
+    c, clock, result = trained
+    _auto(c, result)
+    policies = _run_live(c, clock, "bruteforce+scrape")
     blocks = [p for p in policies if p.kind is PolicyKind.SOURCE_BLOCK]
     assert blocks, "brute force should lead to a verified block"
     blocked_ips = {str(p.intent.target.source_ip) for p in blocks}

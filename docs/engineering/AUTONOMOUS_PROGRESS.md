@@ -13,7 +13,7 @@ Last updated: 2026-10-28 ~08:45Z (M0–M9 plus directive priorities P1–P5 work
 | M | Scope | Status | Commits | Evidence |
 |---|---|---|---|---|
 | M0 | Phase 0 audit, baseline, hygiene | DONE | `b3c8702`, `d096cc0` | `docs/audit/PHASE0_AUDIT_2026-10-27.md`, `artifacts/evidence/phase0-2026-10-27/` |
-| M1 | Provenance-aware corroboration (ADR-027) | DONE (SV-1 open: needs attack runs, see risks) | `9b99947` | `tests/unit/test_evidence_independence.py` |
+| M1 | Provenance-aware corroboration (ADR-027) | DONE; SV-1 fixed by ADR-039 (live attack confirmation pending) | `9b99947` | `tests/unit/test_evidence_independence.py` |
 | M2 | Online shadow learning, eligibility, provenance, mTLS (ADR-028/029) | DONE (2026-10-28, P4): live learning on CTRL01 (367 windows, 2 live pivots, checkpoints), exact checkpoint restore across 2 controller restarts, live gate rejection; 0-learned cause explained (deliberate taint). Found and fixed a leaking per-source rate cap | `a5f5d9f`, `673202a`, `f41f6cf`, P4 commits | `docs/engineering/M2_ONLINE_LEARNING_DESIGN.md` §9–10, `artifacts/evidence/p1-2026-10-28/p4-*` |
 | M3 | Champion/challenger gate, human promotion, probation, auto-rollback (ADR-030) | DONE (code + tests + live refusals); live gate BLOCKED-EXT (no real labelled attack runs) | `44031d4` | `docs/engineering/M3_CHAMPION_CHALLENGER.md`, `artifacts/evidence/m3-2026-10-27/` |
 | M4 | Adaptation experiments: real drift, poisoning, regression rollback | DONE: found and fixed a real poisoning flaw (driver-name corroboration); gate still FAILS on attack recall (BLOCKED-EXT) and sensitive invariance; P2 traced the latter to threshold calibration, not the learned state | `346f9d9` | `docs/engineering/M4_ADAPTATION_EXPERIMENTS.md`, `artifacts/evidence/m3-2026-10-27/m4-adaptation*.json` |
@@ -49,11 +49,12 @@ attack-detection results stays **failed/blocked** until real labelled attack run
 
 ## Risks and open items
 
-* **SV-1 (security validation, open, needs attack runs):** M1's occlusion test shows a
-  detector stays anomalous with the evidence features masked; it is not proof of causal
-  independence. Benign traffic cannot exercise it (AUTH evidence needs ≥ 5 failed logins
-  at ≥ 50 % in 30 s). Proposed stronger test once brute-force runs exist: rebuild the
-  window without the evidence-generating requests and re-score.
+* **SV-1 (fixed 2026-10-28, ADR-039; live attack confirmation pending):** occlusion was
+  shown, offline on synthetic auth cases over real benign bases, to call up to 76 % of
+  auth-caused anomalies independent. Independence is now the counterfactual: the
+  window rebuilt without the evidence-generating requests and re-scored. Residual false
+  independence 0 on the same cases. Pure brute force now yields a strict rate limit,
+  not a block (one category). The team's brute-force runs should confirm this live.
 * **Champion false positives on legitimate users (2026-10-27/28):** the v2 champion
   flags most users whose behaviour differs from its training run (P1: 13/16 unseen users
   in replay; live monitor-mode proposals tainted 21/24 P1 Phase A users). Policed sources

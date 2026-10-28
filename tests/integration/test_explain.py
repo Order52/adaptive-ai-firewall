@@ -60,7 +60,7 @@ def blocked(settings):
     c.controller.reload()
     c.settings_repo.set_mode(OperatingMode.AUTO, "test")
     c.policy_service.reconcile()
-    live = traffic(9, clock(), 300, BENIGN, attack={ATTACKER: "bruteforce"})
+    live = traffic(9, clock(), 300, BENIGN, attack={ATTACKER: "bruteforce+scrape"})
     t = clock()
     for o in live:
         while o.observed_at > t:

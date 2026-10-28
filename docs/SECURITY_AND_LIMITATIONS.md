@@ -42,8 +42,12 @@ the known gaps.
   because champion proposals tainted every new source (fail-closed). Adaptation is
   shown on recorded real drift only, and the gate refuses the adapted challenger.
 - **Residual poisoning risk.** Four or more colluding, tenured, behaviourally similar
-  sources can corroborate each other (M4). SV-1: occlusion attribution does not prove
-  causal independence of evidence.
+  sources can corroborate each other (M4). SV-1 (fixed, ADR-039): independence is now
+  tested by re-scoring the window without the evidence-generating requests; occlusion
+  had called up to 76 % of auth-caused anomalies independent. A source that only
+  fails logins is therefore rate limited, not blocked, unless something else about it
+  is anomalous. Verified offline on synthetic feature-level cases; real attack runs
+  are still needed.
 - **Telemetry loss window.** Closed for WAF01/APP01 by RELP over mutual TLS (ADR-038):
   in a dead-session test 150 of 150 lines arrived (plain TCP lost 105 of 150). An
   acknowledgement means "queued in memory", so a controller crash can still lose lines

@@ -109,6 +109,17 @@ def brute_force(
     return out
 
 
+def scrape(
+    rng: random.Random, ip: str, start: datetime, duration_s: float, rate: float = 4.0
+) -> list[HttpObservation]:
+    out = []
+    t = start
+    while t < start + timedelta(seconds=duration_s):
+        out.append(_obs(rng, t, ip, "GET", "/cars/{car_id}", 200))
+        t += timedelta(seconds=rng.expovariate(rate))
+    return out
+
+
 def sqli_probe(rng: random.Random, ip: str, start: datetime, n: int = 12) -> list[HttpObservation]:
     return [
         _obs(
@@ -141,8 +152,10 @@ def traffic(
         obs += benign_user(rng, ip, start, duration_s, v2=True)
     for ip, kind in (attack or {}).items():
         at = start + timedelta(seconds=duration_s / 3)
-        if kind == "bruteforce":
+        if kind.startswith("bruteforce"):
             obs += brute_force(rng, ip, at, duration_s / 3)
+        if kind == "bruteforce+scrape":
+            obs += scrape(rng, ip, at, duration_s / 3)
         elif kind == "sqli":
             obs += sqli_probe(rng, ip, at)
     return sorted(obs, key=lambda o: o.observed_at)

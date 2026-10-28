@@ -3,7 +3,8 @@
 Failed logins produce AUTH evidence *and* move the auth-derived behaviour
 features (login_rate, auth_fail_frac, distinct_usernames, 401s in
 client_err_frac). A behaviour detection counts as independent corroboration
-only if the detector is still anomalous with those features occluded.
+only if the window is still anomalous without the requests behind that evidence
+(SV-1 residuals; feature occlusion is the fallback for vectors recorded earlier).
 """
 
 from __future__ import annotations
@@ -187,3 +188,77 @@ def test_residual_check_occludes_exactly_the_dependent_features(present):
     feats = set().union(*(EVIDENCE_FEATURES[EvidenceCategory(p)] for p in present))
     assert det.score(row[None, :])[0] >= 4.0
     assert not det.anomalous_without(row, feats, 4.0)
+
+
+# ------------------------------------------------------------ SV-1 residuals
+def test_side_effects_of_failed_logins_are_not_independent(lab_cfg):
+    """The failed logins also raise the request rate. Occluding the auth features
+    leaves that side effect and calls the anomaly independent (the SV-1 defect); the
+    residual window, without those requests, is normal."""
+    attack = {
+        "login_rate": 60.0,
+        "auth_fail_frac": 1.0,
+        "distinct_usernames": 30.0,
+        "client_err_frac": 0.9,
+        "req_rate": 40.0,
+    }
+    legacy = _fv(AUTH_ATTACK, **attack)
+    assert "auth" in _engine().score(legacy)[0].independent_of  # occlusion fallback
+    fv = legacy.model_copy(update={"residuals": {"auth": dict(BENIGN)}})
+    dets = _engine().score(fv)
+    assert dets[0].is_anomalous and "auth" not in dets[0].independent_of
+    ra = CorrelationEngine(lab_cfg.risk).assess(fv, dets, fv.window_end)
+    assert set(ra.corroborating_categories) == {EvidenceCategory.AUTH}
+
+
+def test_anomalous_residual_is_independent():
+    rest = {**BENIGN, "req_rate": 40.0}
+    fv = _fv(AUTH_ATTACK, auth_fail_frac=1.0, req_rate=45.0).model_copy(
+        update={"residuals": {"auth": rest}}
+    )
+    assert "auth" in _engine().score(fv)[0].independent_of
+
+
+def test_nothing_left_means_dependent_and_no_evidence_requests_means_independent():
+    gone = _fv(AUTH_ATTACK, auth_fail_frac=1.0, req_rate=45.0).model_copy(
+        update={"residuals": {"auth": None}}
+    )
+    assert _engine().score(gone)[0].independent_of == ("waf",)
+    plain = _fv({}, req_rate=45.0).model_copy(update={"residuals": {}})
+    assert set(_engine().score(plain)[0].independent_of) == {"auth", "waf", "auth+waf"}
+
+
+def test_compute_features_records_residuals_per_present_category():
+    from afw.domain.events import AuthOutcome, HttpObservation
+    from afw.features.extract import EndpointCatalog, compute_features
+
+    src = IPv4Address("10.77.10.23")
+    cat = EndpointCatalog(
+        frozenset({"/", "/login"}), frozenset({("/", "GET"), ("/login", "POST")}), {"/login"}
+    )
+
+    def o(i, route, method, status, **kw):
+        return HttpObservation(
+            event_id=f"e{i}",
+            request_id=f"req{i:08d}",
+            app_id="rental",
+            observed_at=T0 + timedelta(seconds=i),
+            client_ip=src,
+            method=method,
+            path=route,
+            route=route,
+            status=status,
+            app_joined=True,
+            reached_backend=True,
+            **kw,
+        )
+
+    fails = [o(i, "/login", "POST", 401, auth_outcome=AuthOutcome.FAILURE) for i in range(6)]
+    page = [o(10 + i, "/", "GET", 200) for i in range(3)]
+    end = T0 + timedelta(seconds=30)
+    fv = compute_features([*fails, *page], WindowSpec(), cat, T0, end)
+    assert fv.residuals is not None and set(fv.residuals) == {"auth"}
+    rest = fv.residuals["auth"]
+    assert rest == compute_features(page, WindowSpec(), cat, T0, end).values
+    assert compute_features(fails, WindowSpec(), cat, T0, end).residuals == {"auth": None}
+    assert compute_features(page, WindowSpec(), cat, T0, end).residuals == {}
