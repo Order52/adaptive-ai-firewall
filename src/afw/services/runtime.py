@@ -38,6 +38,7 @@ from afw.persistence.repositories import (
     SqlEventRepository,
 )
 from afw.policy.decision import DecisionEngine
+from afw.policy.response import accounts_behind
 from afw.policy.service import PolicyService
 from afw.profiling.adaptation import DriftMonitor, PersistentReputation, SourceReputation
 from afw.services.challenger import ChallengerLifecycle
@@ -406,7 +407,14 @@ class Controller:
         if self.policies.has_active(ra.source_ip, {PolicyKind.SOURCE_BLOCK}):
             return  # already maximally contained for this service
         prior = self.correlation.prior_enforcements(ra.source_ip, timedelta(hours=6), now)
-        intent = self.decisions.decide(ra, prior, now)
+        accounts = 0
+        if ra.score >= self.cfg.risk.block:  # only a block can be downgraded
+            accounts = accounts_behind(
+                self.events.recent_observations(limit=5000, source_ip=ra.source_ip),
+                now,
+                timedelta(seconds=self.cfg.safety.shared_address_window_s),
+            )
+        intent = self.decisions.decide(ra, prior, now, accounts)
         if intent is None:
             return
         if intent.kind is not PolicyKind.SOURCE_BLOCK and self.policies.has_active(

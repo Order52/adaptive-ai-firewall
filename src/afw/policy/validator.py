@@ -18,6 +18,7 @@ from afw.domain.policy import (
     SourceTarget,
 )
 from afw.policy.geo import GeoTables
+from afw.policy.response import SHARED_ADDRESS_GUARD
 
 GLOBAL_BODY_CEILING = 1_048_576
 
@@ -99,9 +100,12 @@ class PolicyValidator:
             and intent.kind in s.auto_kinds
             and (intent.duration_s or 0) <= s.max_auto_duration_s
             and not degraded_telemetry
+            and SHARED_ADDRESS_GUARD not in intent.reason_codes
         )
         if mode is OperatingMode.AUTO and intent.origin is PolicyOrigin.AI and not auto:
-            if degraded_telemetry:
+            if SHARED_ADDRESS_GUARD in intent.reason_codes:
+                notes.append("shared address: requires human approval")
+            elif degraded_telemetry:
                 notes.append("telemetry degraded: automatic enforcement suspended")
             else:
                 notes.append("outside automatic bounds: requires approval")

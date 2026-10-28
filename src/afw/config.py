@@ -83,6 +83,14 @@ class SafetyConfig(_Cfg):
         "behaviour-only evidence observe-only (P6 amendment A2). Changing it on a live "
         "deployment needs human authorization",
     )
+    shared_address_min_accounts: int = Field(
+        default=3,
+        ge=2,
+        description="distinct accounts with a recent successful login that make an "
+        "address shared (NAT/proxy); a block on it is downgraded to a rate limit that "
+        "needs human approval (ADR-043)",
+    )
+    shared_address_window_s: int = Field(default=3600, ge=60)
 
 
 class RiskConfig(_Cfg):

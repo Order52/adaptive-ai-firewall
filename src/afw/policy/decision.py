@@ -11,6 +11,7 @@ from datetime import datetime
 from afw.config import LabConfig
 from afw.domain.policy import PolicyIntent, PolicyKind, PolicyOrigin, RateProfile, SourceTarget
 from afw.domain.risk import EvidenceCategory, RiskAssessment
+from afw.policy.response import SHARED_ADDRESS_GUARD, response_state
 
 _BEHAVIOR = {EvidenceCategory.BEHAVIOR_ML, EvidenceCategory.BEHAVIOR_STAT}
 
@@ -19,7 +20,11 @@ class DecisionEngine:
     def __init__(self, cfg: LabConfig) -> None:
         self.cfg = cfg
 
-    def decide(self, ra: RiskAssessment, prior_blocks: int, now: datetime) -> PolicyIntent | None:
+    def decide(
+        self, ra: RiskAssessment, prior_blocks: int, now: datetime, accounts_behind: int = 0
+    ) -> PolicyIntent | None:
+        """``accounts_behind``: distinct accounts recently logged in from the source
+        (``response.accounts_behind``); enough of them make the address shared."""
         r = self.cfg.risk
         service = self.cfg.application(ra.app_id).service
         cats = set(ra.corroborating_categories)
@@ -27,6 +32,8 @@ class DecisionEngine:
         behavior_only = cats <= {EvidenceCategory.BEHAVIOR_ML}
         detectors_agree = evidence_cats >= _BEHAVIOR
         need = self.cfg.safety.require_corroboration_for_block
+        state = f"state:{response_state(ra, self.cfg).value}"
+        shared = accounts_behind >= self.cfg.safety.shared_address_min_accounts
 
         def intent(kind: PolicyKind, reasons: list[str], **kw: object) -> PolicyIntent:
             return PolicyIntent(
@@ -36,7 +43,7 @@ class DecisionEngine:
                 target=SourceTarget(source_ip=ra.source_ip),
                 origin=PolicyOrigin.AI,
                 requested_by="adaptive-controller",
-                reason_codes=tuple(reasons),
+                reason_codes=(*reasons, state),
                 risk_assessment_id=ra.assessment_id,
                 evidence_refs=tuple(ref for e in ra.evidence for ref in e.refs)[:50],
                 **kw,
@@ -48,6 +55,14 @@ class DecisionEngine:
             if ra.score >= r.watch:
                 return intent(PolicyKind.WATCH, [*codes, "ids_only_observe"], duration_s=600)
             return None
+        if ra.score >= r.block and len(cats) >= need and shared:
+            # never block everyone behind a shared address automatically (ADR-043)
+            return intent(
+                PolicyKind.RATE_LIMIT,
+                [*codes, SHARED_ADDRESS_GUARD, f"accounts_behind_{accounts_behind}"],
+                duration_s=r.base_block_s,
+                rate_profile=RateProfile.STRICT,
+            )
         if ra.score >= r.block and len(cats) >= need:
             level = min(5, prior_blocks + (1 if ra.score >= r.escalate else 0))
             duration = int(r.base_block_s * (r.escalation_factor**level))
