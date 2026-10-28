@@ -53,6 +53,12 @@ MODE = os.environ.get("AFW_MODE", "shared")
 PERSONA_SET = os.environ.get("AFW_PERSONA_SET", "v1")
 ARCHETYPES = [a for a in os.environ.get("AFW_ARCHETYPES", "").split(",") if a]
 CITIES = ["Tripoli", "Benghazi", "Misrata", "Sabha"]
+# Review endpoints exist only in app 2.x. "auto" asks the app its version once, so
+# legitimate users never request routes the deployed app does not serve (before
+# 2026-10-28 every review request to the v1 app was a 404: 22-29 % of all generated
+# legitimate requests, P6 amendment A2).
+REVIEWS_SETTING = os.environ.get("AFW_APP_REVIEWS", "auto")
+REVIEWS = REVIEWS_SETTING == "1"
 VALID_USERS = [(f"user{n}", f"pw-{n}") for n in range(1, 51)]
 
 _ctx = ssl.create_default_context(cafile=CA)
@@ -144,7 +150,8 @@ def journey(rng: random.Random, source: str, p: dict = DEFAULT_PERSONA) -> None:
         if rng.random() < 0.7:
             car_id = rng.randint(1, 40)
             _request(source, "GET", f"/cars/{car_id}")
-            _request(source, "GET", f"/cars/{car_id}/reviews")
+            if REVIEWS:
+                _request(source, "GET", f"/cars/{car_id}/reviews")
             time.sleep(rng.uniform(0.3, 1.2) * t)
 
     # Some sessions authenticate; the rest browse only.
@@ -168,7 +175,7 @@ def journey(rng: random.Random, source: str, p: dict = DEFAULT_PERSONA) -> None:
                     cookie=session,
                     body={"car_id": car_id, "days": rng.randint(1, 7)},
                 )
-            if rng.random() < p["review"]:
+            if rng.random() < p["review"] and REVIEWS:
                 _request(
                     source,
                     "POST",
@@ -183,8 +190,16 @@ def journey(rng: random.Random, source: str, p: dict = DEFAULT_PERSONA) -> None:
 # user the P1 personas did not cover; the values are habits, not attack parameters.
 def _arch(rng: random.Random, name: str) -> dict:
     base = persona(rng)
-    base.update({"archetype": name, "stale": 0.0, "max_typos": 1, "accounts": [base["user"]],
-                 "city": 0.0, "detail": 0.3})
+    base.update(
+        {
+            "archetype": name,
+            "stale": 0.0,
+            "max_typos": 1,
+            "accounts": [base["user"]],
+            "city": 0.0,
+            "detail": 0.3,
+        }
+    )
     match name:
         case "casual":  # mostly browsing, rarely logs in
             base.update(auth=rng.uniform(0.0, 0.25), depth=rng.randint(1, 3))
@@ -193,8 +208,14 @@ def _arch(rng: random.Random, name: str) -> dict:
         case "forgetful":  # often mistypes, retries up to 3 times, then succeeds
             base.update(typo=rng.uniform(0.3, 0.7), max_typos=3, auth=rng.uniform(0.6, 1.0))
         case "power":  # fast, deep sessions, books a lot (e.g. a fleet manager)
-            base.update(think=rng.choice([0.25, 0.5]), depth=rng.randint(4, 8),
-                        gap=rng.choice([2.0, 5.0]), auth=0.95, book=0.9, detail=0.8)
+            base.update(
+                think=rng.choice([0.25, 0.5]),
+                depth=rng.randint(4, 8),
+                gap=rng.choice([2.0, 5.0]),
+                auth=0.95,
+                book=0.9,
+                detail=0.8,
+            )
         case "household":  # one address, 2-4 people with their own accounts (home NAT)
             base.update(accounts=rng.sample(VALID_USERS, rng.randint(2, 4)), auth=0.8)
         case "stale":  # bookmarks to cars that no longer exist
@@ -207,8 +228,14 @@ def _arch(rng: random.Random, name: str) -> dict:
 
 
 ARCHETYPE_WEIGHTS = {
-    "casual": 3, "regular": 3, "forgetful": 1, "power": 1,
-    "household": 1, "stale": 1, "slow": 1, "city": 1,
+    "casual": 3,
+    "regular": 3,
+    "forgetful": 1,
+    "power": 1,
+    "household": 1,
+    "stale": 1,
+    "slow": 1,
+    "city": 1,
 }
 
 
@@ -237,7 +264,8 @@ def journey_v2(rng: random.Random, source: str, p: dict) -> None:
                 continue
             car_id = rng.randint(1, 40)
             _request(source, "GET", f"/cars/{car_id}")
-            _request(source, "GET", f"/cars/{car_id}/reviews")
+            if REVIEWS:
+                _request(source, "GET", f"/cars/{car_id}/reviews")
             time.sleep(rng.uniform(0.3, 1.2) * t)
     if rng.random() >= p["auth"]:
         return
@@ -246,17 +274,25 @@ def journey_v2(rng: random.Random, source: str, p: dict) -> None:
         for _ in range(rng.randint(1, p["max_typos"])):
             _request(source, "POST", "/login", body={"username": username, "password": "wrong"})
             time.sleep(rng.uniform(1.0, 4.0))
-    _, session = _request(source, "POST", "/login", body={"username": username, "password": password})
+    _, session = _request(
+        source, "POST", "/login", body={"username": username, "password": password}
+    )
     if not session:
         return
     _request(source, "GET", "/bookings", cookie=session)
     time.sleep(rng.uniform(0.3, 1.2) * t)
     if rng.random() < p["book"]:
         status, _, data = _request_full(
-            source, "POST", "/booking", cookie=session,
+            source,
+            "POST",
+            "/booking",
+            cookie=session,
             # a valid body: v1 omits the required city, so every v1 booking is a 422
-            body={"car_id": car_id, "days": rng.randint(1, 7),
-                  "city": ["Tripoli", "Benghazi", "Misrata"][(car_id - 1) % 3]},
+            body={
+                "car_id": car_id,
+                "days": rng.randint(1, 7),
+                "city": ["Tripoli", "Benghazi", "Misrata"][(car_id - 1) % 3],
+            },
         )
         if status == 201 and rng.random() < p["detail"]:
             try:
@@ -266,9 +302,12 @@ def journey_v2(rng: random.Random, source: str, p: dict) -> None:
             if bid is not None:
                 time.sleep(rng.uniform(0.3, 1.0) * t)
                 _request(source, "GET", f"/booking/{bid}", cookie=session)
-    if rng.random() < p["review"]:
+    if rng.random() < p["review"] and REVIEWS:
         _request(
-            source, "POST", "/reviews", cookie=session,
+            source,
+            "POST",
+            "/reviews",
+            cookie=session,
             body={"car_id": car_id, "stars": rng.randint(3, 5), "text": "great car"},
         )
     _request(source, "POST", "/logout", cookie=session)
@@ -290,7 +329,21 @@ def _user(source: str, end: float, seed: int, counts: dict) -> None:
         time.sleep(min(rng.expovariate(1 / p["gap"]), max(0.0, end - time.time())))
 
 
+def _app_has_reviews(source: str) -> bool:
+    status, _, data = _request_full(source, "GET", "/")
+    try:
+        version = str(json.loads(data).get("version", "")) if status == 200 else ""
+    except ValueError:
+        version = ""
+    return version.startswith("2.")
+
+
 def main() -> None:
+    global REVIEWS
+    if REVIEWS_SETTING == "auto":
+        REVIEWS = _app_has_reviews(SOURCES[0])
+    state = "on" if REVIEWS else "off"
+    print(f"app reviews: {state} (AFW_APP_REVIEWS={REVIEWS_SETTING})", flush=True)
     if MODE == "personas":
         import threading
 

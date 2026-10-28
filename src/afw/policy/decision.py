@@ -58,7 +58,8 @@ class DecisionEngine:
                 duration_s=duration,
                 escalation_level=level,
             )
-        if ra.score >= r.rate_limit and (not behavior_only or detectors_agree):
+        agree_ok = detectors_agree and self.cfg.safety.behavior_only_rate_limit
+        if ra.score >= r.rate_limit and (not behavior_only or agree_ok):
             profile = RateProfile.STRICT if ra.score >= r.block else RateProfile.MODERATE
             return intent(
                 PolicyKind.RATE_LIMIT,

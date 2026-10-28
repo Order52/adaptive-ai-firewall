@@ -1,0 +1,32 @@
+{
+ "name": "S",
+ "sha256": "d0f834074aeea4ef10596f557a6c9ff3891ba3b462a998a943835b86130eb7b7",
+ "notes": {
+  "security_effective": {
+   "auth_failures": 6.0,
+   "auth_fail_lb": 0.49755313522997335,
+   "distinct_usernames": 5.0,
+   "login_rate": 18.000000000000004,
+   "client_errors": 25.0,
+   "unknown_route_lb": 3.2805682357786585e-18,
+   "novel_method_lb": 3.2805682357786585e-18
+  },
+  "train": [
+   "real-benign-train2",
+   "p1-train",
+   "p6-train"
+  ],
+  "val": [
+   "real-benign-val",
+   "p1-val",
+   "p6-val"
+  ],
+  "train_windows": 19430,
+  "val_windows": 8338,
+  "thresholds": {
+   "robust_stats": 4.75856,
+   "isolation_forest": 0.58428,
+   "half_space_trees": 0.73644
+  }
+ }
+}

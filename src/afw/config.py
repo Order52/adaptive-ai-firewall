@@ -75,6 +75,14 @@ class SafetyConfig(_Cfg):
     require_corroboration_for_block: int = Field(
         default=2, description="independent evidence categories required for any block"
     )
+    behavior_only_rate_limit: bool = Field(
+        default=True,
+        description="rate limit a source whose only evidence is behavioural when the "
+        "statistical and an ML detector agree (pre-2026-10-28 behaviour). Both read the "
+        "same features, so their agreement is not independent corroboration; False makes "
+        "behaviour-only evidence observe-only (P6 amendment A2). Changing it on a live "
+        "deployment needs human authorization",
+    )
 
 
 class RiskConfig(_Cfg):

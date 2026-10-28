@@ -215,3 +215,102 @@ cases, of the **lower** of the nominal and the stressed enforcing flag rate. Ste
 *Final criteria.* A fifth criterion is added: under the same stress, built on
 `p6-val` bases and evaluated on `p6-final` bases, the must-detect enforcing flag rate
 is ≥ 0.95 for each family.
+
+**A2 (2026-10-28 ~16:45Z, after the Phase D selection failed (§8), before any P7
+data existed; Phase E not collected).** Each change answers a cause demonstrated in §8
+on the consumed selection data. No acceptance criterion changes.
+
+1. *Generator.* Legitimate users no longer request routes the deployed application
+   does not serve. `traffic/benign_personas.py` asks the app its version once
+   (`GET /`) and requests the review endpoints only on app 2.x (`AFW_APP_REVIEWS=auto`).
+   Every random draw is kept, so personas behave as before otherwise. Applies to all new
+   data, including Phase E (same addresses and seeds as §2).
+2. *Training data.* Candidates D, F, C, S, FS are trained on `p7-train` and calibrated
+   on `p7-val` only. All earlier generated data carries the artifact (§8.3) and is not
+   used for training. R2 and R3 are the stored v2/v3 profiles, unchanged.
+3. *Decision rule.* Every candidate, references included, is replayed with
+   `safety.behavior_only_rate_limit = False`: behaviour-only evidence is observe-only,
+   as the documented invariant says. The setting stays `True` on the live controller;
+   switching it there needs human authorization.
+4. *Unchanged:* candidate definitions, selection rule, final criteria 1–5, A1 stress,
+   the AUTH evidence rule and ADR-039, the Phase E sets.
+
+P7 data (USR01, same lab path; addresses reused for the same roles with new persona
+draws; no P6 data is used for training, and no P6/P7 training, calibration or
+selection address is a Phase E address):
+
+| Dataset | Users (10.77.20.x) | Seed | Phase | Role |
+|---|---|---|---|---|
+| `p7-train` | .100–.123 + .136–.139 (forgetful, slow, power) | 811, 815 | C′, 90 min | training |
+| `p7-val` | .124–.135 | 812 | C′ | calibration |
+| `p7-sel` | .140–.155 | 813 | D′, 45 min | selection |
+| `p7-sel-shift` | .156–.161, shared | 814 | D′ | selection, workload shift |
+| `p6-final`, `-shift`, `-v1` | .170–.197 | 701–703 | E, after the freeze | final, unchanged |
+
+Driver: `artifacts/evidence/p7-2026-10-28/p7_run.py` (a copy of `p6_run.py` with only
+the changes above).
+
+*Predicted before data, not tuned away.* A forgetful user who fails ≥ 5 logins at ≥ 50 %
+within 30 s meets the AUTH rule; ADR-039 then gives a rate limit by design (§8.2). If
+that happens on `p7-sel`, every candidate is ineligible again, and the result is
+reported as a conflict between the brute-force rule and that archetype. Resolving it
+(the rule, the archetype or the criterion) is a human decision.
+
+## 8. Results
+
+### 8.1 Phase D selection (2026-10-28, run once)
+
+Data: `p6-sel` 38,932 observations, 16 users, 1,085 tumbling windows; `p6-sel-shift`
+3,607 observations, 6 users, 307 windows. All validation checks passed; both counts
+equal the WAF01 access log (zero loss). Evidence: `artifacts/evidence/p6-2026-10-28/
+select/` (report `p6-select.json`; candidate sha256 in `cand-*.json`, pickles not in Git).
+
+**No candidate is eligible; nothing was selected or frozen; Phase E was not collected.**
+
+| Cand. | RS FPR (CI) | IF FPR (CI) | Security FPR | M2 users restricted sel / shift | Must-detect min nominal / stressed |
+|---|---|---|---|---|---|
+| R2 (v2) | 0.261 (0.094–0.454) | 0.430 (0.281–0.594) | – | 12/16, 6/6 | 1.00 / 0.35 |
+| R3 (v3) | 0.104 (0.010–0.228) | 0.018 | – | 5/16, 3/6 | 1.00 / 0.55 |
+| D | 0.012 | 0.021 (0.008–0.041) | – | 5/16, 2/6 | 0.51 / 0.17 |
+| F | 0.011 | 0.015 | – | 1/16, 5/6 | 0.60 / 0.37 |
+| C | 0.012 | 0.020 (0.007–0.040) | – | 7/16, 4/6 | 0.56 / 0.02 |
+| S | 0.012 | 0.021 | 0.068 (0–0.164) | 5/16, 2/6 | 0.91 / 0.63 |
+| FS | 0.011 | 0.015 | 0.068 (0–0.164) | 1/16, 5/6 | 0.96 / 0.83 |
+
+On the workload-shift set every retrained candidate's Isolation Forest flags 9–13 % of
+windows (R2: 75 %).
+
+Decomposition (S, `p6-sel` bases, IDOR@20, the limiting family): ML-only (RS or IF)
+0.51, security-path-only 0.46, combined 0.91; under stress 0.17 / 0.46 / 0.63. The
+security path does not hide weak ML here; neither part is sufficient alone.
+
+### 8.2 Why every candidate failed (diagnosis on the consumed selection data)
+
+* **Behaviour-only rate limits.** Every M2 restriction of a legitimate user, for D, F,
+  C and R3 on both sets, was a MODERATE rate limit where the only corroboration was
+  behaviour and the statistical and ML detectors agreed (`decision.py`,
+  `detectors_agree`), except one forgetful user (below). This path dates from the first
+  replay runner (`e35e4cd`), has no ADR or test, and contradicts the engine's own rule
+  that both detectors are one corroboration category and the documented invariant that
+  an anomaly alone never authorizes a traffic-affecting change. Restricted users had
+  1–4 such decisions each (isolated windows). (`select/diagnosis-restrictions.json`)
+* **Forgetful user and the brute-force rule.** User .155 (forgetful archetype, up to 3
+  typos per login, frequent logins) reached ≥ 5 failed logins at ≥ 50 % in a window;
+  AUTH plus the dependent behaviour points gave a rate limit, as ADR-039 intends for
+  brute force.
+* **A generator/app mismatch in all legitimate data (§8.3).** It explains the security
+  path's false positives (`client_errors` ceiling: 70 of its 74 flags, all on two power
+  users) and the retrained candidates' blindness to IDOR (they learned bursts of 404s as
+  normal; R2/R3 detect IDOR@20 at 1.0, the retrained candidates at 0.51–0.60).
+
+### 8.3 Data defect: 22–29 % of all generated legitimate requests were errors
+
+Both persona journeys requested `/cars/{id}/reviews` (and posted `/reviews`), which the
+deployed v1 application does not serve (404). Client-error share per dataset: p6-train
+27.8 %, p6-val 25.0 %, p6-sel 27.2 %, p1-train 28.8 %, p1-val 29.4 %,
+real-benign-train2 22.1 %, real-benign-val 23.8 % (plus 422 bookings in v1 data). §3.2
+noted the 404s but not their size. Every earlier benign model and FPR in this project
+was trained and measured on this population; that does not invalidate the comparisons
+between them, but legitimate traffic in the lab looked less clean than real users, and
+404-driven detections (IDOR, enumeration) were learned against an inflated baseline.
+Fixed in the generator (A2.1).

@@ -1,0 +1,4 @@
+    warnings.warn(message, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+14 passed, 11 warnings in 133.50s (0:02:13)

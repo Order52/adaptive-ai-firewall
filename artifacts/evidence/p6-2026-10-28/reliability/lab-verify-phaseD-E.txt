@@ -1,0 +1,4 @@
+PASS  ctrl01  -> 10.77.20.10:22    want=allow got=open      CTRL01 to USERS (probe agent path)
+PASS  ctrl01  -> 10.77.60.10:22    want=allow got=open      CTRL01 to DB SSH (management)
+PASS  ctrl01  -> 10.77.50.1:443   want=allow got=open      CTRL01 to FW API
+41/41 checks passed
