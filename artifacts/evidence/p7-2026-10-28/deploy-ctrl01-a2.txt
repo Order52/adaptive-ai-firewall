@@ -1,0 +1,6 @@
+ctrl01                     : ok=21   changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+# deployed a197a87 at 2026-10-28T16:31:01Z, before Phase C' (no capture running)
+policy/decision.py MATCH
+config.py MATCH
+health ok monitor model_error None degraded False

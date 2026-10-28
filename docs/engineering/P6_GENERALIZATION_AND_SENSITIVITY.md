@@ -216,7 +216,7 @@ cases, of the **lower** of the nominal and the stressed enforcing flag rate. Ste
 `p6-val` bases and evaluated on `p6-final` bases, the must-detect enforcing flag rate
 is ≥ 0.95 for each family.
 
-**A2 (2026-10-28 ~16:45Z, after the Phase D selection failed (§8), before any P7
+**A2 (2026-10-28, committed 16:30:35Z in `a197a87`, after the Phase D selection failed (§8), before any P7
 data existed; Phase E not collected).** Each change answers a cause demonstrated in §8
 on the consumed selection data. No acceptance criterion changes.
 

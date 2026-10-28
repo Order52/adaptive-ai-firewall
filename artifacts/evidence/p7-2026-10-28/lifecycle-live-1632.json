@@ -1,0 +1,107 @@
+{
+ "read_at": "2026-10-28T16:32:42.822159+00:00",
+ "read_only": true,
+ "mode": "monitor",
+ "model_error": null,
+ "profiles": [
+  {
+   "version": 1,
+   "status": "retired",
+   "parent_version": null,
+   "created_at": "2026-10-17T18:07:03.753479Z"
+  },
+  {
+   "version": 2,
+   "status": "trusted",
+   "parent_version": 1,
+   "created_at": "2026-10-17T19:06:22.134990Z"
+  },
+  {
+   "version": 3,
+   "status": "candidate",
+   "parent_version": 2,
+   "created_at": "2026-10-28T07:38:45.231804Z"
+  },
+  {
+   "version": 4,
+   "status": "candidate",
+   "parent_version": 2,
+   "created_at": "2026-10-28T07:38:50.790089Z"
+  }
+ ],
+ "drift_reports": 31,
+ "latest_drift": {
+  "detected_at": "2026-10-28T15:59:01.751291Z",
+  "signals": [
+   "new_endpoint",
+   "feature_shift"
+  ],
+  "assessment": "concentrated",
+  "distinct_sources": 6
+ },
+ "monitor": {
+  "accepted_windows": 7,
+  "rejected": {
+   "tainted:policy:rate_limit": 179,
+   "tainted:negative_evidence": 21,
+   "tainted:auth": 2
+  },
+  "new_routes": {
+   "/booking/{booking_id}": 1
+  },
+  "new_versions": {},
+  "shifted_features": [],
+  "shadow_anomaly_rate": 0.714
+ },
+ "shadow_status": {
+  "enabled": true,
+  "mode": "shadow (no influence on enforcement; promotion only via gate + admin)",
+  "champion_model": "half_space_trees-p2-20261017190622",
+  "challenger": {
+   "n_learned": 607,
+   "counter": 68,
+   "warm": true,
+   "window_size": 180,
+   "l_mass_total": 18700.0,
+   "r_mass_total": 49500.0
+  },
+  "last_checkpoint": {
+   "id": "ckpt-3446685f242e",
+   "seq": 16,
+   "n_learned": 607,
+   "created_at": "2026-10-28T14:00:27.341259+00:00"
+  },
+  "quarantine": 1,
+  "unflushed_learned": 0,
+  "counts": {
+   "windows": 209,
+   "quarantined": 1
+  },
+  "excluded": {
+   "tainted": 182,
+   "sensitive_range": 19,
+   "overlap": 5,
+   "negative_evidence": 2
+  }
+ },
+ "agreement": {
+  "windows": 200,
+  "both_normal": 8,
+  "champion_only_anomalous": 0,
+  "challenger_only_anomalous": 14,
+  "both_anomalous": 178,
+  "note": "challenger flags use the champion threshold; the calibrated threshold is set by a promotion-gate evaluation"
+ },
+ "challenger_evaluations": [
+  {
+   "evaluated_at": "2026-10-28T08:35:53.645680+00:00",
+   "passed": false,
+   "n_learned": 367,
+   "failed_checks": [
+    "attack_recall_regression",
+    "sensitive_invariance"
+   ]
+  }
+ ],
+ "probation": null
+}

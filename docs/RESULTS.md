@@ -121,6 +121,51 @@ attack runs (BLOCKED-EXT).
 - Evidence: `artifacts/evidence/p1-2026-10-28/p1-eval.json`, `p1-eval-table.txt`,
   `p1-fp-drivers.json`, `p1-exploratory-sensitivity.json`.
 
+## 3b. Generalization without sensitivity loss (P6, 2026-10-28)
+
+Predeclared protocol and amendment A1 committed before the data
+(`engineering/P6_GENERALIZATION_AND_SENSITIVITY.md`). Seven candidates were trained on
+120,282 observations (28 users) and calibrated on 39,517 (12 users), then compared on
+**new** selection users: `p6-sel`, 16 users, 1,085 tumbling windows; `p6-sel-shift`,
+6 users, 307 windows. Every dataset count equals the WAF access log (zero loss).
+Sensitivity is measured with **synthetic feature-level** malicious-behaviour cases
+added to real benign windows (no traffic sent; not attack detection), nominally and
+after an adaptation stress (recalibration with 3 % attack-shaped windows labelled
+benign).
+
+**Result: no candidate met the predeclared eligibility rule, so none was selected and
+the final test was not run.**
+
+| Candidate | Worst enforcing FPR on p6-sel | Users restricted (M2) sel / shift | Must-detect min nominal / stressed |
+|---|---|---|---|
+| R2 (trusted v2) | 0.430 (IF) | 12/16, 6/6 | 1.00 / 0.35 |
+| R3 (v3) | 0.104 (RS) | 5/16, 3/6 | 1.00 / 0.55 |
+| D (more data) | 0.021 (IF) | 5/16, 2/6 | 0.51 / 0.17 |
+| F (Wilson fractions) | 0.015 (IF) | 1/16, 5/6 | 0.60 / 0.37 |
+| C (cohort thresholds) | 0.020 (IF) | 7/16, 4/6 | 0.56 / 0.02 |
+| S (D + security path) | 0.068 (security) | 5/16, 2/6 | 0.91 / 0.63 |
+| FS (F + security path) | 0.068 (security) | 1/16, 5/6 | 0.96 / 0.83 |
+
+Separate contributions (S, IDOR at the must-detect level, the weakest family): ML only
+0.51, security rules only 0.46, combined 0.91; under stress 0.17 / 0.46 / 0.63. The
+fixed security path does not hide weak ML: neither part suffices alone.
+
+Causes, diagnosed on the consumed selection data only:
+* **Every legitimate user restricted by D, F, C and R3** was rate-limited on behaviour
+  alone, because the statistical and ML detectors agreed. Both read the same features,
+  so this contradicts the documented invariant that an anomaly alone never authorizes a
+  traffic-affecting change. The one exception was a "forgetful" user whose failed
+  logins met the brute-force rule (ADR-039 rate limit by design).
+* **A generator/app mismatch in all legitimate data** (§8, item 8): the retrained
+  candidates learned 404 bursts as normal (IDOR sensitivity 0.51–0.60 against 1.0 for
+  R2/R3), and the security path flagged two power users on client errors.
+
+Amendment A2 (generator fix, retraining on new clean data, behaviour-only evidence
+observe-only in replay) was committed before any new data; its result is in §3c.
+
+- Evidence: `artifacts/evidence/p6-2026-10-28/select/` (`p6-select.json`,
+  `diagnosis-restrictions.json`), `phaseC-capture.txt`, `phaseD-capture.txt`.
+
 ## 4. The cost of ML over statistics
 
 At the *same* 1.30% validation FPR, the three detectors differ by three orders of
@@ -281,6 +326,14 @@ Evidence: `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt`;
    six addresses; §3 and §3a show this is not enough. Broader data fixes the false
    positives at a measured sensitivity cost (§3a).
 7. **One drift run.** The adaptation CIs are over six sources in one run, not over runs.
+8. **Legitimate traffic carried 22–29 % client errors** (found 2026-10-28). The
+   generator requested review endpoints that the deployed v1 application does not
+   serve (404), and v1 personas sent bookings without a required field (422). This
+   holds for every generated benign dataset before P7, including the data behind the
+   trusted v2 profile and every FPR above. Comparisons between models on the same data
+   remain fair, but the lab's "legitimate" baseline was noisier than real users, and
+   404-driven behaviours (IDOR, enumeration) were learned against an inflated baseline.
+   Fixed in the generator (P6 amendment A2); not retroactively.
 
 ## 9. Summary
 
