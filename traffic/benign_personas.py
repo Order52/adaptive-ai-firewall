@@ -23,6 +23,13 @@ Modes (AFW_MODE):
     personas one concurrent user per source, each with its own persona drawn
              from AFW_SEED: pacing, gaps between sessions, session depth,
              login habit and typo rate differ per user (realistic diversity)
+
+Persona sets (AFW_PERSONA_SET, personas mode only):
+    v1  the P1 personas (default; unchanged so P1 seeds stay reproducible)
+    v2  P6 legitimate archetypes (casual, regular, forgetful, power, household,
+        stale-link, slow reader, city searcher); AFW_ARCHETYPES=a,b restricts the
+        draw. Still legitimate only: valid routes and credentials, at most 3
+        mistyped passwords before the right one, an occasional outdated car link.
 """
 
 from __future__ import annotations
@@ -43,6 +50,9 @@ SOURCES = [s for s in os.environ.get("AFW_SOURCES", "10.77.20.10").split(",") if
 DURATION = float(os.environ.get("AFW_DURATION", "300"))
 SEED = int(os.environ.get("AFW_SEED", "1"))
 MODE = os.environ.get("AFW_MODE", "shared")
+PERSONA_SET = os.environ.get("AFW_PERSONA_SET", "v1")
+ARCHETYPES = [a for a in os.environ.get("AFW_ARCHETYPES", "").split(",") if a]
+CITIES = ["Tripoli", "Benghazi", "Misrata", "Sabha"]
 VALID_USERS = [(f"user{n}", f"pw-{n}") for n in range(1, 51)]
 
 _ctx = ssl.create_default_context(cafile=CA)
@@ -56,6 +66,18 @@ def _request(
     body: dict | None = None,
 ) -> tuple[int, str | None]:
     """One HTTPS request bound to `source`; returns (status, set-cookie session)."""
+    status, session, _ = _request_full(source, method, path, cookie, body)
+    return status, session
+
+
+def _request_full(
+    source: str,
+    method: str,
+    path: str,
+    cookie: str | None = None,
+    body: dict | None = None,
+) -> tuple[int, str | None, bytes]:
+    """As ``_request``, also returning the response body."""
     # Bind the real source address, then set SNI/Host to the app hostname (matches
     # the lab cert and avoids CRS 920350 for a numeric Host).
     sock = socket.create_connection((TARGET_IP, 443), timeout=6.0, source_address=(source, 0))
@@ -79,8 +101,8 @@ def _request(
             c.load(raw)
             if "session" in c:
                 session = c["session"].value
-        resp.read()
-        return resp.status, session
+        data = resp.read()
+        return resp.status, session, data
     finally:
         conn.close()
 
@@ -157,18 +179,115 @@ def journey(rng: random.Random, source: str, p: dict = DEFAULT_PERSONA) -> None:
             _request(source, "POST", "/logout", cookie=session)
 
 
+# P6 archetypes: name -> (draw weight, persona factory). Each is a kind of legitimate
+# user the P1 personas did not cover; the values are habits, not attack parameters.
+def _arch(rng: random.Random, name: str) -> dict:
+    base = persona(rng)
+    base.update({"archetype": name, "stale": 0.0, "max_typos": 1, "accounts": [base["user"]],
+                 "city": 0.0, "detail": 0.3})
+    match name:
+        case "casual":  # mostly browsing, rarely logs in
+            base.update(auth=rng.uniform(0.0, 0.25), depth=rng.randint(1, 3))
+        case "regular":  # the P1 kind of user
+            pass
+        case "forgetful":  # often mistypes, retries up to 3 times, then succeeds
+            base.update(typo=rng.uniform(0.3, 0.7), max_typos=3, auth=rng.uniform(0.6, 1.0))
+        case "power":  # fast, deep sessions, books a lot (e.g. a fleet manager)
+            base.update(think=rng.choice([0.25, 0.5]), depth=rng.randint(4, 8),
+                        gap=rng.choice([2.0, 5.0]), auth=0.95, book=0.9, detail=0.8)
+        case "household":  # one address, 2-4 people with their own accounts (home NAT)
+            base.update(accounts=rng.sample(VALID_USERS, rng.randint(2, 4)), auth=0.8)
+        case "stale":  # bookmarks to cars that no longer exist
+            base.update(stale=rng.uniform(0.1, 0.3))
+        case "slow":  # reads everything slowly, long pauses
+            base.update(think=rng.choice([4.0, 6.0, 8.0]), gap=rng.choice([60.0, 120.0, 180.0]))
+        case "city":  # filters the list by city before choosing
+            base.update(city=rng.uniform(0.5, 1.0))
+    return base
+
+
+ARCHETYPE_WEIGHTS = {
+    "casual": 3, "regular": 3, "forgetful": 1, "power": 1,
+    "household": 1, "stale": 1, "slow": 1, "city": 1,
+}
+
+
+def persona_v2(rng: random.Random) -> dict:
+    names = ARCHETYPES or list(ARCHETYPE_WEIGHTS)
+    name = rng.choices(names, weights=[ARCHETYPE_WEIGHTS[n] for n in names])[0]
+    return _arch(rng, name)
+
+
+def journey_v2(rng: random.Random, source: str, p: dict) -> None:
+    """One legitimate session of a P6 archetype."""
+    t = p["think"]
+    _request(source, "GET", "/")
+    time.sleep(rng.uniform(0.3, 1.5) * t)
+    if rng.random() < p["city"]:
+        _request(source, "GET", f"/cars?city={rng.choice(CITIES)}")
+    else:
+        _request(source, "GET", "/cars")
+    time.sleep(rng.uniform(0.3, 1.5) * t)
+    car_id = rng.randint(1, 40)
+    for _ in range(p["depth"]):
+        if rng.random() < 0.7:
+            if rng.random() < p["stale"]:
+                _request(source, "GET", f"/cars/{rng.randint(41, 60)}")  # outdated link
+                time.sleep(rng.uniform(0.5, 2.0) * t)
+                continue
+            car_id = rng.randint(1, 40)
+            _request(source, "GET", f"/cars/{car_id}")
+            _request(source, "GET", f"/cars/{car_id}/reviews")
+            time.sleep(rng.uniform(0.3, 1.2) * t)
+    if rng.random() >= p["auth"]:
+        return
+    username, password = rng.choice(p["accounts"])
+    if rng.random() < p["typo"]:
+        for _ in range(rng.randint(1, p["max_typos"])):
+            _request(source, "POST", "/login", body={"username": username, "password": "wrong"})
+            time.sleep(rng.uniform(1.0, 4.0))
+    _, session = _request(source, "POST", "/login", body={"username": username, "password": password})
+    if not session:
+        return
+    _request(source, "GET", "/bookings", cookie=session)
+    time.sleep(rng.uniform(0.3, 1.2) * t)
+    if rng.random() < p["book"]:
+        status, _, data = _request_full(
+            source, "POST", "/booking", cookie=session,
+            # a valid body: v1 omits the required city, so every v1 booking is a 422
+            body={"car_id": car_id, "days": rng.randint(1, 7),
+                  "city": ["Tripoli", "Benghazi", "Misrata"][(car_id - 1) % 3]},
+        )
+        if status == 201 and rng.random() < p["detail"]:
+            try:
+                bid = json.loads(data).get("id")
+            except ValueError:
+                bid = None
+            if bid is not None:
+                time.sleep(rng.uniform(0.3, 1.0) * t)
+                _request(source, "GET", f"/booking/{bid}", cookie=session)
+    if rng.random() < p["review"]:
+        _request(
+            source, "POST", "/reviews", cookie=session,
+            body={"car_id": car_id, "stars": rng.randint(3, 5), "text": "great car"},
+        )
+    _request(source, "POST", "/logout", cookie=session)
+
+
 def _user(source: str, end: float, seed: int, counts: dict) -> None:
     rng = random.Random(seed)
-    p = persona(rng)
+    v2 = PERSONA_SET == "v2"
+    p = persona_v2(rng) if v2 else persona(rng)
     print(f"persona {source}: {p}", flush=True)
     time.sleep(rng.uniform(0, p["gap"]))  # users do not all start together
     while time.time() < end:
         try:
-            journey(rng, source, p)
+            (journey_v2 if v2 else journey)(rng, source, p)
             counts[source] = counts.get(source, 0) + 1
         except Exception as exc:
             print(f"journey error from {source}: {exc}", flush=True)
-        time.sleep(rng.expovariate(1 / p["gap"]))
+        # never sleep past the end of the run (draw kept, so the sequence is unchanged)
+        time.sleep(min(rng.expovariate(1 / p["gap"]), max(0.0, end - time.time())))
 
 
 def main() -> None:
