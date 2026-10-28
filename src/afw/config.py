@@ -123,6 +123,10 @@ class TelemetryConfig(_Cfg):
     tls_key: Path | None = None
     tls_ca: Path | None = None
     tls_identities: dict[str, str] = {}
+    # RELP over the same mutual TLS (same certificates, identities and senders): each
+    # line is acknowledged only once queued, so a dead session loses nothing (the
+    # sender resends unacknowledged frames). None disables it.
+    relp_port: int | None = None
 
 
 class OnlineLearningConfig(_Cfg):

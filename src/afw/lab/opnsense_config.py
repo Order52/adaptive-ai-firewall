@@ -177,6 +177,14 @@ def lab_rules(template: ET.Element) -> list[ET.Element]:
             destination_port="5514",
             description=f"AFW: {ZONES[z][1]} telemetry to CTRL01",
         )
+        add(
+            interface=z,
+            protocol="TCP",
+            source_net=src,
+            destination_net=CTRL,
+            destination_port="5516",
+            description=f"AFW: {ZONES[z][1]} RELP telemetry to CTRL01 (ADR-038)",
+        )
     # Internet egress ("real-test" mode): the lab is no longer air-gapped. Each zone
     # may reach the Internet (NATed out the MAINT uplink), but inter-zone traffic
     # stays blocked — the specific allows above (quick) match first, then a block of

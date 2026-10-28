@@ -1,0 +1,42 @@
+P5 hardening: RELP over mutual TLS for WAF01/APP01 telemetry (ADR-038), 2026-10-28
+
+Question: are telemetry lines lost when the sensor->CTRL01 session dies silently?
+Method (p5_relp_dead_session.py, run from the host):
+  * WAF01 appends 150 numbered non-JSON marker lines (about 1/s) to its forwarded
+    heartbeat log; CTRL01 counts each received one as parse_error:no_json.
+  * At t = KILL s the FW01 pf states of the WAF01<->CTRL01 telemetry connection
+    (ports 5514/5516) are killed by state id over the serial console. FW01 then drops
+    the established flow's packets (no SYN), so neither end is told: the M5 failure.
+  * Delivered = counter delta once it has been stable for 30 s (max 300 s).
+  A first attempt used `pfctl -k host -k host`, which killed 0 states on this pf
+  version; that run proves nothing and is not reported (the session never died).
+
+Results
+  run                          channel        kill   written  delivered  lost  resent lines suppressed
+  p5-relp-baseline-omfwd.txt   omfwd TLS 5514  15 s   150      45         105   n/a
+  p5-relp-run1-no-dedup.txt    RELP 5516       15 s   150      150        0     n/a (counter == 150)
+  p5-relp-run2-no-dedup.txt    RELP 5516       60 s   150      167 (*)    -     n/a
+  p5-relp-dedup-kill60.txt     RELP + dedup    60 s   150      150        0     17
+  p5-relp-dedup-kill15.txt     RELP + dedup    15 s   150      150        0     3
+
+  (*) rsyslog resends its whole unacknowledged batch after a reconnect (at-least-once),
+      so the counter exceeded 150 and could not show uniqueness. That led to the
+      receiver suppressing exact repeats per role (bounded, 8,192 lines); with it the
+      counter is unique and both runs delivered exactly 150 of 150.
+
+Recovery time: after the kill, the remaining lines arrived when omrelp's ack timeout
+(default 90 s) broke the session and it reconnected (relp_session:waf incremented).
+
+Other checks after the change:
+  * afw lab verify: 41/41 (adds 4 checks: WAF01/APP01 -> CTRL01:5516 open,
+    ATK01/DB01 -> CTRL01:5516 filtered)            p5-relp-isolation.txt
+  * AFW_LAB=1 pytest tests/lab: 14/14             p5-relp-lab-regression.txt
+  * local: 218 passed, 14 skipped; ruff, mypy clean
+  * FW01 automation pass rules created            p5-relp-fw01-rules.txt
+  * deploys: deploy-ctrl01-relp*.txt, deploy-sensors-relp.txt (failed=0)
+
+Limits: an acknowledgement means "queued in CTRL01's memory", so a controller crash can
+still lose lines already acknowledged but not yet processed (normally under a second);
+FW01's IDS feed stays on syslog-ng TLS (OPNsense has no RELP output) and keeps the
+old loss window, made visible by its heartbeat (ADR-037). Suppression memory is lost on
+controller restart; downstream request-id and IDS-event dedup still apply.

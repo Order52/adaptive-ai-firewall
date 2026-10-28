@@ -5,3 +5,5 @@ global(
   DefaultNetstreamDriverCertFile="/etc/afw/telemetry/client.pem"
   DefaultNetstreamDriverKeyFile="/etc/afw/telemetry/client.key"
 )
+# RELP output (ADR-038): the telemetry action uses omrelp with the same certificates.
+module(load="omrelp")

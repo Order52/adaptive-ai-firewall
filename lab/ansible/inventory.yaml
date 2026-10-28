@@ -7,6 +7,7 @@ all:
       vars:
         nft_allow:
           - {proto: tcp, port: 5514, src: [10.77.30.10, 10.77.40.10, 10.77.50.1], reset_stale: true}  # mTLS sensors
+          - {proto: tcp, port: 5516, src: [10.77.30.10, 10.77.40.10], reset_stale: true}  # RELP sensors
           - {proto: tcp, port: 8080, src: [10.77.50.0/24]}
     waf:
       hosts: {waf01: {zone_gw: 10.77.30.1}}

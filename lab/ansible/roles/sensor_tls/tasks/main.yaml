@@ -1,7 +1,7 @@
 # Mutually authenticated telemetry channel to CTRL01 (ADR-029).
 # Expects: sensor_cert (e.g. WAF01-telemetry), a "restart rsyslog" handler.
-- name: rsyslog TLS driver
-  ansible.builtin.apt: {name: rsyslog-gnutls, state: present, update_cache: true, cache_valid_time: 86400}
+- name: rsyslog TLS driver and RELP output (ADR-038)
+  ansible.builtin.apt: {name: [rsyslog-gnutls, rsyslog-relp], state: present, update_cache: true, cache_valid_time: 86400}
   notify: restart rsyslog
 - name: Telemetry TLS directory
   ansible.builtin.file: {path: /etc/afw/telemetry, state: directory, owner: root, group: syslog, mode: "0750"}

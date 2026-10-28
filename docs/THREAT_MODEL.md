@@ -67,7 +67,7 @@ Scope: the GNS3 lab and the AFW control plane. Trust boundaries and flows are in
 |---|---|---|
 | Forged sensor lines | mTLS with client CN mapped to role; a sensor may only send its own kind (ADR-029) | FW01's watchdog heartbeats over the `ids` channel only while Suricata runs (ADR-037); it proves the process and the feed are alive, not that Suricata inspects correctly |
 | Replayed lines inflating evidence | Request-id UNIQUE; content-hash IDS ids (ADR-031) | — |
-| Silencing a sensor | Heartbeat staleness at 150 s marks evidence degraded and pauses automation | Lines written into a dead session (about 100 s) are lost |
+| Silencing a sensor | Heartbeat staleness at 150 s marks evidence degraded and pauses automation | WAF01/APP01: none in test (RELP, ADR-038). FW01 IDS feed: lines written into a dead session (about 100 s) are lost |
 
 ### 3.6 MCP and control plane
 

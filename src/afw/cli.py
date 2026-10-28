@@ -842,11 +842,15 @@ def lab_deploy(
 def lab_provision_ids(
     plaintext: Annotated[bool, typer.Option(help="old plaintext feed to 5515")] = False,
     feed_only: Annotated[bool, typer.Option(help="only (re)apply the syslog feed")] = False,
+    relp_only: Annotated[bool, typer.Option(help="only the sensor RELP pass rules")] = False,
 ) -> None:
     """Enable Suricata IDS on FW01 and forward its alerts to CTRL01 (API, idempotent)."""
-    from afw.lab.provision_ids import client, destination, provision
+    from afw.lab.provision_ids import client, destination, provision, relp_rules
 
     with client() as c:
+        relp_rules(c, log=typer.echo)
+        if relp_only:
+            return
         if feed_only:
             destination(c, plaintext, log=typer.echo)
         else:

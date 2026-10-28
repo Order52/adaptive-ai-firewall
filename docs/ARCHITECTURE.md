@@ -25,7 +25,7 @@ Node, port and entry-point details are in `COMPONENT_INVENTORY.md`.
        WAF01 .10 :443 ------------->    APP01 .10 :8000 ------>  DB01 .10 :5432
        OWASP CRS 4 + helper :9443       rental app               PostgreSQL 16
                                    MGMT 10.77.50.0/24
-                     CTRL01 .10 (controller, API/dashboard :8080, syslog mTLS 5514)
+                     CTRL01 .10 (controller, API/dashboard :8080, RELP 5516, syslog 5514)
                      DESK01 .20 (operator desktop)    HOST-MGMT TAP .254 (host)
 ```
 
@@ -48,7 +48,7 @@ is confined to `persistence`; everything crossing a boundary is a typed Pydantic
 mypy runs in strict mode.
 
 ```
- syslog 5514 (mTLS, WAF01/APP01)  ─┐
+ RELP 5516 (mTLS, WAF01/APP01)    ─┐
  syslog 5514 (mTLS, FW01 IDS)     ─┼─► telemetry: parse ▸ role check ▸ dedup ▸ correlate (rid join)
                                    │        │
                                    │        ▼ HttpObservation / IdsAlert (envelope v2)
@@ -104,7 +104,7 @@ The control loop:
 |---|---|---|
 | Clients → WAF01 | HTTPS 443 through FW01 pf | Untrusted. Client identity is the WAF's TCP peer only; forged XFF/X-Request-ID are overwritten (ADR-007) |
 | WAF01 → APP01 | HTTP 8000, APP host firewall allows WAF01 only | App trusts identity headers from WAF01's IP only |
-| WAF01/APP01 → CTRL01 | rsyslog over **mutual TLS** on 5514, lab CA; client CN mapped to sensor role (ADR-029) | A sensor may only speak for its own role. Only authenticated telemetry is eligible for learning |
+| WAF01/APP01 → CTRL01 | rsyslog **RELP over mutual TLS** on 5516 (ADR-038; acknowledged after queueing), lab CA; client CN mapped to sensor role (ADR-029) | A sensor may only speak for its own role. Only authenticated telemetry is eligible for learning |
 | FW01 Suricata → CTRL01 | syslog-ng over **mutual TLS** on 5514 with its own client certificate (CN `fw01-telemetry.lab.afw` → role `ids`, ADR-035). The plaintext 5515 listener is disabled | Authenticated; still supporting evidence only and never blocks alone. FW01's watchdog sends a heartbeat (suricata tag, `event_type: afw_heartbeat`) every 30 s while Suricata runs (ADR-037), so a dead IDS or feed shows as a stale `ids` sensor |
 | Sensors → CTRL01 heartbeat | 30 s line over the same mTLS channel | Liveness counts only on an authenticated channel; 150 s silence marks evidence degraded (ADR-031) |
 | CTRL01 → FW01 | OPNsense REST over TLS (lab CA), least-privilege API user: alias membership and state queries only (ADR-017/018) | A stolen controller key cannot rewrite rules |
@@ -135,7 +135,7 @@ Full design: `ADAPTATION_DESIGN.md`.
 | Failure | Behaviour |
 |---|---|
 | Controller down | FW01 watchdog flushes dynamic blocks within about 120 s; on restart the reconciler restores owned policies from the DB (measured 5 s) |
-| Sensor silent or telemetry session dead | Sensor marked stale after 150 s and evidence degraded, so automatic actions pause. TCP retries are bounded so rsyslog reconnects in about 100 s. Lines written into a dead session are lost (residual risk, ADR-031) |
+| Sensor silent or telemetry session dead | Sensor marked stale after 150 s and evidence degraded, so automatic actions pause. WAF01/APP01 use RELP: unacknowledged lines are resent after the reconnect and exact resends are suppressed, so a dead session loses nothing (ADR-038). FW01 (syslog-ng TLS) reconnects in about 100 s and lines written into its dead session are lost |
 | Backend unreachable or ambiguous | Policy goes to `unknown` and is resolved on the next reconcile; never reported as enforced without read-back |
 | Bad challenger | Never affects decisions while in shadow; a promoted one is rolled back automatically during probation |
 | GeoIP database missing, stale or tampered | Reported in status; new real-country policies are refused when it is missing or stale; active tables stay as published (ADR-036) |

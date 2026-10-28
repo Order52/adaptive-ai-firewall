@@ -10,7 +10,7 @@ Open the dashboard first: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` →
 
 ## 1. Lab health & topology (1–2 min)
 - `afw lab status` → 6 guests + infra, all started.
-- `afw lab verify` → **37/37** zone-isolation checks (no WAF/app bypass, clients
+- `afw lab verify` → **41/41** zone-isolation checks (no WAF/app bypass, clients
   isolated, management reaches all).
 - Dashboard tiles: mode, trusted profile **v2**, ML model, live sources, RSS.
 - Via Claude Code (MCP): *"show me the entire lab and the status of every device"*

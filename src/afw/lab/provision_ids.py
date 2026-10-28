@@ -11,6 +11,8 @@ The controller's own key cannot change these settings (ADR-017).
   authenticated TLS to 5514 with the ``fw01-telemetry.lab.afw`` client certificate (role
   ``ids``, P5); ``plaintext=True`` restores the earlier TCP feed to 5515. Only Suricata
   is forwarded.
+- RELP pass rules (ADR-038) for a FW01 built before RELP: WAF01 (DMZ) and APP01 (APP)
+  to CTRL01:5516, as automation rules. New builds carry the same rules in config.xml.
 """
 
 from __future__ import annotations
@@ -125,6 +127,37 @@ def destination(c: httpx.Client, plaintext: bool, log: Callable[[str], None] = p
         _post(c, "/syslog/settings/add_destination", {"destination": dest})
     _post(c, "/syslog/service/reconfigure")
     log(f"syslog destination CTRL01:{dest['port']} ({dest['transport']}, suricata only) applied")
+
+
+RELP_RULES = [
+    {
+        "enabled": "1",
+        "quick": "1",
+        "action": "pass",
+        "direction": "in",
+        "ipprotocol": "inet",
+        "protocol": "TCP",
+        "sequence": str(seq),
+        "interface": iface,
+        "source_net": src,
+        "destination_net": "10.77.50.10",
+        "destination_port": "5516",
+        "description": f"AFW: {zone} RELP telemetry to CTRL01 (ADR-038)",
+    }
+    for seq, iface, src, zone in (
+        (3, "opt3", "10.77.30.10", "DMZ"),
+        (4, "opt4", "10.77.40.10", "APP"),
+    )
+]
+
+
+def relp_rules(c: httpx.Client, log: Callable[[str], None] = print) -> None:
+    from afw.lab.provision_geo import _ok, ensure_rule
+
+    for rule in RELP_RULES:
+        log(f"rule '{rule['description']}': {ensure_rule(c, rule)}")
+    _ok(c.post("/firewall/filter/apply").json(), "filter apply")
+    log("filter applied")
 
 
 def provision(c: httpx.Client, log: Callable[[str], None] = print, plaintext: bool = False) -> None:

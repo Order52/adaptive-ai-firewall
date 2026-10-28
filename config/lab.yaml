@@ -67,6 +67,7 @@ telemetry:
   allowed_senders: [10.77.50.1]
   # Mutually authenticated TLS (ADR-029): WAF/APP/FW01 client certs -> sensor role.
   tls_port: 5514
+  relp_port: 5516  # WAF01/APP01 (rsyslog omrelp); FW01 stays on 5514
   tls_allowed_senders: [10.77.30.10, 10.77.40.10, 10.77.50.1]
   tls_cert: /etc/afw/secrets/ctrl01.pem
   tls_key: /etc/afw/secrets/ctrl01.key

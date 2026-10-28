@@ -74,7 +74,8 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 4. **Calibration side of sensitive invariance** (P2): the gate correctly rejects
    challengers whose recalibrated threshold loses sensitivity; whether to bound
    recalibration is an open design question.
-5. **Hardening.** RELP for loss-free telemetry (the FW01 IDS-feed heartbeat is done, ADR-037).
+5. **Hardening.** Done: FW01 IDS-feed heartbeat (ADR-037) and RELP for WAF01/APP01 (ADR-038).
+   Left: FW01's IDS feed cannot use RELP (OPNsense), so it keeps a ~100 s loss window.
    Real-country inbound enforcement can only be verified by read-back in this lab.
 6. **Residual poisoning risk** from 4 or more colluding similar sources; SV-1
    (occlusion is not a causal-independence proof).

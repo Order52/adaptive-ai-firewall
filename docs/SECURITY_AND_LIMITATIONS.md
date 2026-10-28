@@ -44,9 +44,11 @@ the known gaps.
 - **Residual poisoning risk.** Four or more colluding, tenured, behaviourally similar
   sources can corroborate each other (M4). SV-1: occlusion attribution does not prove
   causal independence of evidence.
-- **Telemetry loss window.** rsyslog over TCP loses lines written into a dead session
-  (about 100 s worst case). Heartbeat staleness makes the gap visible; RELP is not
-  implemented. FW01's IDS feed is authenticated (mTLS since 2026-10-28, ADR-035) and,
+- **Telemetry loss window.** Closed for WAF01/APP01 by RELP over mutual TLS (ADR-038):
+  in a dead-session test 150 of 150 lines arrived (plain TCP lost 105 of 150). An
+  acknowledgement means "queued in memory", so a controller crash can still lose lines
+  acknowledged but not yet processed (normally under a second). FW01's IDS feed stays
+  on syslog-ng TLS (no RELP in OPNsense) and keeps the loss window of about 100 s. FW01's IDS feed is authenticated (mTLS since 2026-10-28, ADR-035) and,
   since ADR-037, heartbeats every 30 s while Suricata runs; a stopped Suricata or feed
   makes the `ids` sensor stale. The heartbeat cannot show that Suricata still inspects
   traffic correctly, only that it runs and its log path reaches CTRL01.

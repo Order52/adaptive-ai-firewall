@@ -2,14 +2,16 @@
 module(load="imfile")
 input(type="imfile" File="/var/log/afw/app-events.log" Tag="afw-app:" Ruleset="afw_fwd")
 ruleset(name="afw_fwd") {
-  # Mutually authenticated TLS to CTRL01 (server identity pinned by name).
+  # RELP over mutually authenticated TLS to CTRL01 (server identity pinned by name,
+  # ADR-038): CTRL01 acknowledges each line once queued; unacknowledged lines are
+  # resent after a reconnect, so a dead session loses nothing.
   # Disk-assisted queue: buffered lines survive a sender restart.
-  action(type="omfwd" target="{{ ctrl_ip }}" port="{{ telemetry_port }}" protocol="tcp"
-         StreamDriver="gtls" StreamDriverMode="1" StreamDriverAuthMode="x509/name"
-         StreamDriverPermittedPeers="ctrl01.lab.afw"
+  action(type="omrelp" target="{{ ctrl_ip }}" port="{{ telemetry_relp_port }}"
+         tls="on" tls.authMode="name" tls.permittedPeer=["ctrl01.lab.afw"]
+         tls.caCert="/etc/afw/telemetry/ca.pem" tls.myCert="/etc/afw/telemetry/client.pem"
+         tls.myPrivKey="/etc/afw/telemetry/client.key"
          template="RSYSLOG_TraditionalForwardFormat"
          queue.type="LinkedList" queue.size="20000" queue.filename="afw_app_fwd"
          queue.saveOnShutdown="on" queue.maxDiskSpace="100m"
-         RebindInterval="2000"
          action.resumeRetryCount="-1" action.resumeInterval="10")
 }

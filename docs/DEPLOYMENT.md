@@ -28,7 +28,7 @@ afw lab deploy                # Ansible: app, WAF, WAF helper, controller, probe
                               #   sensor mTLS certs, heartbeat timers, host nftables
                               #   (subset: afw lab deploy --limit ctrl01,waf01,app01)
 afw lab layout                # professional zone canvas
-afw lab verify                # expect 37/37 isolation checks
+afw lab verify                # expect 41/41 isolation checks
 ```
 
 ## 3. Controller, tokens, dashboard

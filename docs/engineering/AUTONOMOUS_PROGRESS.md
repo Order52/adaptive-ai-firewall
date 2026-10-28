@@ -32,12 +32,12 @@ Last updated: 2026-10-28 ~08:45Z (M0–M9 plus directive priorities P1–P5 work
 | P2 | Sensitive invariance | DONE: mechanism is threshold recalibration, not the learned state (matched windows, decomposition); gate check rebuilt on matched windows per feature (ADR-034) with a desensitization benchmark (6/6 mutants) | `M4_ADAPTATION_EXPERIMENTS.md` §2, `p2-*`, `m4-adaptation-p2-gate.json` |
 | P3 | Independent attack evaluation | BLOCKED-EXT: harness ready; precise team runbook written; `experiment evaluate --version` evaluates candidates too | `docs/engineering/P3_TEAM_ATTACK_RUNBOOK.md` |
 | P4 | Real online adaptation | DONE for the governed loop (live learning, pivots, restart restore, live gate rejection); no live promotion (needs attack runs; sensitivity fails) | `M2_ONLINE_LEARNING_DESIGN.md` §9–10 |
-| P5 | Hardening | DONE: FW01 IDS feed mTLS, plaintext listener removed (ADR-035); API HTTPS by default with tunnel-safe certificate (ADR-023 revised); directional real-country enforcement on FW01 with read-back, egress-probe proof and watchdog fail-safe (ADR-036; found and fixed a live read-back defect); FW01 IDS-feed heartbeat (ADR-037); node count reconciled (16); replay request denominators fixed. Inbound country blocks verifiable by read-back only | `p5-*.txt`, `GNS3_TOPOLOGY.md`, `M7_GEOIP.md` §5 |
+| P5 | Hardening | DONE: FW01 IDS feed mTLS, plaintext listener removed (ADR-035); API HTTPS by default with tunnel-safe certificate (ADR-023 revised); directional real-country enforcement on FW01 with read-back, egress-probe proof and watchdog fail-safe (ADR-036; found and fixed a live read-back defect); FW01 IDS-feed heartbeat (ADR-037); RELP for WAF01/APP01 telemetry, dead-session loss 105/150 → 0/150 (ADR-038); node count reconciled (16); replay request denominators fixed. Inbound country blocks verifiable by read-back only | `p5-*.txt`, `GNS3_TOPOLOGY.md`, `M7_GEOIP.md` §5 |
 
 ## Tests (latest full run)
 
 `uv run ruff check . && uv run ruff format --check . && uv run mypy src && uv run pytest -q`
-→ ruff clean, mypy clean (97 files), pytest 200 passed, 14 skipped (lab tests need
+→ ruff clean, mypy clean (97 files), pytest 218 passed, 14 skipped (lab tests need
 `AFW_LAB=1`; live: 14/14 lab tests, 37/37 isolation, 2026-10-28 09:52Z). Mutation checks: M5 (in M5 doc), M6 10/10, M7 7/7, P2 6/6, P4 rate cap 3/3, P5 country enforcement 9/9 caught.
 Live (after all M5–M8 deploys, 2026-10-27 20:59–21:00Z): `uv run afw lab verify` 37/37;
 `AFW_LAB=1 uv run pytest tests/lab` 9 passed (`artifacts/evidence/m9-2026-10-27/`).
@@ -76,8 +76,9 @@ attack-detection results stays **failed/blocked** until real labelled attack run
   automatic restarts.
 * **Residual poisoning risk** (M4): four or more colluding tenured sources with similar
   behaviour can still corroborate each other. Documented, not solved.
-* **Telemetry loss window** (M5): up to about 100 s of lines written into a dead TCP
-  session are lost; heartbeat staleness makes the gap visible. RELP would close it.
+* **Telemetry loss window** (M5): closed for WAF01/APP01 by RELP (ADR-038; 150/150 in a
+  dead-session test vs 105/150 lost before). FW01's syslog-ng feed keeps it (no RELP in
+  OPNsense); heartbeat staleness makes that gap visible.
   FW01 heartbeats since ADR-037, so a silent IDS feed is detected.
 * **Kill switch** (M6) was verified by unit test and a read-only live lookup of ATK01,
   not by actually stopping ATK01.
@@ -96,8 +97,8 @@ All achievable directive work is done and verified; the rest is external:
    and the decision on v3 (`afw experiment evaluate --version 3`).
 2. Team demonstration (Gate G).
 
-Engineering follow-ups that need no team input but were not required: RELP for
-loss-free telemetry; API TLS by default; a training-data design that keeps ML
+Engineering follow-ups that need no team input but were not required: ~~RELP for
+loss-free telemetry~~ (done, ADR-038); ~~API TLS by default~~ (done); a training-data design that keeps ML
 sensitivity while covering benign variety (e.g. per-feature monotone constraints on the
 sensitive features).
 

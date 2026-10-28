@@ -11,13 +11,15 @@ evidence that support it. Status words:
 Gate definitions are unchanged from the directive. Evidence paths are relative to
 `artifacts/evidence/`. Latest runs (2026-10-28):
 
-* unit/integration: 200 passed, 14 skipped (skips: live-lab tests without `AFW_LAB=1`);
+* unit/integration: 218 passed, 14 skipped (skips: live-lab tests without `AFW_LAB=1`);
 * live lab: `AFW_LAB=1 pytest tests/lab` 14/14 and isolation 37/37 after the P5 changes
   (IDS mTLS, HTTPS API, real-country enforcement) on 2026-10-28 09:52Z
   (`p1-2026-10-28/p5-final-regression-2.txt`; earlier: `p5-final-regression.txt`,
   `m9-2026-10-27/`).
 * after the FW01 IDS heartbeat (ADR-037), finished 2026-10-28 11:28Z: lab tests 14/14 again
   (`p1-2026-10-28/p5-ids-heartbeat-lab-regression.txt`).
+* after RELP (ADR-038), 2026-10-28 ~12:10Z: isolation 41/41 (4 new 5516 checks), lab tests
+  14/14; dead-session loss 0/150 vs 105/150 before (`p1-2026-10-28/p5-relp*.txt`).
 
 ## Gate A: Infrastructure
 

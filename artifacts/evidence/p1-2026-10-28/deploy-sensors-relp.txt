@@ -1,0 +1,245 @@
+
+PLAY [all:!desktop] ************************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [app01]
+ok: [waf01]
+
+TASK [common : Time from the zone gateway (FW01 runs NTP)] *********************
+ok: [app01]
+ok: [waf01]
+
+TASK [common : Use only lab time sources] **************************************
+ok: [app01]
+ok: [waf01]
+
+TASK [common : AFW directories] ************************************************
+ok: [waf01] => (item=/etc/afw)
+ok: [app01] => (item=/etc/afw)
+ok: [app01] => (item=/etc/afw/tls)
+ok: [waf01] => (item=/etc/afw/tls)
+ok: [app01] => (item=/var/log/afw)
+ok: [waf01] => (item=/var/log/afw)
+
+TASK [common : Lab CA (trust store + /etc/afw/tls)] ****************************
+ok: [app01] => (item=/usr/local/share/ca-certificates/afw-lab-ca.crt)
+ok: [waf01] => (item=/usr/local/share/ca-certificates/afw-lab-ca.crt)
+ok: [waf01] => (item=/etc/afw/tls/lab-ca.pem)
+ok: [app01] => (item=/etc/afw/tls/lab-ca.pem)
+
+TASK [common : rsyslog accepts large (audit) messages] *************************
+ok: [app01]
+ok: [waf01]
+
+TASK [common : Host firewall (default deny inbound; SSH only from MGMT)] *******
+ok: [app01]
+ok: [waf01]
+
+TASK [common : nftables enabled] ***********************************************
+ok: [app01]
+ok: [waf01]
+
+TASK [common : ansible.builtin.meta] *******************************************
+
+TASK [common : ansible.builtin.meta] *******************************************
+
+TASK [common : Service name for clients (Host header / SNI)] *******************
+changed: [waf01]
+changed: [app01]
+
+PLAY [db] **********************************************************************
+skipping: no hosts matched
+
+PLAY [app] *********************************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [app01]
+
+TASK [app : Code directory] ****************************************************
+ok: [app01]
+
+TASK [app : App service user] **************************************************
+ok: [app01]
+
+TASK [app : App code] **********************************************************
+ok: [app01] => (item=rental_app.py)
+ok: [app01] => (item=store.py)
+
+TASK [app : App DB connection (DATABASE_URL -> DB tier; password from host secrets)] ***
+ok: [app01]
+
+TASK [app : Event log ownership] ***********************************************
+ok: [app01]
+
+TASK [app : App unit] **********************************************************
+ok: [app01]
+
+TASK [Telemetry TLS (sensor client certificate)] *******************************
+included: sensor_tls for app01
+
+TASK [sensor_tls : rsyslog TLS driver and RELP output (ADR-038)] ***************
+changed: [app01]
+
+TASK [sensor_tls : Telemetry TLS directory] ************************************
+ok: [app01]
+
+TASK [sensor_tls : Lab CA and sensor client certificate] ***********************
+ok: [app01] => (item={'s': 'lab-ca.pem', 'd': 'ca.pem', 'm': '0644'})
+ok: [app01] => (item={'s': 'APP01-telemetry.pem', 'd': 'client.pem', 'm': '0644'})
+ok: [app01] => (item={'s': 'APP01-telemetry.key', 'd': 'client.key', 'm': '0640'})
+
+TASK [sensor_tls : AppArmor - let rsyslogd read (only) the telemetry TLS material] ***
+ok: [app01]
+
+TASK [sensor_tls : Reload the rsyslogd AppArmor profile] ***********************
+skipping: [app01]
+
+TASK [sensor_tls : rsyslog TLS defaults] ***************************************
+changed: [app01]
+
+TASK [sensor_tls : Bound how long a dead telemetry session can absorb data (M5 finding)] ***
+ok: [app01]
+
+TASK [sensor_tls : Apply the telemetry sysctl] *********************************
+skipping: [app01]
+
+TASK [sensor_tls : Heartbeat directory (liveness over the authenticated channel, M5)] ***
+ok: [app01]
+
+TASK [sensor_tls : Heartbeat writer (a script, so systemd quoting cannot mangle the JSON)] ***
+ok: [app01]
+
+TASK [sensor_tls : Heartbeat service and 30 s timer] ***************************
+ok: [app01] => (item={'n': 'afw-heartbeat.service', 'c': '# Managed by Ansible (AFW): one liveness line, forwarded by rsyslog over mTLS.\n[Unit]\nDescription=AFW telemetry heartbeat\n[Service]\nType=oneshot\nExecStart=/usr/local/sbin/afw-heartbeat\n'})
+ok: [app01] => (item={'n': 'afw-heartbeat.timer', 'c': '# Managed by Ansible (AFW)\n[Unit]\nDescription=AFW telemetry heartbeat every 30 s\n[Timer]\nOnBootSec=30\nOnUnitActiveSec=30\nAccuracySec=1\n[Install]\nWantedBy=timers.target\n'})
+
+TASK [sensor_tls : Enable the heartbeat timer] *********************************
+ok: [app01]
+
+TASK [sensor_tls : Rotate the heartbeat log] ***********************************
+ok: [app01]
+
+TASK [sensor_tls : Forward the heartbeat on the telemetry channel] *************
+ok: [app01]
+
+TASK [app : Ship app events to CTRL01] *****************************************
+changed: [app01]
+
+TASK [app : App running] *******************************************************
+ok: [app01]
+
+RUNNING HANDLER [app : restart rsyslog] ****************************************
+changed: [app01]
+
+PLAY [waf] *********************************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [waf01]
+
+TASK [waf : Unprivileged low-port start (WAF only)] ****************************
+ok: [waf01]
+
+TASK [waf : WAF directories] ***************************************************
+ok: [waf01] => (item={'p': '/srv/afw-waf/templates/conf.d'})
+ok: [waf01] => (item={'p': '/srv/afw-waf/policy'})
+ok: [waf01] => (item={'p': '/opt/afw/waf-helper'})
+ok: [waf01] => (item={'p': '/var/log/afw', 'o': '101'})
+
+TASK [waf : WAF templates (reviewed, versioned in Git)] ************************
+ok: [waf01] => (item=default.conf.template)
+ok: [waf01] => (item=logging.conf.template)
+ok: [waf01] => (item=upstream.conf.template)
+
+TASK [waf : Backend proxy include] *********************************************
+ok: [waf01]
+
+TASK [waf : WAF certificate (lab CA, SAN 10.77.30.10)] *************************
+ok: [waf01]
+
+TASK [waf : WAF key (readable by nginx uid 101 and root only)] *****************
+ok: [waf01]
+
+TASK [waf : Helper token] ******************************************************
+ok: [waf01]
+
+TASK [waf : Helper code] *******************************************************
+ok: [waf01]
+
+TASK [waf : Units] *************************************************************
+ok: [waf01] => (item=afw-waf.service)
+ok: [waf01] => (item=afw-waf-helper.service)
+
+TASK [Telemetry TLS (sensor client certificate)] *******************************
+included: sensor_tls for waf01
+
+TASK [sensor_tls : rsyslog TLS driver and RELP output (ADR-038)] ***************
+changed: [waf01]
+
+TASK [sensor_tls : Telemetry TLS directory] ************************************
+ok: [waf01]
+
+TASK [sensor_tls : Lab CA and sensor client certificate] ***********************
+ok: [waf01] => (item={'s': 'lab-ca.pem', 'd': 'ca.pem', 'm': '0644'})
+ok: [waf01] => (item={'s': 'WAF01-telemetry.pem', 'd': 'client.pem', 'm': '0644'})
+ok: [waf01] => (item={'s': 'WAF01-telemetry.key', 'd': 'client.key', 'm': '0640'})
+
+TASK [sensor_tls : AppArmor - let rsyslogd read (only) the telemetry TLS material] ***
+ok: [waf01]
+
+TASK [sensor_tls : Reload the rsyslogd AppArmor profile] ***********************
+skipping: [waf01]
+
+TASK [sensor_tls : rsyslog TLS defaults] ***************************************
+changed: [waf01]
+
+TASK [sensor_tls : Bound how long a dead telemetry session can absorb data (M5 finding)] ***
+ok: [waf01]
+
+TASK [sensor_tls : Apply the telemetry sysctl] *********************************
+skipping: [waf01]
+
+TASK [sensor_tls : Heartbeat directory (liveness over the authenticated channel, M5)] ***
+ok: [waf01]
+
+TASK [sensor_tls : Heartbeat writer (a script, so systemd quoting cannot mangle the JSON)] ***
+ok: [waf01]
+
+TASK [sensor_tls : Heartbeat service and 30 s timer] ***************************
+ok: [waf01] => (item={'n': 'afw-heartbeat.service', 'c': '# Managed by Ansible (AFW): one liveness line, forwarded by rsyslog over mTLS.\n[Unit]\nDescription=AFW telemetry heartbeat\n[Service]\nType=oneshot\nExecStart=/usr/local/sbin/afw-heartbeat\n'})
+ok: [waf01] => (item={'n': 'afw-heartbeat.timer', 'c': '# Managed by Ansible (AFW)\n[Unit]\nDescription=AFW telemetry heartbeat every 30 s\n[Timer]\nOnBootSec=30\nOnUnitActiveSec=30\nAccuracySec=1\n[Install]\nWantedBy=timers.target\n'})
+
+TASK [sensor_tls : Enable the heartbeat timer] *********************************
+ok: [waf01]
+
+TASK [sensor_tls : Rotate the heartbeat log] ***********************************
+ok: [waf01]
+
+TASK [sensor_tls : Forward the heartbeat on the telemetry channel] *************
+ok: [waf01]
+
+TASK [waf : Ship WAF logs to CTRL01] *******************************************
+changed: [waf01]
+
+TASK [waf : Docker enabled (image preloaded in the golden image)] **************
+ok: [waf01]
+
+TASK [waf : WAF and helper running] ********************************************
+ok: [waf01] => (item=afw-waf)
+ok: [waf01] => (item=afw-waf-helper)
+
+RUNNING HANDLER [waf : restart rsyslog] ****************************************
+changed: [waf01]
+
+PLAY [controller] **************************************************************
+skipping: no hosts matched
+
+PLAY [probes] ******************************************************************
+skipping: no hosts matched
+
+PLAY [desktop] *****************************************************************
+skipping: no hosts matched
+
+PLAY RECAP *********************************************************************
+app01                      : ok=32   changed=5    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+waf01                      : ok=36   changed=5    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+

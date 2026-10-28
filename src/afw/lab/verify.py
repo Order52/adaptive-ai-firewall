@@ -33,6 +33,7 @@ CHECKS: list[Check] = [
     Check("atk01", "10.77.30.10", 22, False, "ATTACK to WAF SSH"),
     Check("atk01", "10.77.50.10", 22, False, "ATTACK to CTRL01"),
     Check("atk01", "10.77.50.10", 5514, False, "ATTACK forging telemetry"),
+    Check("atk01", "10.77.50.10", 5516, False, "ATTACK forging RELP telemetry"),
     Check("atk01", "10.77.10.1", 443, False, "ATTACK to FW web GUI"),
     Check("atk01", "10.77.20.10", 22, False, "ATTACK to USERS"),
     Check("usr01", "10.77.10.10", 22, False, "USERS to ATTACK"),
@@ -42,11 +43,13 @@ CHECKS: list[Check] = [
     # DMZ
     Check("waf01", "10.77.40.10", 8000, True, "WAF to APP"),
     Check("waf01", "10.77.50.10", 5514, True, "WAF telemetry to CTRL01"),
+    Check("waf01", "10.77.50.10", 5516, True, "WAF RELP telemetry to CTRL01"),
     Check("waf01", "10.77.50.10", 22, False, "WAF to CTRL01 SSH"),
     Check("waf01", "10.77.20.10", 22, False, "WAF to USERS"),
     Check("waf01", "1.1.1.1", 443, True, "WAF to Internet (egress allowed)"),
     # APP
     Check("app01", "10.77.50.10", 5514, True, "APP telemetry to CTRL01"),
+    Check("app01", "10.77.50.10", 5516, True, "APP RELP telemetry to CTRL01"),
     # Sensors must use the authenticated channel only (ADR-029): plaintext 5515
     # accepts FW01 alone.
     Check("waf01", "10.77.50.10", 5515, False, "WAF plaintext telemetry (mTLS only)"),
@@ -61,6 +64,7 @@ CHECKS: list[Check] = [
     Check("waf01", "10.77.60.10", 5432, False, "WAF bypassing app to DB"),
     Check("db01", "10.77.40.10", 8000, False, "DB back-connecting to APP"),
     Check("db01", "10.77.50.10", 5514, False, "DB forging telemetry"),
+    Check("db01", "10.77.50.10", 5516, False, "DB forging RELP telemetry"),
     Check("db01", "1.1.1.1", 443, True, "DB to Internet (egress allowed)"),
     Check("db01", "10.77.60.1", None, True, "DB ping own gateway"),
     # MGMT reaches everything it manages

@@ -74,8 +74,9 @@ Live liveness checks with the heartbeat deployed (`heartbeat-liveness.txt`):
 
 **Residual risk.** rsyslog over TCP has no application-level acknowledgement: lines
 written into a dead session before the failure is detected are lost (bounded by the
-socket buffer and about 100 s). RELP would close this gap but needs a RELP server on the
-controller; not done. Heartbeat staleness makes such gaps visible instead of silent.
+socket buffer and about 100 s). **Closed for WAF01/APP01 on 2026-10-28 (ADR-038):** RELP
+over mutual TLS on 5516; dead-session test 150/150 delivered vs 105/150 lost on plain TCP
+(`artifacts/evidence/p1-2026-10-28/p5-relp.txt`). FW01 keeps syslog-ng TLS. Heartbeat staleness makes such gaps visible instead of silent.
 
 ## 3. Not in scope / still open
 

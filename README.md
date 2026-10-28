@@ -44,7 +44,7 @@ uv run mypy src && uv run ruff check src tests
 # lab (GNS3 running; see docs/DEPLOYMENT.md for first-time host setup)
 afw lab status           # node inventory + state
 afw lab layout           # professional zone canvas
-afw lab verify           # zone isolation (37 checks)
+afw lab verify           # zone isolation (41 checks)
 
 # AI
 afw train status                               # profiles + models
