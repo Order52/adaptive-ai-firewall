@@ -840,10 +840,24 @@ def lab_stop(
     p = c.find_project(project)
     if p is None:
         raise Gns3Error(f"project {project} not found")
+    import httpx
+
+    pending = {}
     for name, n in c.node_by_name(p["project_id"]).items():
         if (not nodes or name in nodes) and n["status"] == "started":
-            c.node_action(p["project_id"], n["node_id"], "stop")
+            try:
+                c.node_action(p["project_id"], n["node_id"], "stop")
+            except httpx.TimeoutException:
+                # GNS3 answers after the guest's ACPI shutdown, which can outlast the
+                # HTTP timeout; the stop continues server-side, so do not abort the rest
+                typer.echo(f"{name}: stop still in progress")
+            pending[name] = n["node_id"]
+    for name, nid in pending.items():
+        try:
+            c.wait_status(p["project_id"], nid, "stopped", timeout=300)
             typer.echo(f"stopped {name}")
+        except Gns3Error as exc:
+            typer.echo(f"{name}: {exc}")
 
 
 @lab_app.command("status")

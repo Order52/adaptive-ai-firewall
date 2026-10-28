@@ -14,7 +14,7 @@ All 8 VMs stopped (19:40:49-19:47:34Z) and started together (`afw lab start`, 19
 | Zone isolation | — | `afw lab verify` 41/41 | pass |
 | Live lab tests | — | 14/14 (`AFW_LAB=1 pytest tests/lab`) | pass |
 
-Operational defect found: `afw lab stop` (all nodes) hit an HTTP read timeout after
+Operational defect found (fixed): `afw lab stop` (all nodes) hit an HTTP read timeout after
 stopping 2 of 8 VMs; stopping the rest one by one worked within seconds each. The
 restart itself needed no manual step.
 
@@ -22,3 +22,7 @@ Observation: after boot, one UDP flow each from USR01 (10.77.20.10) and ATK01
 (10.77.10.10) was marked "unfamiliar" by the shadow network detector, as expected from
 the degenerate calibration (`n1-2026-10-28/n2-calibration.txt`); its score was 4.5e9
 because a 0 level divided it, now floored at 1 (fixed in the same commit).
+
+Fix: `lab stop` now continues past a timed-out stop request and waits up to 300 s per
+node for GNS3 to report it stopped. Verified on USR01 (stop + start, 20:02Z); the
+timeout path itself was not reproduced.
