@@ -91,6 +91,17 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 | Professional documentation | The 13 deliverables (this directory) | MET |
 | Team can run and explain the system independently | `FINAL_DEMO.md`, `OPERATOR_GUIDE.md` | BLOCKED-EXT: only the team can demonstrate this |
 
+## Network-wide directive gates (N-series, 2026-10-28)
+
+| Gate | Criterion | Tests / procedure | Evidence | Status |
+|---|---|---|---|---|
+| Network visibility | Flow/DNS/TLS/SSH/anomaly metadata from FW01 stored as versioned events, dedup, bounded; residual features; coverage limits documented | `test_network_events.py`, `test_network_features.py`; ADR-042 | Code and tests; live export not yet verified | PARTIAL (live pending) |
+| Known-threat learning | Supervised family classifier, run-grouped splits, abstention, CIs | `test_supervised.py` (SYNTHETIC vectors); `afw experiment supervised` | No team attack runs | BLOCKED-EXT |
+| Novelty | Withheld-family protocol; network novelty with fixed ceilings that calibration cannot raise | `withheld_family()`; `test_network_detector.py` (poisoned calibration) | No team attack runs; network calibration on real benign flows pending | BLOCKED-EXT / PARTIAL |
+| Self-learning (§8) | Frozen vs challenger after one confirmed run, measured on later independent runs | `learn_new_family()`; `docs/NEW_THREAT_EXPERIMENT.md` | Not run (team captures needed); no live promotion path for the classifier | BLOCKED-EXT / NOT MET |
+| Safe adaptation | Labels only from manifests or human feedback; poisoning-bounded learning | ADR-028/030/034/040 (HTTP path); ADR-042 ceilings | M4 poisoning experiment | PARTIAL |
+| Enforcement states | Explicit response states; shared address never auto-blocked | `test_response_states.py`; ADR-043 | Not yet deployed | PARTIAL (deploy pending) |
+
 ## Overall
 
 | Gate | Status |
