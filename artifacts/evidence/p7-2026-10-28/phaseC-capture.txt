@@ -1,0 +1,33 @@
+wrote 74510 observations and 0 IDS alerts to /var/lib/afw/datasets/p7-train
+wrote 24705 observations and 0 IDS alerts to /var/lib/afw/datasets/p7-val
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 74510 observations, manifest 74510
+PASS time_range: 0 observations outside 2026-10-28 16:31:17+00:00..2026-10-28 18:01:45+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 1/74510 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 24705 observations, manifest 24705
+PASS time_range: 0 observations outside 2026-10-28 16:31:17+00:00..2026-10-28 18:01:45+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/24705 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+# Completeness: WAF01 access-log lines for the same sources and period: {'p7-train': 62114, 'p7-val': 24705, 'p7-train-strat': 12396}
