@@ -38,7 +38,7 @@ Last updated: 2026-10-28 ~08:45Z (M0–M9 plus directive priorities P1–P5 work
 
 `uv run ruff check . && uv run ruff format --check . && uv run mypy src && uv run pytest -q`
 → ruff clean, mypy clean (97 files), pytest 218 passed, 14 skipped (lab tests need
-`AFW_LAB=1`; live: 14/14 lab tests, 37/37 isolation, 2026-10-28 09:52Z). Mutation checks: M5 (in M5 doc), M6 10/10, M7 7/7, P2 6/6, P4 rate cap 3/3, P5 country enforcement 9/9 caught.
+`AFW_LAB=1`; live: 14/14 lab tests, 41/41 isolation, 2026-10-28 after ADR-038). Mutation checks: M5 (in M5 doc), M6 10/10, M7 7/7, P2 6/6, P4 rate cap 3/3, P5 country enforcement 9/9 caught.
 Live (after all M5–M8 deploys, 2026-10-27 20:59–21:00Z): `uv run afw lab verify` 37/37;
 `AFW_LAB=1 uv run pytest tests/lab` 9 passed (`artifacts/evidence/m9-2026-10-27/`).
 
