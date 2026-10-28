@@ -275,7 +275,9 @@ counted over the share-window deque (200 entries), so with 12 sources each was a
 30–31 windows in 17 minutes. It is now a separate per-source log, rebuilt from the
 ledger on restart, with regression tests and 3/3 mutants caught. After the fix was
 deployed (08:19Z), live admissions were refused as `source_rate` (140 by 08:35Z) until
-the over-cap windows left the trailing hour. **Disclosure:** the first 367 live
+the over-cap windows left the trailing hour. Capped learning resumed at 08:58:22Z
+(n_learned 367 → 368; `source_rate` exclusions 625 by then), as expected once the
+windows admitted before about 07:58Z aged out. **Disclosure:** the first 367 live
 windows were admitted while the cap leaked. They all passed every other eligibility
 check and came from benign lab users; the challenger is shadow-only and was rejected
 by the gate.
