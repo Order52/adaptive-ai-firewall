@@ -159,6 +159,7 @@ def ds_capture(
     purpose: Annotated[str, typer.Option(help="train|validation|test|holdout|drift")],
 ) -> None:
     """Freeze observations of one recorded run (time range + labels from its manifest)."""
+    from afw.correlation.engine import CorrelationEngine
     from afw.ml.datasets import DatasetManifest, Purpose, SourceLabel
 
     c = _container()
@@ -167,6 +168,9 @@ def ds_capture(
     obs = c.events.observations_between(raw.get("app_id", "rental"), start, end)
     labelled = {IPv4Address(s["ip"]) for s in raw["sources"]}
     obs = [o for o in obs if o.client_ip in labelled]
+    # IDS evidence looks back from each window end
+    lookback = CorrelationEngine(c.cfg.risk).ids_lookback
+    alerts = [a for a in c.events.ids_alerts_between(start - lookback, end) if a.src_ip in labelled]
     m = DatasetManifest(
         dataset_id=dataset_id,
         app_id=raw.get("app_id", "rental"),
@@ -180,8 +184,8 @@ def ds_capture(
         generator=raw.get("generator", ""),
         notes=raw.get("notes", ""),
     )
-    path = c.datasets.write(m, obs)
-    typer.echo(f"wrote {len(obs)} observations to {path}")
+    path = c.datasets.write(m, obs, alerts)
+    typer.echo(f"wrote {len(obs)} observations and {len(alerts)} IDS alerts to {path}")
 
 
 @ds_app.command("validate")
@@ -197,13 +201,14 @@ def ds_validate(dataset_id: str) -> None:
         raise typer.Exit(2) from e
     try:
         obs = c.datasets.observations(dataset_id)
+        alerts = c.datasets.ids_alerts(dataset_id)
     except ValueError as e:
         typer.echo(f"FAIL integrity: {e}")
         raise typer.Exit(1) from e
     zone = next((z.network for z in c.cfg.zones if z.name == "ATTACK"), None)
     findings = validate(m, obs, c.datasets.list(), zone)
     typer.echo(f"{dataset_id}: {m.purpose}, {m.scenario}, {len(obs)} observations")
-    typer.echo("PASS integrity: sha256 matches the manifest")
+    typer.echo(f"PASS integrity: sha256 matches the manifest ({len(alerts)} IDS alerts)")
     for f in findings:
         typer.echo(f"{f.level} {f.check}: {f.detail}")
     if failed(findings):
@@ -556,10 +561,18 @@ def experiment_evaluate(
     version: Annotated[
         int | None, typer.Option(help="evaluate this stored profile version (default: trusted)")
     ] = None,
+    streaming: Annotated[
+        bool, typer.Option(help="also replay the streaming-ML (S-ML) and hybrid (HYB) arms")
+    ] = False,
+    warmup: Annotated[
+        str,
+        typer.Option(help="comma-separated benign datasets streamed through the learner first"),
+    ] = "",
 ) -> None:
     """M6: M0/M1/M2 across labelled attack runs with run-level confidence intervals."""
     from afw.ml.experiments import run_experiment
     from afw.ml.run_evaluation import aggregate, is_synthetic
+    from afw.ml.streaming_arms import streaming_arms
 
     c = _container()
     loaded = (
@@ -577,6 +590,15 @@ def experiment_evaluate(
     if bad and not allow_synthetic:
         typer.echo(f"refusing synthetic datasets {bad} (use --allow-synthetic for a labelled demo)")
         raise typer.Exit(2)
+    warm_ids = [d for d in warmup.split(",") if d]
+    warm_m = [c.datasets.manifest(d) for d in warm_ids]
+    late = [w.dataset_id for w in warm_m for m in manifests if w.end >= m.start or w.has_attack()]
+    if late:
+        typer.echo(
+            f"warm-up must be benign and end before every evaluated run: {sorted(set(late))}"
+        )
+        raise typer.Exit(2)
+    warm_obs = [o for d in warm_ids for o in c.datasets.observations(d)]
     reports = [
         run_experiment(
             cfg=c.cfg,
@@ -584,6 +606,8 @@ def experiment_evaluate(
             models=models,
             manifest=m,
             observations=c.datasets.observations(m.dataset_id),
+            ids_alerts=c.datasets.ids_alerts(m.dataset_id),
+            extra_arms=streaming_arms(c.cfg, profile, models, warmup=warm_obs) if streaming else (),
         )
         for m in manifests
     ]

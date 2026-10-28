@@ -128,6 +128,16 @@ class SqlEventRepository(_Repo):
         with self.engine.connect() as c:
             return [IPv4Address(r[0]) for r in c.execute(q).all()]
 
+    def ids_alerts_between(self, start: datetime, end: datetime) -> list[IdsAlert]:
+        q = (
+            select(t.ids_alerts.c.body)
+            .where(t.ids_alerts.c.observed_at >= utc_naive(start))
+            .where(t.ids_alerts.c.observed_at <= utc_naive(end))
+            .order_by(t.ids_alerts.c.observed_at)
+        )
+        with self.engine.connect() as c:
+            return _load(IdsAlert, c.execute(q).all())
+
     def recent_ids_alerts(self, since: datetime) -> list[IdsAlert]:
         q = select(t.ids_alerts.c.body).where(t.ids_alerts.c.observed_at >= utc_naive(since))
         with self.engine.connect() as c:

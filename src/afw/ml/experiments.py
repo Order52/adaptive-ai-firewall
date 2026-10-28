@@ -38,7 +38,7 @@ from afw.domain.events import HttpObservation, IdsAlert
 from afw.domain.features import FeatureVector
 from afw.domain.policy import PolicyKind
 from afw.domain.profiles import BehaviorProfile
-from afw.domain.risk import RiskBand
+from afw.domain.risk import RiskAssessment, RiskBand
 from afw.features.extract import EndpointCatalog
 from afw.features.windows import replay_windows
 from afw.ml.datasets import DatasetManifest, LabelIndex, Role
@@ -51,6 +51,27 @@ _TRAFFIC_AFFECTING = {PolicyKind.SOURCE_BLOCK, PolicyKind.RATE_LIMIT}
 
 # (window, strategy) -> detections; see run_experiment
 Scorer = Callable[[FeatureVector, Strategy], list[DetectionResult]]
+
+# An evaluation-only arm (item 6): ``build(policed)`` returns its window scorer and an
+# optional hook called with every window's assessment after the decision, e.g. to
+# feed an online learner. ``policed(ip)`` tells whether this arm currently restricts
+# the source, as the live learner's ``policed`` does.
+Policed = Callable[[IPv4Address], bool]
+
+
+@dataclass(frozen=True)
+class ArmHooks:
+    score: Callable[[FeatureVector], list[DetectionResult]]
+    after: Callable[[FeatureVector, RiskAssessment], None] | None = None
+    summary: Callable[[], dict[str, Any]] | None = None
+
+
+@dataclass(frozen=True)
+class ExtraArm:
+    name: str
+    label: str  # reported as ArmReport.strategy
+    build: Callable[[Policed], ArmHooks]
+
 
 _ARMS: tuple[tuple[str, Strategy], ...] = (
     ("M0", Strategy.STATIC),
@@ -113,6 +134,8 @@ class ArmReport:
     # Scoring cost of the adaptive detectors in this arm
     mean_score_latency_us: float | None = None
     p95_score_latency_us: float | None = None
+    # Online learning inside the arm (streaming arms only): gate counts and exclusions
+    learning: dict[str, Any] = field(default_factory=dict)
     decisions: dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -204,11 +227,27 @@ def _run_arm(
     ids_alerts: Sequence[IdsAlert],
     labels: LabelIndex,
     scorer: Scorer | None = None,
+    extra: ExtraArm | None = None,
 ) -> ArmReport:
     engine = InferenceEngine()
     engine.load(profile, list(models))
     engine.strategy = strategy
     score = engine.score if scorer is None else (lambda fv: scorer(fv, strategy))
+    tracks: dict[IPv4Address, _SourceTrack] = {}
+    clock: list[datetime | None] = [None]
+
+    def policed(ip: IPv4Address) -> bool:
+        t, now = tracks.get(ip), clock[0]
+        return (
+            t is not None
+            and now is not None
+            and any(u is not None and now < u for u in (t.block_until, t.ratelimit_until))
+        )
+
+    hooks = None if extra is None else extra.build(policed)
+    if hooks is not None:
+        score = hooks.score
+    after = None if hooks is None else hooks.after
 
     correlation = CorrelationEngine(cfg.risk)
     for m in models:
@@ -217,18 +256,18 @@ def _run_arm(
         correlation.add_ids(a)
     decisions = DecisionEngine(cfg)
 
-    tracks: dict[IPv4Address, _SourceTrack] = {}
     first_attack_obs: dict[IPv4Address, datetime] = {}
     for o in observations:
         if labels.label_ip(o.client_ip) is Role.ATTACK and o.client_ip not in first_attack_obs:
             first_attack_obs[o.client_ip] = o.observed_at
 
-    report = ArmReport(arm=arm, strategy=strategy.value)
+    report = ArmReport(arm=arm, strategy=strategy.value if extra is None else extra.label)
     decision_counts: dict[str, int] = {}
     score_latencies_us: list[float] = []
 
     for fv in replay_windows(observations, cfg.window, _catalog(cfg, profile)):
         now = fv.window_end
+        clock[0] = now
         role = labels.label(fv)
         track = tracks.setdefault(fv.source_ip, _SourceTrack())
         if track.first_seen is None:
@@ -267,6 +306,8 @@ def _run_arm(
         )
         if contained_now and track.first_contained_at is None:
             track.first_contained_at = now
+        if after is not None:
+            after(fv, ra)
 
         # ---- window-level confusion (labeled windows only) ----
         report.n_windows += 1
@@ -293,6 +334,8 @@ def _run_arm(
     )
     _finalize_rates(report)
     report.decisions = decision_counts
+    if hooks is not None and hooks.summary is not None:
+        report.learning = hooks.summary()
     if score_latencies_us and strategy is not Strategy.STATIC:
         report.mean_score_latency_us = round(sum(score_latencies_us) / len(score_latencies_us), 1)
         report.p95_score_latency_us = round(_percentile(score_latencies_us, 95), 1)
@@ -411,12 +454,14 @@ def run_experiment(
     observations: Sequence[HttpObservation],
     ids_alerts: Sequence[IdsAlert] = (),
     scorer: Scorer | None = None,
+    extra_arms: Sequence[ExtraArm] = (),
 ) -> ExperimentReport:
     """Replay one labeled dataset through M0/M1/M2 and return a comparison.
 
     ``scorer`` replaces the default detector scoring (``InferenceEngine.score`` for the
     arm's strategy), so model variants that are not plain stored detectors can be
-    compared through the same correlation and decision logic (P6)."""
+    compared through the same correlation and decision logic (P6). ``extra_arms`` are
+    replayed after M0-M2 with the same correlation and decision logic."""
     if not observations:
         raise ValueError("no observations to replay")
     labels = LabelIndex(manifest)
@@ -438,6 +483,19 @@ def run_experiment(
             scorer=scorer,
         )
         for arm, strategy in _ARMS
+    ] + [
+        _run_arm(
+            x.name,
+            Strategy.ML,
+            cfg=cfg,
+            profile=profile,
+            models=models,
+            observations=ordered,
+            ids_alerts=ids_alerts,
+            labels=labels,
+            extra=x,
+        )
+        for x in extra_arms
     ]
     return ExperimentReport(
         dataset_id=manifest.dataset_id,

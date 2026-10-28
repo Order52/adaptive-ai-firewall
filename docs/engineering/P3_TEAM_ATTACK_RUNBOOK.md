@@ -129,6 +129,41 @@ legitimate request success, with confidence intervals over **runs**. Copy the JS
 
 The holdout family is evaluated **once**, after everything else is frozen.
 
+### 4.1 Four-way comparison (static, frozen ML, streaming ML, hybrid)
+
+Predeclared 2026-10-28, before any team run exists.
+
+```bash
+afwc experiment evaluate --datasets <all runs of the series> --streaming \
+  --warmup p6-final,p6-final-shift --out /tmp/eval-4way.json
+```
+
+| Arm | What decides | Learns during the run |
+|---|---|---|
+| M0 static | WAF inline blocking only (FW01 rules, CRS); no adaptive decision | no |
+| M2 frozen ML | robust statistics + Isolation Forest of the trusted profile, correlated with AUTH/WAF/IDS evidence | no |
+| S-ML streaming | robust statistics + an online Half-Space-Trees model that learns through the live admission gate, prequentially (scored before learning), at the champion HST threshold | yes, gate-admitted windows only |
+| HYB hybrid | M2's detectors + the same online HST, all enforcing | yes, as S-ML |
+
+Fairness rules:
+* All arms replay the same recorded observations **and the run's IDS alerts** (captured
+  with the dataset since 2026-10-28; earlier captures have none and say so in their
+  manifest: `n_ids_alerts: 0`). Same windows, correlation, risk bands and decision
+  engine; only the detectors differ.
+* Labels are used only for scoring the arms, never by any learner.
+* The streaming learner gets the history a running system would have: the `--warmup`
+  datasets (benign, ending before every evaluated run; the command refuses anything
+  else), streamed through the same gate. The report gives windows learned during the
+  warm-up and during the run separately. With the live gate (10 min quarantine, 30 min
+  tenure) little or nothing is learned *within* a 30 min run; that is the design, and
+  the result is reported as such, not tuned.
+* S-ML and HYB are evaluation counterfactuals. Live, HST stays shadow and these arms
+  cannot be selected as a controller strategy.
+* Report per arm: recall, precision, benign FPR, containment, latency, attack requests
+  exposed, legitimate request success, with CIs over runs, the number of runs, and the
+  learning summary. Differences smaller than the CI overlap are reported as "no
+  difference shown".
+
 ## 5. Enforcement runs (Gate D under attack)
 
 After the detection series, one run per family in **enforce** mode shows real

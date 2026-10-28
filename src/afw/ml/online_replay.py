@@ -18,6 +18,7 @@ import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from ipaddress import IPv4Address
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -68,6 +69,47 @@ class Stream:
     new_learner: Callable[[], ShadowLearner]
 
 
+def hst_champion(models: Sequence[LoadedModel]) -> LoadedModel:
+    hst = next((m for m in models if m.record.detector is DetectorKind.HALF_SPACE_TREES), None)
+    if hst is None:
+        raise ValueError("trusted profile has no HST champion")
+    return hst
+
+
+def replay_learner(
+    cfg: LabConfig,
+    profile: BehaviorProfile,
+    hst: LoadedModel,
+    now_ref: list[Any],
+    work_dir: Path | None = None,
+    policed: Callable[[IPv4Address], bool] = lambda ip: False,
+) -> Callable[[], ShadowLearner]:
+    """A factory of shadow learners on a private store, clocked by ``now_ref[0]``
+    (event time). ``cfg.learning`` is the learning configuration used."""
+    from afw.services.shadow import ShadowLearner  # service layer; avoid import cycle
+
+    work = work_dir or Path(tempfile.mkdtemp(prefix="afw-online-replay-"))
+    url = f"sqlite:///{work / 'replay.sqlite3'}"
+    upgrade(url)
+    repo = SqlLearningRepository(make_engine(url))
+    store = CheckpointStore(work / "challengers", repo, keep=cfg.learning.keep_checkpoints)
+
+    def new_learner() -> ShadowLearner:
+        sl = ShadowLearner(
+            cfg,
+            repo,
+            store,
+            _Audit(),
+            policed=policed,
+            reported=lambda app: set(),
+            clock=lambda: now_ref[0],
+        )
+        sl.reload(profile, hst)
+        return sl
+
+    return new_learner
+
+
 def learn_stream(
     *,
     cfg: LabConfig,
@@ -81,32 +123,12 @@ def learn_stream(
 ) -> Stream:
     """Window ``learn`` (as CURATED) plus pre-built ``inject`` windows, score them with
     the trusted detectors and correlation, and feed the gate + shadow learner."""
-    from afw.services.shadow import ShadowLearner  # service layer; avoid import cycle
 
-    hst = next((m for m in models if m.record.detector is DetectorKind.HALF_SPACE_TREES), None)
-    if hst is None:
-        raise ValueError("trusted profile has no HST champion")
+    hst = hst_champion(models)
     lc = learning or cfg.learning
     cfg = cfg.model_copy(update={"learning": lc})
-    work = work_dir or Path(tempfile.mkdtemp(prefix="afw-online-replay-"))
-    url = f"sqlite:///{work / 'replay.sqlite3'}"
-    upgrade(url)
-    repo = SqlLearningRepository(make_engine(url))
-    store = CheckpointStore(work / "challengers", repo, keep=lc.keep_checkpoints)
     now_ref: list[Any] = [None]
-
-    def new_learner() -> ShadowLearner:
-        sl = ShadowLearner(
-            cfg,
-            repo,
-            store,
-            _Audit(),
-            policed=lambda ip: False,
-            reported=lambda app: set(),
-            clock=lambda: now_ref[0],
-        )
-        sl.reload(profile, hst)
-        return sl
+    new_learner = replay_learner(cfg, profile, hst, now_ref, work_dir)
 
     inference = InferenceEngine()
     inference.load(profile, models)
