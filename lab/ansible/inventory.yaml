@@ -24,6 +24,8 @@ all:
       vars:
         nft_allow:
           - {proto: tcp, port: 5432, src: [10.77.40.10]}
+    desktop:
+      hosts: {desk01: {}}
     probes:
       hosts:
         usr01: {zone_gw: 10.77.20.1}

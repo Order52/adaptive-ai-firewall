@@ -27,7 +27,8 @@ def _params() -> StdioServerParameters:
     return StdioServerParameters(
         command=exe,
         env={
-            "AFW_API_URL": "http://10.77.50.10:8080",
+            "AFW_API_URL": "https://10.77.50.10:8080",
+            "AFW_API_CA": str(Path("~/.config/afw/pki/lab-ca.pem").expanduser()),
             "AFW_MCP_TOKEN_FILE": str(TOKEN),
             "PATH": os.environ["PATH"],
         },

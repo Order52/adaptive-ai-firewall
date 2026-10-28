@@ -9,7 +9,7 @@ addresses, safety limits): `config/lab.yaml`.
 | Node | Zone | Address | Role | Main services / ports |
 |---|---|---|---|---|
 | FW01 | all | .1 in every zone | OPNsense 26.7: zone firewall, `AFW_BLOCK_WEB` / `AFW_HEARTBEAT` aliases, Suricata (pcap) on ATTACK+USERS, heartbeat watchdog, NAT egress | REST API (TLS, lab CA); syslog-ng over mTLS → CTRL01:5514 (client cert `fw01-telemetry`) |
-| CTRL01 | MGMT | 10.77.50.10 | Controller (`afw serve`, systemd `afw-controller`, user `afwctl`) | API + dashboard :8080 (HTTP, MGMT only); syslog mTLS :5514 (WAF01, APP01, FW01); no plaintext listener |
+| CTRL01 | MGMT | 10.77.50.10 | Controller (`afw serve`, systemd `afw-controller`, user `afwctl`) | API + dashboard :8080 (HTTPS, lab-CA cert; MGMT only); syslog mTLS :5514 (WAF01, APP01, FW01); no plaintext listener |
 | DESK01 | MGMT | 10.77.50.20 | Operator desktop (XFCE/VNC, Firefox, Claude CLI) | — |
 | WAF01 | DMZ | 10.77.30.10 | nginx + OWASP CRS 4.25.2; policy helper | 443 (clients); helper 9443 (CTRL01 only); rsyslog mTLS sender; heartbeat timer |
 | APP01 | APP | 10.77.40.10 | Rental application v1.0.0 | 8000 (WAF01 only); rsyslog mTLS sender; heartbeat timer |
@@ -75,7 +75,7 @@ Other directories:
 |---|---|
 | CLI `afw` | `serve`, `config-check`; `db upgrade`; `token issue`; `dataset list/capture`; `train bootstrap/promote/rollback/status`; `experiment replay/online-replay/evaluate/adaptation`; `challenger evaluate/status`; `scenario list/begin/mark/end/abort/watchdog/manifest`; `geoip install/lookup`; `lab build/start/stop/status/recreate/provision-fw/provision-ids/deploy/layout/verify` |
 | REST API (`/api/...`) | health, overview, resources, events, detections, assessments, sources/{ip}; policies (+ simulate, approve, reject, revoke, explain); mode, strategy, feedback; profiles (diff, candidates, promote, rollback, reject), models, adaptation, experiments, audit; learning/shadow, learning/challenger (+ evaluate, promote, rollback); geo/status, geo/lookup, geo/preview |
-| Dashboard | `http://10.77.50.10:8080/` (SSH tunnel: `ssh -N -L 18080:10.77.50.10:8080 …`) |
+| Dashboard | `https://10.77.50.10:8080/` (SSH tunnel: `ssh -N -L 18080:10.77.50.10:8080 …` → `https://localhost:18080/`) |
 | MCP server `afw` | Read: overview, detections, risk_assessments, model_status, profiles, adaptation_status, shadow_learning, challenger_lifecycle, active_policies, policy_history, explain_policy, experiment_results, geo_preview, geo_lookup, verify_isolation, lab_* tools. Write, validated: simulate_block, block_source, unblock, approve/reject_policy, set_mode, country_policy (simulated only), feedback, start/stop/restart_node (CTRL01 refused) |
 
 ## 5. Versions

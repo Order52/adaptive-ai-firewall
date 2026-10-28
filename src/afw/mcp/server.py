@@ -6,7 +6,8 @@ through exactly the same validator / enforcement path as AI decisions. There is
 no tool that accepts free-form firewall or WAF text.
 
 Run (stdio, for a local MCP client):
-    AFW_API_URL=http://127.0.0.1:8080 AFW_MCP_TOKEN_FILE=secrets/mcp.token afw-mcp
+    AFW_API_URL=https://10.77.50.10:8080 AFW_API_CA=lab-ca.pem \\
+    AFW_MCP_TOKEN_FILE=secrets/mcp.token afw-mcp
 """
 
 from __future__ import annotations

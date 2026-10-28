@@ -70,7 +70,7 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 |---|---|---|---|
 | Authenticated and constrained MCP | `tests/lab/test_mcp_lab.py`; channel-scoped tokens; no shell, no promotion tool | `m9-2026-10-27/pytest-lab.txt` | MET |
 | Auditable operations | Audit log for policies, promotions, rollbacks, mode, feedback | API `/api/audit`; dashboard | MET |
-| Secure API and deployment | Role tokens; MGMT-only API; mTLS for all sensors incl. FW01 IDS (ADR-035, no plaintext listener); host nftables default-deny | `test_api.py`, `test_telemetry_v2.py`, `p1-2026-10-28/p5-ids-mtls.txt` | PARTIAL: API is plain HTTP on MGMT (SSH-tunnel access, TLS opt-in, ADR-023) |
+| Secure API and deployment | Role tokens; MGMT-only API; mTLS for all sensors incl. FW01 IDS (ADR-035, no plaintext listener); host nftables default-deny | `test_api.py`, `test_telemetry_v2.py`, `test_pki.py`, `tests/lab/test_api_tls_lab.py`, `p1-2026-10-28/p5-ids-mtls.txt`, `p5-api-tls.txt` | MET: API HTTPS-only with lab-CA certificate (ADR-023 revised); all sensors mTLS |
 | Accurate operator dashboard | Live headless render, no console errors; panels read the API only | `m8-2026-10-27/dashboard-panels.txt` | MET |
 | Tested recovery mechanisms | Cold restart; controller restart; sensor reconnect and staleness | `cold-restart-2026-10-18.md`, `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt` | MET |
 

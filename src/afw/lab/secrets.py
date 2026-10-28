@@ -22,7 +22,7 @@ API_PRINCIPALS = [  # name, role, channel
 ]
 LEAVES = {
     "WAF01": ["10.77.30.10"],  # + DNS rental.lab.afw (see pki.ensure_leaf)
-    "CTRL01": ["10.77.50.10"],
+    "CTRL01": ["10.77.50.10", "127.0.0.1"],  # + DNS localhost (SSH tunnel)
     "FW01": ["10.77.50.1"],
 }
 # Sensor client certificates for the mutually authenticated telemetry channel

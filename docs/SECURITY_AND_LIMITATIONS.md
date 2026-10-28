@@ -52,8 +52,10 @@ the known gaps.
   non-HTTPS signatures; IDS is supporting evidence only and never blocks alone.
 - **Low-and-slow / distributed** misuse falls below the per-window minimum by design
   (expected miss); an application-level aggregate detector is future work.
-- **Self-signed lab PKI.** Fine inside the lab; the controller serves HTTP by default
-  because operator access is via an SSH tunnel (already encrypted). TLS is opt-in.
+- **Self-signed lab PKI.** Fine inside the lab only. The controller API is HTTPS with a
+  lab-CA certificate (since 2026-10-28); clients must be given the lab CA. The CTRL01
+  certificate also names `localhost`/`127.0.0.1` for the SSH tunnel, so any client
+  that trusts the lab CA accepts it on a local port.
 - **Single-host scale.** ~7 GB of a 16 GB host; the modular-monolith design scales to
   more apps/sensors/backends by configuration, but large-scale throughput is untested.
 - **ML caveats.** Isolation-Forest/robust-stats scores are anomaly scores, not

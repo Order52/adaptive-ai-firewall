@@ -4,7 +4,8 @@
       "command": "uv",
       "args": ["run", "afw-mcp"],
       "env": {
-        "AFW_API_URL": "http://10.77.50.10:8080",
+        "AFW_API_URL": "https://10.77.50.10:8080",
+        "AFW_API_CA": "${HOME}/.config/afw/pki/lab-ca.pem",
         "AFW_MCP_TOKEN_FILE": "${HOME}/.config/afw/api/mcp.token",
         "AFW_GNS3_PROJECT": "AI-Adaptive-Firewall"
       }

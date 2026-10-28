@@ -108,6 +108,6 @@ cd ~/uot/ai-adaptive-firewall && git checkout engineering-directive && git log -
 uv sync && uv run pytest -q                        # local gates
 uv run afw lab verify                              # live isolation (needs lab up)
 curl -s -H "Authorization: Bearer $(cat ~/.config/afw/api/dashboard.token)" \
-  http://10.77.50.10:8080/api/learning/shadow | jq .status
+  https://10.77.50.10:8080/api/learning/shadow | jq .status
 uv run afw lab deploy --limit ctrl01               # redeploy controller
 ```

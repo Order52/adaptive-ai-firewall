@@ -74,6 +74,6 @@ Scope: the GNS3 lab and the AFW control plane. Trust boundaries and flows are in
 | Threat | Mitigation | Residual |
 |---|---|---|
 | AI agent / prompt injection issues harmful actions | MCP tokens are channel `mcp`, operator role at most; every mutation goes through the same validator and audit; no shell tool; no promotion tool; `restart_node CTRL01` refused | An operator-role agent can still request (validated) blocks |
-| Token theft | Tokens stored hashed server-side; role-scoped; API reachable from MGMT only | Plain HTTP on MGMT (operator access via SSH tunnel; TLS opt-in, ADR-023) |
+| Token theft | Tokens stored hashed server-side; role-scoped; API reachable from MGMT only | HTTPS with a lab-CA certificate (ADR-023); a stolen token is still usable from MGMT until revoked |
 | Repudiation | Audit log for every policy, promotion, rollback, mode change and feedback item | Audit log lives on the controller host |
 | Secret leakage via Git | Secrets only in `~/.config/afw/`; evidence scanned before commit | — |

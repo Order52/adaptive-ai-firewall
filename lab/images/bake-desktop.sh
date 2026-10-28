@@ -58,7 +58,7 @@ write_files:
       Version=1.0
       Type=Application
       Name=AI-Adaptive-Firewall Dashboard
-      Exec=firefox http://10.77.50.10:8080/
+      Exec=firefox https://10.77.50.10:8080/
       Icon=firefox
       Terminal=false
   - path: /home/afw/Desktop/Test-MCP.desktop
@@ -78,7 +78,8 @@ write_files:
       # Offline-capable MCP tool test: spawns the afw MCP server (stdio) and calls
       # a couple of read-only tools against the controller. No Anthropic account
       # needed (this exercises the MCP server + controller, not the Claude chat).
-      export AFW_API_URL=\${AFW_API_URL:-http://10.77.50.10:8080}
+      export AFW_API_URL=\${AFW_API_URL:-https://10.77.50.10:8080}
+      export AFW_API_CA=\${AFW_API_CA:-/usr/local/share/ca-certificates/afw-lab-ca.crt}
       export AFW_MCP_TOKEN_FILE=\${AFW_MCP_TOKEN_FILE:-\$HOME/.config/afw/api/mcp.token}
       exec /opt/afw/venv/bin/python /opt/afw/bin/mcp_client.py "\$@"
   - path: /opt/afw/bin/mcp_client.py
@@ -88,7 +89,7 @@ write_files:
       from mcp.client.stdio import stdio_client
       async def main():
           env = {**os.environ,
-                 "AFW_API_URL": os.environ.get("AFW_API_URL", "http://10.77.50.10:8080"),
+                 "AFW_API_URL": os.environ.get("AFW_API_URL", "https://10.77.50.10:8080"),
                  "AFW_MCP_TOKEN_FILE": os.environ.get("AFW_MCP_TOKEN_FILE",
                      os.path.expanduser("~/.config/afw/api/mcp.token"))}
           params = StdioServerParameters(command="/opt/afw/venv/bin/afw-mcp", env=env)
@@ -109,7 +110,8 @@ write_files:
     content: |
       AI-Adaptive-Firewall - operator desktop (MGMT zone)
       ===================================================
-      * Dashboard: double-click "AI-Dashboard" (Firefox -> http://10.77.50.10:8080).
+      * Dashboard: double-click "AI-Dashboard" (Firefox -> https://10.77.50.10:8080; lab CA installed by
+        the `desktop` Ansible role).
         Paste the viewer token when asked (see ~/.config/afw/api/dashboard.token).
       * MCP tools (offline): double-click "Test the afw MCP tools", or run
         /opt/afw/bin/mcp-tools  (lists tools + calls lab_health/overview).

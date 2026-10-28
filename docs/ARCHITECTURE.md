@@ -109,7 +109,7 @@ The control loop:
 | Sensors → CTRL01 heartbeat | 30 s line over the same mTLS channel | Liveness counts only on an authenticated channel; 150 s silence marks evidence degraded (ADR-031) |
 | CTRL01 → FW01 | OPNsense REST over TLS (lab CA), least-privilege API user: alias membership and state queries only (ADR-017/018) | A stolen controller key cannot rewrite rules |
 | CTRL01 → WAF01 helper | HTTPS 9443, token, CTRL01 only | Deny-list and rate-limit membership only |
-| Operator / Claude → CTRL01 | HTTP :8080 from MGMT only (operator access via SSH tunnel), bearer tokens with roles viewer/operator/admin and channel api/mcp | MCP mutations use the same validator and audit as AI decisions; no shell tool |
+| Operator / Claude → CTRL01 | HTTPS :8080 (lab-CA certificate) from MGMT only (operator access direct from MGMT or via SSH tunnel), bearer tokens with roles viewer/operator/admin and channel api/mcp | MCP mutations use the same validator and audit as AI decisions; no shell tool |
 | FW01 watchdog | Local cron on FW01 | Flushes dynamic blocks within about 120 s if controller heartbeats stop (ADR-009) |
 
 ## 4. Adaptive learning lifecycle

@@ -33,12 +33,13 @@ afw lab verify                # expect 37/37 isolation checks
 
 ## 3. Controller, tokens, dashboard
 
-- The controller runs as the `afw-controller` systemd service on CTRL01 (HTTP :8080;
-  TLS opt-in via `AFW_TLS_CERT`/`AFW_TLS_KEY` + `controller_tls: true`).
+- The controller runs as the `afw-controller` systemd service on CTRL01 (HTTPS :8080
+  with the lab-CA `CTRL01` leaf, ADR-023; `controller_tls: false` reverts to HTTP).
+  The `desktop` role installs the lab CA on DESK01 (system store and Firefox policy).
 - Issue API tokens: `afw token issue <name> --role viewer|operator|admin [--channel api|mcp]`
   (writes a hash to the tokens file, prints the secret once).
-- Dashboard: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` → `http://localhost:18080/`,
-  paste `~/.config/afw/api/dashboard.token`.
+- Dashboard: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` → `https://localhost:18080/`
+  (the certificate covers `localhost`; the browser must trust the lab CA), paste `~/.config/afw/api/dashboard.token`.
 
 ## 4. MCP for Claude Code
 

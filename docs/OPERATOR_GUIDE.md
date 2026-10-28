@@ -14,7 +14,7 @@ afw lab verify            # 37 zone-isolation checks from inside the guests
 afw lab deploy            # idempotent Ansible (re-run is changed=0 when in sync)
 ```
 
-Dashboard: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` → `http://localhost:18080/`,
+Dashboard: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` → `https://localhost:18080/`,
 click **API token**, paste `~/.config/afw/api/dashboard.token`.
 
 ## AI / profiles / models
@@ -27,7 +27,7 @@ afw train bootstrap --train <train-ids> --val <val-ids>     # (CTRL01) builds a 
 # promote (reloads the running controller) via the API:
 curl -XPOST -H "Authorization: Bearer $(cat ~/.config/afw/api/admin.token)" \
      -H 'Content-Type: application/json' -d '{"note":"..."}' \
-     http://10.77.50.10:8080/api/profiles/rental/<v>/promote
+     https://10.77.50.10:8080/api/profiles/rental/<v>/promote
 afw train rollback <v> <reviewer> "<note>"        # roll back to a previous trusted profile
 afw experiment replay --datasets <held-out-ids>   # M0/M1/M2 comparison
 ```

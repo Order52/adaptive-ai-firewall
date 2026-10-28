@@ -6,7 +6,7 @@ Items marked **[BENIGN — runs today]** work now; **[NEEDS ATTACK TRACE]** are 
 in code and run once team-supplied attack traces exist (see `docs/EXPERIMENTS.md`).
 
 Open the dashboard first: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` →
-`http://localhost:18080/` (paste the dashboard token).
+`https://localhost:18080/` (paste the dashboard token).
 
 ## 1. Lab health & topology (1–2 min)
 - `afw lab status` → 6 guests + infra, all started.

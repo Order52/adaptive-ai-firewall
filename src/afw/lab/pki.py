@@ -46,22 +46,41 @@ def ensure_ca(d: Path = PKI_DIR) -> Path:
     return crt
 
 
-EXTRA_DNS = {"WAF01": ["rental.lab.afw"]}  # names clients use for the protected service
+# Extra names clients use: the protected service for WAF01; for CTRL01, the
+# operator's SSH tunnel (`-L 18080:10.77.50.10:8080` -> https://localhost:18080/).
+EXTRA_DNS = {"WAF01": ["rental.lab.afw"], "CTRL01": ["localhost"]}
+
+
+def _sans(name: str, ips: list[str]) -> list[str]:
+    dns = [f"{name.lower()}.lab.afw", *EXTRA_DNS.get(name, [])]
+    return [f"IP:{ip}" for ip in ips] + [f"DNS:{n}" for n in dns]
+
+
+def _cert_sans(crt: Path) -> set[str]:
+    out = subprocess.run(  # noqa: S603
+        [OPENSSL, "x509", "-in", str(crt), "-noout", "-ext", "subjectAltName"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    body = out.split("\n", 1)[1] if "\n" in out else ""
+    return {s.strip().replace("IP Address:", "IP:") for s in body.split(",") if s.strip()}
 
 
 def ensure_leaf(
     name: str, ips: list[str], d: Path = PKI_DIR, *, client: bool = False
 ) -> tuple[Path, Path]:
-    """Return (cert, key) for ``name`` with the given IP SANs; created once.
+    """Return (cert, key) for ``name`` with the given IP SANs; created once, and
+    re-issued (new key) only if an existing certificate lacks a required SAN.
 
     ``client=True`` issues a TLS *client* certificate (extendedKeyUsage
     clientAuth), used by sensors to authenticate to the telemetry receiver.
     """
     ensure_ca(d)
     key, crt, csr = d / f"{name}.key", d / f"{name}.pem", d / f"{name}.csr"
-    if not crt.exists():
-        dns = [f"{name.lower()}.lab.afw", *EXTRA_DNS.get(name, [])]
-        san = ",".join([f"IP:{ip}" for ip in ips] + [f"DNS:{n}" for n in dns])
+    want = _sans(name, ips)
+    if not crt.exists() or not set(want) <= _cert_sans(crt):
+        san = ",".join(want)
         _run(
             "req",
             "-newkey",

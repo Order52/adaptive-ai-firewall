@@ -1,0 +1,26 @@
+# Operator desktop (DESK01, MGMT): trust the lab CA so the dashboard and the MCP
+# client reach the controller API over verified HTTPS (ADR-023).
+- name: Lab CA in the system trust store
+  ansible.builtin.copy: {src: "{{ afw_home }}/pki/lab-ca.pem", dest: /usr/local/share/ca-certificates/afw-lab-ca.crt, mode: "0644"}
+  notify: update ca certificates
+- name: Firefox policy directory
+  ansible.builtin.file: {path: /etc/firefox/policies, state: directory, mode: "0755"}
+- name: Lab CA for Firefox (snap Firefox has its own certificate store)
+  ansible.builtin.copy: {src: "{{ afw_home }}/pki/lab-ca.pem", dest: /etc/firefox/policies/afw-lab-ca.pem, mode: "0644"}
+- name: Firefox enterprise policy installing the lab CA
+  ansible.builtin.copy:
+    dest: /etc/firefox/policies/policies.json
+    mode: "0644"
+    content: '{"policies": {"Certificates": {"Install": ["/etc/firefox/policies/afw-lab-ca.pem"]}}}'
+- name: Launchers and MCP client use HTTPS
+  ansible.builtin.replace: {path: "{{ item }}", regexp: 'http://10\.77\.50\.10:8080', replace: 'https://10.77.50.10:8080'}
+  loop:
+    - /home/afw/Desktop/AI-Dashboard.desktop
+    - /opt/afw/bin/mcp-tools
+    - /opt/afw/bin/mcp_client.py
+    - /home/afw/README-test.txt
+- name: MCP client verifies the controller with the lab CA
+  ansible.builtin.lineinfile:
+    path: /opt/afw/bin/mcp-tools
+    insertafter: '^export AFW_API_URL'
+    line: 'export AFW_API_CA=${AFW_API_CA:-/usr/local/share/ca-certificates/afw-lab-ca.crt}'

@@ -16,8 +16,8 @@ safety guards below.
   through the *same* policy validator, enforcement and audit path as autonomous
   AI decisions. GNS3 infrastructure tools call the GNS3 API on the host
   (`~/.config/afw/gns3.env`). The control plane is on the host-only MGMT zone,
-  reached locally or over SSH; it serves HTTP by default (set `AFW_TLS_CERT`/
-  `AFW_TLS_KEY` for direct HTTPS, then add `AFW_API_CA` here).
+  reached locally or over SSH; it serves HTTPS with a lab-CA certificate, which the
+  MCP server verifies via `AFW_API_CA` (never `verify=False`).
 - **Separation of concerns.** Read-only tools, operational tools (node power) and
   policy mutations are distinct. A policy mutation can never bypass the validator;
   protected/management addresses are always refused.
@@ -37,7 +37,8 @@ Project config is committed at `.mcp.json`:
       "command": "uv",
       "args": ["run", "afw-mcp"],
       "env": {
-        "AFW_API_URL": "http://10.77.50.10:8080",
+        "AFW_API_URL": "https://10.77.50.10:8080",
+        "AFW_API_CA": "${HOME}/.config/afw/pki/lab-ca.pem",
         "AFW_MCP_TOKEN_FILE": "${HOME}/.config/afw/api/mcp.token",
         "AFW_GNS3_PROJECT": "AI-Adaptive-Firewall"
       }

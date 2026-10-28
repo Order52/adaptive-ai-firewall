@@ -31,7 +31,7 @@ On the host:
 ```bash
 uv run afw lab status            # all 8 VMs started
 uv run afw lab verify            # expect 37/37 checks passed
-curl -s http://10.77.50.10:8080/api/health    # "status":"ok", "telemetry_degraded":false
+curl -s https://10.77.50.10:8080/api/health    # "status":"ok", "telemetry_degraded":false
 ```
 
 * Operating mode **monitor** for detection runs (the dashboard header shows it; change

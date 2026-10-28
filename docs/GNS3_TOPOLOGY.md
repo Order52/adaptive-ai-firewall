@@ -11,11 +11,11 @@ _Live, verified against the running GNS3 project `AI-Adaptive-Firewall`
              ┌───────────────────────────────────────────────┐
              │   CTRL01  —  AI-ADAPTIVE-FIREWALL              │
              │   AI / ML / profiling / correlation / MCP      │
-             │   dashboard (HTTP via SSH tunnel) · control    │
+             │   dashboard (HTTPS via SSH tunnel) · control   │
              │        │                                       │
              │   SW-MGMT ── HOST-MGMT (host TAP)  MAINT-NAT   │
              └────────┼──────────────────────────────────────┘
-                      │  management API (bearer token; TLS opt-in)
+                      │  management API (bearer token; HTTPS)
                       ▼
                    ┌──────┐
      ATTACK  ──────┤ FW01 ├────── USERS
