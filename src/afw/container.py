@@ -15,6 +15,7 @@ from afw.enforcement.memory import MemoryBackend, MemoryProbe
 from afw.enforcement.probe import LabProbe, ProbeAgent
 from afw.geoip import GeoIpDatabase, load_optional
 from afw.ml.datasets import DatasetStore
+from afw.ml.network_detector import net_calibration_path
 from afw.ml.online import CheckpointStore
 from afw.ml.registry import ArtifactStore
 from afw.persistence.db import make_engine, upgrade
@@ -185,6 +186,7 @@ def build_container(
         shadow=shadow,
         lifecycle=challenger,
     )
+    controller.load_net_calibration(net_calibration_path(Path(settings.data_dir)))
     return Container(
         settings=settings,
         cfg=cfg,

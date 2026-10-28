@@ -7,6 +7,7 @@ ingest ─► correlate ─► windows ─► inference ─► correlation/risk 
 
 from __future__ import annotations
 
+import json
 import queue
 import threading
 import time
@@ -15,6 +16,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from ipaddress import IPv4Address
+from pathlib import Path
 
 import structlog
 
@@ -144,8 +146,21 @@ class Controller:
         self._ids_only_at: dict[IPv4Address, datetime] = {}
         self._started_at: float | None = None  # set by start(): heartbeats expected
         self.model_error: str | None = None  # trusted models could not be loaded
+        self.net_calibration_error: str | None = None
 
     # ------------------------------------------------------------ model state
+    def load_net_calibration(self, path: Path) -> None:
+        """Calibrated network-novelty levels (shadow). Missing: ceilings only. Unreadable
+        or for another schema: ceilings only, and the reason is shown in /api/network."""
+        if not path.exists():
+            return
+        try:
+            self.net_detector.load(json.loads(path.read_text()))
+            self.net_calibration_error = None
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            self.net_calibration_error = str(exc)
+            log.error("net_calibration_load_failed", path=str(path), error=str(exc))
+
     def reload(self) -> bool:
         try:
             loaded = self.learning.load_active(self.app_id)

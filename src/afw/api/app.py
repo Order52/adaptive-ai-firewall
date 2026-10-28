@@ -449,6 +449,7 @@ def create_app(c: Container) -> FastAPI:
             },
             "detector": {
                 "calibrated_on": ctl.net_detector.n_calibration,
+                "calibration_error": ctl.net_calibration_error,
                 "effective_thresholds": ctl.net_detector.effective(),
             },
             "recent": [v.__dict__ for v in reversed(verdicts)],

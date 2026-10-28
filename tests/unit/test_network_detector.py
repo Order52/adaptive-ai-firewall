@@ -61,3 +61,37 @@ def test_slow_scan_is_caught_on_the_long_horizon():
     d.calibrate(benign())
     r = d.assess(v(dst_ports_60=5, dst_ports_300=60))
     assert r.strong and any(x.startswith("dst_ports_300") for x in r.reasons)
+
+
+def test_calibration_round_trip_and_schema_check():
+    d = NetworkNovelty()
+    d.calibrate(benign())
+    e = NetworkNovelty()
+    e.load(d.to_dict())
+    assert e.effective() == d.effective() and e.n_calibration == 200
+    with pytest.raises(ValueError, match="schema"):
+        e.load(d.to_dict() | {"schema": ["x"]})
+
+
+def test_calibration_windows_include_quiet_benign_users_as_zero_vectors():
+    from test_dataset_validation import manifest
+    from test_network_features import SERVICES, USER, dns
+
+    from afw.ml.datasets import Role, SourceLabel
+    from afw.ml.network_detector import calibration_windows
+
+    m = manifest(
+        start=T,
+        end=T + dt.timedelta(minutes=20),
+        sources=(
+            SourceLabel(ip=USER, role=Role.BENIGN),
+            SourceLabel(ip=IPv4Address("10.77.20.151"), role=Role.BENIGN),
+        ),
+    )
+    ev = [dns(name=f"h{i}.lab", at=600 + i) for i in range(5)]
+    vs = calibration_windows(m, ev, SERVICES)
+    # emissions at start+375 s .. end+75 s (inclusive) every 30 s: 31, two users each
+    assert len(vs) == 2 * 31
+    active = [v for v in vs if v.n_events]
+    assert active and all(v.source_ip == USER for v in active)
+    assert max(v.values["dns_queries_300"] for v in active) == 5

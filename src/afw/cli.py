@@ -561,6 +561,39 @@ def experiment_supervised(
     typer.echo(json.dumps(out, indent=2, default=str))
 
 
+@exp_app.command("network-calibrate")
+def experiment_network_calibrate(
+    datasets: Annotated[str, typer.Option(help="comma-separated benign-labelled dataset ids")],
+    write: Annotated[bool, typer.Option(help="save for the controller (shadow detector)")] = False,
+) -> None:
+    """N2: calibrate network novelty on benign sources' residual windows of captured runs."""
+    from afw.ml.network_detector import NetworkNovelty, calibration_windows, net_calibration_path
+
+    c = _container()
+    services = [(s.address, s.port) for s in c.cfg.services]
+    vectors = []
+    for ds in [d for d in datasets.split(",") if d]:
+        m = c.datasets.manifest(ds)
+        if m.purpose.value not in ("train", "validation"):
+            typer.echo(f"{ds}: purpose {m.purpose.value} is not for calibration")
+            raise typer.Exit(1)
+        vs = calibration_windows(m, c.datasets.net_events(ds), services)
+        typer.echo(
+            f"{ds}: {m.n_net_events} network events, {len(vs)} benign windows, "
+            f"{sum(v.n_events > 0 for v in vs)} with residual activity"
+        )
+        vectors += vs
+    det = NetworkNovelty()
+    det.calibrate(vectors)
+    out = det.to_dict() | {"datasets": datasets.split(","), "effective": det.effective()}
+    typer.echo(json.dumps(out, indent=2))
+    if write:
+        path = net_calibration_path(Path(get_settings().data_dir))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=2))
+        typer.echo(f"wrote {path}; restart the controller to load it")
+
+
 @exp_app.command("online-replay")
 def experiment_online_replay(
     learn: Annotated[str, typer.Option(help="comma-separated dataset ids to learn from")],

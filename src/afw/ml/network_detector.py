@@ -17,12 +17,17 @@ A source with no residual activity has no vector and is never scored.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import timedelta
+from ipaddress import IPv4Address
+from pathlib import Path
 
 import numpy as np
 
-from afw.features.network import FEATURE_NAMES, NetworkVector
+from afw.domain.network import NetworkEvent
+from afw.features.network import FEATURE_NAMES, NetworkVector, NetworkWindows
+from afw.ml.datasets import DatasetManifest, Role
 
 # Fixed ceilings (per 60 s unless named _300). Rationale in ADR-042.
 CEILINGS: Mapping[str, float] = {
@@ -91,3 +96,60 @@ class NetworkNovelty:
             score=round(float(ratio.max()), 3) if len(ratio) else 0.0,
             reasons=reasons,
         )
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schema": list(FEATURE_NAMES),
+            "alpha": self.alpha,
+            "n_calibration": self.n_calibration,
+            "thresholds": dict(zip(FEATURE_NAMES, map(float, self.thresholds), strict=True)),
+        }
+
+    def load(self, d: Mapping[str, object]) -> None:
+        """Restore calibrated levels; ceilings stay those of this build."""
+        if d.get("schema") != list(FEATURE_NAMES):
+            raise ValueError("network calibration was made for a different feature schema")
+        th = d["thresholds"]
+        if not isinstance(th, Mapping):
+            raise ValueError("network calibration has no thresholds")
+        self.thresholds = np.array([float(th[n]) for n in FEATURE_NAMES])
+        self.n_calibration = int(str(d.get("n_calibration", 0)))
+
+
+def calibration_windows(
+    manifest: DatasetManifest,
+    events: Sequence[NetworkEvent],
+    services: Iterable[tuple[IPv4Address, int]],
+    every_s: int = 30,
+) -> list[NetworkVector]:
+    """Replay a captured run's network events the way the controller sees them and
+    return one vector per benign-labelled source per emission, a zero vector when the
+    source had no residual activity (the common case for a web user)."""
+    benign = [s for s in manifest.sources if s.role is Role.BENIGN]
+    if not benign:
+        return []
+    w = NetworkWindows(services, every_s=every_s)
+    pending = sorted(events, key=lambda e: e.observed_at)
+    zero = dict.fromkeys(FEATURE_NAMES, 0.0)
+    out: list[NetworkVector] = []
+    t = manifest.start + w.lateness + w.long
+    i = 0
+    while t <= manifest.end + w.lateness:
+        while i < len(pending) and pending[i].observed_at <= t:
+            w.add(pending[i])
+            i += 1
+        emitted = {v.source_ip: v for v in w.emit(t)}
+        end = t - w.lateness
+        for s in benign:
+            if (s.start and end - w.long < s.start) or (s.end and end > s.end):
+                continue  # the label must cover the whole long horizon
+            out.append(
+                emitted.get(s.ip)
+                or NetworkVector(source_ip=s.ip, window_end=end, values=zero, n_events=0)
+            )
+        t += timedelta(seconds=every_s)
+    return out
+
+
+def net_calibration_path(data_dir: Path) -> Path:
+    return data_dir / "network" / "calibration.json"
