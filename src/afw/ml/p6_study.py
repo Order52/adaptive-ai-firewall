@@ -80,10 +80,20 @@ class Candidate:
                 continue
             s = np.asarray(self.model(kind).detector.score(x))
             out[kind.value] = s >= self._thresholds(kind, tw)
-        enforcing = out[ENFORCING[0].value] | out[ENFORCING[1].value]
+        ml = out[ENFORCING[0].value] | out[ENFORCING[1].value]
+        out["ml"] = ml
+        enforcing = ml
         if self.security is not None:
-            out["security"] = self.security.flags(windows) if windows else np.array([], bool)
-            enforcing = enforcing | out["security"]
+            empty = np.array([], dtype=bool)
+            sec = self.security.flags(windows) if windows else empty
+            out["security"] = sec
+            # decomposition (P6 reporting): what the fixed ceilings alone catch, and
+            # what each side adds over the other, so the security path cannot hide
+            # weak ML and vice versa
+            out["security_ceiling"] = self.security.ceiling_flags(windows) if windows else empty
+            out["ml_not_security"] = ml & ~sec
+            out["security_not_ml"] = sec & ~ml
+            enforcing = ml | sec
         out["enforcing"] = enforcing
         return out
 

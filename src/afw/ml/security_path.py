@@ -136,6 +136,11 @@ class SecurityPath:
         x = self._matrix(windows)
         return np.asarray(((x > self.thresholds) | (x >= self.ceilings)).any(axis=1))
 
+    def ceiling_flags(self, windows: Sequence[FeatureVector]) -> np.ndarray:
+        """The fixed part alone: flagged only at an attack-sized ceiling."""
+        x = self._matrix(windows)
+        return np.asarray((x >= self.ceilings).any(axis=1))
+
     def reasons(self, fv: FeatureVector) -> tuple[str, ...]:
         x = quantities(fv)
         return tuple(
