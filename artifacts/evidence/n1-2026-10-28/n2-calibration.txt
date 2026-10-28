@@ -1,0 +1,20 @@
+N2 network-novelty calibration on real benign flows (2026-10-28 19:40Z)
+Run: 19:07:35-19:39:15Z, 36 v2 persona users (A2 generator) on USR01; datasets captured
+with network events: n2-benign-train 16,599 obs / 33,140 net events; n2-benign-val 7,803 / 15,581
+(observations = WAF01 log; all dataset checks PASS; n2-capture.txt).
+
+Residual windows (controller replay, every 30 s, label covers the 300 s horizon):
+  train 1,296 windows, 0 with residual activity; val 648 windows, 0 with residual activity.
+  -> every calibrated level is 0: in this lab, legitimate users produce no network activity
+     beyond answered web connections, so ANY failed connection, non-service flow or DNS query
+     from a user is "unfamiliar". Fixed ceilings still decide "strong".
+  -> val: 0/648 unfamiliar (trivially; nothing to flag).
+This is a property of the lab's benign population (web-only personas), not evidence about
+benign false-positive rates on a real network with DNS, updates, etc.
+Installed: /var/lib/afw/network/calibration.json (n_calibration 1296), loaded after restart
+(/api/network detector.calibrated_on = 1296, calibration_error null). Shadow only.
+
+Load during the run (load-under-traffic.txt, 6 samples): FW01 load average 0.10-0.44 (2 vCPU),
+Suricata RSS 483-485 MB (baseline 482 MB), syslog-ng unchanged; ~800 flow + ~800 TLS events/min
+to CTRL01; queue_drop 0, net overflow 0, too_late 0, telemetry never degraded; controller RSS
+274 -> 280 MB over 25 min.

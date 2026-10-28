@@ -1,0 +1,33 @@
+wrote 16599 observations, 0 IDS alerts and 33140 network events to /var/lib/afw/datasets/n2-benign-train
+wrote 7803 observations, 0 IDS alerts and 15581 network events to /var/lib/afw/datasets/n2-benign-val
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 16599 observations, manifest 16599
+PASS time_range: 0 observations outside 2026-10-28 19:07:35+00:00..2026-10-28 19:39:15+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/16599 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 7803 observations, manifest 7803
+PASS time_range: 0 observations outside 2026-10-28 19:07:35+00:00..2026-10-28 19:39:15+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/7803 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+# Completeness: WAF01 access-log lines for the same sources and period: {'n2-benign-train': 16599, 'n2-benign-val': 7803}
