@@ -1,6 +1,6 @@
 # Project status
 
-**As of 2026-10-27, branch `engineering-directive`.** This is the single status page.
+**As of 2026-10-28, branch `engineering-directive`.** This is the single status page.
 Milestone detail is in `engineering/AUTONOMOUS_PROGRESS.md`; per-criterion evidence is
 in `VALIDATION_MATRIX.md`. Older status files are in `docs/archive/` and are superseded.
 
@@ -18,10 +18,12 @@ connectors; `GNS3_TOPOLOGY.md`):
   promotion, probation rollback.
 
 It is **not complete** against the directive's acceptance gates. The attack half of the
-evaluation needs team-run attack scenarios. Online adaptation is shown on recorded real
-drift, not yet live. Its most important measured weakness: the v2 models, trained on one
-5.4-minute run of six addresses, raise many false positives when the legitimate workload
-changes (`RESULTS.md` §3, corrected 2026-10-28).
+evaluation needs team-run attack scenarios. Online learning now runs live on CTRL01
+(learning, pivots, restart restore, gate rejection), but no challenger has passed the
+gate. Its most important measured weakness: the trusted v2 models, trained on one
+5.4-minute run, restrict 13 of 16 unseen legitimate users in replay (`RESULTS.md` §3a).
+A candidate trained on more varied users (v3) removes those false positives but loses
+measurable ML sensitivity, so it fails its predeclared criteria and is not promoted.
 
 ## 2. Gates
 
@@ -29,10 +31,10 @@ changes (`RESULTS.md` §3, corrected 2026-10-28).
 |---|---|---|
 | A Infrastructure | **MET** | — |
 | B Detection | **NOT MET** | No labelled attack runs (BLOCKED-EXT); FN unmeasurable |
-| C Genuine adaptation | **PARTIAL** | Shown on real recorded drift offline; live challenger learned 0 (fail-closed); no live promotion; gate refuses (attack recall, sensitive invariance) |
+| C Genuine adaptation | **PARTIAL** | Live learning, pivots, restart restore and drift reports observed on CTRL01; no promotion: gate refuses (no attack recall data; sensitive invariance fails) |
 | D Enforcement | **MET** | — |
 | E Independent value | **NOT MET** | Benign-only comparison; value under attack BLOCKED-EXT |
-| F Security and operations | **PARTIAL** | Plain-HTTP API on MGMT (by design, ADR-023); FW01 IDS feed plaintext |
+| F Security and operations | **PARTIAL** | Plain-HTTP API on MGMT (by design, ADR-023); FW01 IDS feed now mTLS (ADR-035) |
 | G Academic defensibility | **PARTIAL** | Team demonstration only the team can do; attack-side methodology unexercised |
 
 ## 3. Milestones (engineering directive)
@@ -40,34 +42,40 @@ changes (`RESULTS.md` §3, corrected 2026-10-28).
 | M | Scope | Status |
 |---|---|---|
 | M0 | Audit, baseline, hygiene | DONE |
-| M1 | Provenance-aware corroboration | DONE (SV-1 open) |
-| M2 | Online shadow learning, eligibility, mTLS provenance | PARTIAL (live learning not yet observed) |
+| M1 | Provenance-aware corroboration | DONE (SV-1 open, needs attack runs) |
+| M2 | Online shadow learning, eligibility, mTLS provenance | DONE (live learning observed 2026-10-28; rate-cap bug found and fixed) |
 | M3 | Champion/challenger gate, promotion, probation, rollback | DONE; live gate BLOCKED-EXT |
-| M4 | Adaptation experiments on real drift | DONE (found and fixed a poisoning flaw) |
+| M4 | Adaptation experiments on real drift | DONE (poisoning flaw fixed; sensitivity loss traced to threshold calibration) |
 | M5 | Telemetry v2, IDS-only view, liveness | DONE (found and fixed two live defects) |
 | M6 | Attack-evaluation harness | DONE; Gate B BLOCKED-EXT |
 | M7 | Real GeoIP lookup and preview | DONE; real-country enforcement not implemented |
 | M8 | Dashboard views for M2–M7 | DONE |
 | M9 | Documentation consolidation | DONE (this set) |
+| P1 | Benign generalization (predeclared protocol) | DONE: v2 fails on unseen users; v3 candidate fails sensitivity; neither promoted |
+| P2 | Sensitive invariance mechanism + matched-window gate | DONE |
+| P3 | Independent attack evaluation | BLOCKED-EXT (`engineering/P3_TEAM_ATTACK_RUNBOOK.md`) |
+| P4 | Real online adaptation | DONE for the governed loop; no promotion |
+| P5 | Hardening | IDS mTLS, node count reconciled; API TLS and country enforcement not done |
 
 ## 4. Outstanding gaps, in priority order
 
 1. **Team attack runs (unblocks B, E, the M3 live gate, half of G).** At least 3 runs
    per scenario family through `afw scenario begin/mark/end` → `afw scenario manifest`
    → `afw dataset capture` → `afw experiment evaluate`. Procedure:
-   `engineering/M6_ATTACK_EVALUATION.md` §2.
-2. **Broader benign training data.** The v2 profile generalises poorly to new users
-   (`RESULTS.md` §3). Capture longer, multi-user benign runs, rebuild the profile via the
-   reviewed batch path, and re-measure new-user FPR.
-3. **Live online adaptation.** The deployed caps (30 min tenure, 20 windows per source
-   per hour) plus taint from champion proposals mean live learning needs hours of
-   untainted traffic. Options:
-   * operator FALSE_POSITIVE feedback to clear taint;
-   * a reviewed batch rebuild first.
-4. **Sensitive invariance.** The adapted challenger lost sensitivity to auth-abuse-like
-   variants. Investigate before any promotion.
-5. **Hardening.** RELP for loss-free telemetry; TLS on the FW01 IDS feed; TLS for the API
-   if access other than the SSH tunnel is needed.
+   `engineering/P3_TEAM_ATTACK_RUNBOOK.md`. Also decides v3 and SV-1.
+2. **A champion that both generalizes and stays sensitive.** v2 has too many false
+   positives on unseen users; v3 has too little single-feature ML sensitivity
+   (`engineering/P1_BENIGN_GENERALIZATION.md` §4). Next design step: keep benign variety
+   in training but constrain the sensitive features (e.g. monotone constraints), then
+   re-run the same predeclared protocol on fresh users.
+3. **Online learning cannot correct the champion's own false positives** (policed
+   sources are tainted, fail-closed by design; `M2_ONLINE_LEARNING_DESIGN.md` §9). An
+   operator FALSE_POSITIVE path is the governed way to clear taint.
+4. **Calibration side of sensitive invariance** (P2): the gate correctly rejects
+   challengers whose recalibrated threshold loses sensitivity; whether to bound
+   recalibration is an open design question.
+5. **Hardening.** RELP for loss-free telemetry; TLS for the API if access other than the
+   SSH tunnel is needed; heartbeat for the FW01 IDS feed.
 6. **Residual poisoning risk** from 4 or more colluding similar sources; SV-1
    (occlusion is not a causal-independence proof).
 

@@ -1,0 +1,108 @@
+
+v2 p1-test (10216 obs)
+  robust_stats      FPR=0.1582 CI[0.0785, 0.2396] win=569 users_flagged=13/16 max_user=0.4808 req=1515/8775
+  isolation_forest  FPR=0.5501 CI[0.4118, 0.7058] win=569 users_flagged=16/16 max_user=1.0 req=2726/8775
+  half_space_trees  FPR=0.5905 CI[0.4415, 0.7326] win=569 users_flagged=15/16 max_user=1.0 req=3314/8775
+  M1: restricted 0/16 users; impacted 0/10216 requests; success=1.0; {'watch': 4}
+  M2: restricted 13/16 users; impacted 2132/10216 requests; success=0.7913; {'watch': 304, 'rate_limit': 49}
+
+v2 p1-shift (2393 obs)
+  robust_stats      FPR=0.1078 CI[0.0606, 0.1568] win=204 users_flagged=6/6 max_user=0.2 req=222/1639
+  isolation_forest  FPR=0.6912 CI[0.6202, 0.7619] win=204 users_flagged=6/6 max_user=0.8286 req=887/1639
+  half_space_trees  FPR=0.6569 CI[0.5747, 0.7396] win=204 users_flagged=6/6 max_user=0.8 req=834/1639
+  M1: restricted 0/6 users; impacted 0/2393 requests; success=1.0; {'watch': 3}
+  M2: restricted 6/6 users; impacted 416/2393 requests; success=0.8262; {'watch': 128, 'rate_limit': 15}
+
+v2 real-drift-hold-20261027 (2253 obs)
+  robust_stats      FPR=0.1295 CI[0.1026, 0.1627] win=193 users_flagged=6/6 max_user=0.1935 req=243/1590
+  isolation_forest  FPR=0.7150 CI[0.6441, 0.7931] win=193 users_flagged=6/6 max_user=0.8519 req=937/1590
+  half_space_trees  FPR=0.6373 CI[0.5602, 0.7166] win=193 users_flagged=6/6 max_user=0.8148 req=832/1590
+  M1: restricted 0/6 users; impacted 0/2253 requests; success=1.0; {'watch': 3}
+  M2: restricted 5/6 users; impacted 313/2253 requests; success=0.8611; {'watch': 118, 'rate_limit': 12}
+
+v2 real-benign-train (1306 obs)
+  robust_stats      FPR=0.0294 CI[0.0, 0.0857] win=34 users_flagged=1/4 max_user=0.1111 req=10/1236
+  isolation_forest  FPR=0.0882 CI[0.0303, 0.1212] win=34 users_flagged=3/4 max_user=0.125 req=23/1236
+  half_space_trees  FPR=0.0588 CI[0.0, 0.1176] win=34 users_flagged=2/4 max_user=0.125 req=13/1236
+  M1: restricted 0/4 users; impacted 0/1306 requests; success=1.0; {}
+  M2: restricted 0/4 users; impacted 0/1306 requests; success=1.0; {'watch': 3}
+
+v3 p1-test (10216 obs)
+  robust_stats      FPR=0.0000 CI[0.0, 0.0] win=569 users_flagged=0/16 max_user=0.0 req=0/8775
+  isolation_forest  FPR=0.0439 CI[0.0209, 0.0779] win=569 users_flagged=11/16 max_user=0.2222 req=107/8775
+  half_space_trees  FPR=0.0211 CI[0.0073, 0.0411] win=569 users_flagged=7/16 max_user=0.1852 req=104/8775
+  M1: restricted 0/16 users; impacted 0/10216 requests; success=1.0; {}
+  M2: restricted 0/16 users; impacted 0/10216 requests; success=1.0; {'watch': 14}
+  sens robust_stats      matched=479: new/ref auth_fail_=0.7453/0.9896 client_err=0.0104/1.0 distinct_u=1.0/0.9979 login_rate=1.0/1.0
+  sens isolation_forest  matched=256: new/ref auth_fail_=0.0156/0.6055 client_err=0.0/0.1523 distinct_u=0.0039/0.0391 login_rate=0.0/0.0391
+  sens half_space_trees  matched=232: new/ref auth_fail_=0.0129/0.6078 client_err=0.0/0.7457 distinct_u=0.0345/0.0991 login_rate=0.0431/0.2716
+
+v3 p1-shift (2393 obs)
+  robust_stats      FPR=0.0049 CI[0.0, 0.0148] win=204 users_flagged=1/6 max_user=0.0286 req=9/1639
+  isolation_forest  FPR=0.1029 CI[0.0569, 0.1514] win=204 users_flagged=6/6 max_user=0.2 req=112/1639
+  half_space_trees  FPR=0.0294 CI[0.0099, 0.051] win=204 users_flagged=4/6 max_user=0.0714 req=30/1639
+  M1: restricted 0/6 users; impacted 0/2393 requests; success=1.0; {}
+  M2: restricted 0/6 users; impacted 0/2393 requests; success=1.0; {'watch': 14}
+  sens robust_stats      matched=182: new/ref auth_fail_=0.8352/1.0 client_err=0.044/1.0 distinct_u=1.0/1.0 login_rate=1.0/1.0
+  sens isolation_forest  matched=63: new/ref auth_fail_=0.0476/0.8095 client_err=0.0/0.2698 distinct_u=0.0/0.0159 login_rate=0.0/0.0
+  sens half_space_trees  matched=70: new/ref auth_fail_=0.1/0.5 client_err=0.0143/0.8429 distinct_u=0.1/0.0286 login_rate=0.1714/0.2
+
+v3 real-drift-hold-20261027 (2253 obs)
+  robust_stats      FPR=0.0207 CI[0.0052, 0.0385] win=193 users_flagged=3/6 max_user=0.0556 req=34/1590
+  isolation_forest  FPR=0.0984 CI[0.0739, 0.1304] win=193 users_flagged=6/6 max_user=0.1852 req=114/1590
+  half_space_trees  FPR=0.0311 CI[0.0, 0.0761] win=193 users_flagged=2/6 max_user=0.1481 req=24/1590
+  M1: restricted 0/6 users; impacted 0/2253 requests; success=1.0; {}
+  M2: restricted 0/6 users; impacted 0/2253 requests; success=1.0; {'watch': 14}
+  sens robust_stats      matched=168: new/ref auth_fail_=0.8274/1.0 client_err=0.0298/1.0 distinct_u=1.0/1.0 login_rate=1.0/1.0
+  sens isolation_forest  matched=55: new/ref auth_fail_=0.0909/0.8 client_err=0.0/0.1818 distinct_u=0.0/0.0182 login_rate=0.0/0.0364
+  sens half_space_trees  matched=70: new/ref auth_fail_=0.0571/0.4714 client_err=0.0143/0.8857 distinct_u=0.1/0.0429 login_rate=0.1857/0.2571
+
+v3 real-benign-train (1306 obs)
+  robust_stats      FPR=0.1765 CI[0.1111, 0.25] win=34 users_flagged=4/4 max_user=0.25 req=290/1236
+  isolation_forest  FPR=0.0294 CI[0.0, 0.0857] win=34 users_flagged=1/4 max_user=0.1111 req=10/1236
+  half_space_trees  FPR=0.0294 CI[0.0, 0.0909] win=34 users_flagged=1/4 max_user=0.125 req=49/1236
+  M1: restricted 0/4 users; impacted 0/1306 requests; success=1.0; {}
+  M2: restricted 0/4 users; impacted 0/1306 requests; success=1.0; {}
+  sens robust_stats      matched=27: new/ref auth_fail_=1.0/0.963 client_err=0.037/1.0 distinct_u=1.0/0.963 login_rate=1.0/1.0
+  sens isolation_forest  matched=31: new/ref auth_fail_=0.2581/0.0323 client_err=0.0/0.0 distinct_u=0.0/0.0 login_rate=0.0/0.0
+  sens half_space_trees  matched=31: new/ref auth_fail_=0.4516/0.0323 client_err=0.0645/0.1935 distinct_u=0.0968/0.0 login_rate=0.6452/0.0323
+
+v4 p1-test (10216 obs)
+  robust_stats      FPR=0.0070 CI[0.0, 0.0183] win=569 users_flagged=3/16 max_user=0.1818 req=35/8775
+  isolation_forest  FPR=0.0369 CI[0.0153, 0.0674] win=569 users_flagged=9/16 max_user=0.2222 req=81/8775
+  half_space_trees  FPR=0.0228 CI[0.0068, 0.0445] win=569 users_flagged=7/16 max_user=0.1852 req=63/8775
+  M1: restricted 0/16 users; impacted 0/10216 requests; success=1.0; {}
+  M2: restricted 0/16 users; impacted 0/10216 requests; success=1.0; {'watch': 18}
+  sens robust_stats      matched=479: new/ref auth_fail_=1.0/0.9896 client_err=0.0104/1.0 distinct_u=1.0/0.9979 login_rate=0.0459/1.0
+  sens isolation_forest  matched=256: new/ref auth_fail_=0.0/0.6055 client_err=0.0/0.1523 distinct_u=0.0/0.0391 login_rate=0.0/0.0391
+  sens half_space_trees  matched=233: new/ref auth_fail_=0.0172/0.6094 client_err=0.0129/0.7468 distinct_u=0.0558/0.0987 login_rate=0.0129/0.2704
+
+v4 p1-shift (2393 obs)
+  robust_stats      FPR=0.0490 CI[0.0231, 0.0788] win=204 users_flagged=5/6 max_user=0.1071 req=79/1639
+  isolation_forest  FPR=0.0735 CI[0.0429, 0.1015] win=204 users_flagged=6/6 max_user=0.1143 req=85/1639
+  half_space_trees  FPR=0.0343 CI[0.0099, 0.0631] win=204 users_flagged=4/6 max_user=0.0857 req=42/1639
+  M1: restricted 0/6 users; impacted 0/2393 requests; success=1.0; {'watch': 1}
+  M2: restricted 1/6 users; impacted 48/2393 requests; success=0.9799; {'watch': 20, 'rate_limit': 1}
+  sens robust_stats      matched=181: new/ref auth_fail_=1.0/1.0 client_err=0.0387/1.0 distinct_u=1.0/1.0 login_rate=0.0608/1.0
+  sens isolation_forest  matched=63: new/ref auth_fail_=0.0635/0.8095 client_err=0.0/0.2698 distinct_u=0.0/0.0159 login_rate=0.0/0.0
+  sens half_space_trees  matched=70: new/ref auth_fail_=0.0714/0.5 client_err=0.0286/0.8429 distinct_u=0.1143/0.0286 login_rate=0.0857/0.2
+
+v4 real-drift-hold-20261027 (2253 obs)
+  robust_stats      FPR=0.0777 CI[0.0539, 0.1056] win=193 users_flagged=6/6 max_user=0.129 req=118/1590
+  isolation_forest  FPR=0.0829 CI[0.0481, 0.125] win=193 users_flagged=6/6 max_user=0.1852 req=94/1590
+  half_space_trees  FPR=0.0363 CI[0.0, 0.0842] win=193 users_flagged=2/6 max_user=0.1481 req=32/1590
+  M1: restricted 0/6 users; impacted 0/2253 requests; success=1.0; {'watch': 2}
+  M2: restricted 2/6 users; impacted 43/2253 requests; success=0.9809; {'watch': 16, 'rate_limit': 2}
+  sens robust_stats      matched=166: new/ref auth_fail_=1.0/1.0 client_err=0.0181/1.0 distinct_u=1.0/1.0 login_rate=0.0542/1.0
+  sens isolation_forest  matched=55: new/ref auth_fail_=0.0545/0.8 client_err=0.0/0.1818 distinct_u=0.0/0.0182 login_rate=0.0/0.0364
+  sens half_space_trees  matched=70: new/ref auth_fail_=0.0571/0.4714 client_err=0.0571/0.8857 distinct_u=0.1143/0.0429 login_rate=0.1/0.2571
+
+v4 real-benign-train (1306 obs)
+  robust_stats      FPR=0.1176 CI[0.0312, 0.1944] win=34 users_flagged=3/4 max_user=0.2222 req=126/1236
+  isolation_forest  FPR=0.0294 CI[0.0, 0.0857] win=34 users_flagged=1/4 max_user=0.1111 req=10/1236
+  half_space_trees  FPR=0.0000 CI[0.0, 0.0] win=34 users_flagged=0/4 max_user=0.0 req=0/1236
+  M1: restricted 0/4 users; impacted 0/1306 requests; success=1.0; {}
+  M2: restricted 0/4 users; impacted 0/1306 requests; success=1.0; {'watch': 1}
+  sens robust_stats      matched=30: new/ref auth_fail_=1.0/0.9667 client_err=0.3/1.0 distinct_u=1.0/0.9667 login_rate=0.6667/1.0
+  sens isolation_forest  matched=31: new/ref auth_fail_=0.0/0.0323 client_err=0.0/0.0 distinct_u=0.0/0.0 login_rate=0.0/0.0
+  sens half_space_trees  matched=32: new/ref auth_fail_=0.5312/0.0312 client_err=0.4062/0.1875 distinct_u=0.0312/0.0 login_rate=0.25/0.0312

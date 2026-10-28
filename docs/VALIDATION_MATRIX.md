@@ -9,9 +9,9 @@ evidence that support it. Status words:
 * **BLOCKED-EXT**: needs something only the team can supply.
 
 Gate definitions are unchanged from the directive. Evidence paths are relative to
-`artifacts/evidence/`. Latest runs (2026-10-27):
+`artifacts/evidence/`. Latest runs (2026-10-28):
 
-* unit/integration: 155 passed, 9 skipped;
+* unit/integration: 174 passed, 9 skipped;
 * live lab: `AFW_LAB=1 pytest tests/lab` 9/9 (`m9-2026-10-27/pytest-lab.txt`);
 * isolation: 37/37 (`m9-2026-10-27/lab-verify.txt`).
 
@@ -31,7 +31,7 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 | Real telemetry from multiple sensor types | WAF access + audit, app events (mTLS), Suricata IDS (FW01); `test_telemetry*.py`, `test_provenance.py` | `m2-2026-10-27/live-provenance.txt`, `m5-2026-10-27/live-envelope.txt` | MET |
 | Demonstrated live inference | Live controller scoring real windows; IDS-only view live | `real-benign-baseline-2026-10-17.md`, `m2-2026-10-27/live-shadow-final.txt` | MET |
 | Reproducible labelled attack evaluation | M6 harness (`test_scenario_harness.py`, 14 tests); `afw experiment evaluate` | Harness only; **no team attack runs exist** | BLOCKED-EXT |
-| Correct false-positive and false-negative measurements | FPR on held-out real benign runs, with source-level CIs (M4); FN requires attack runs | `m3-2026-10-27/m4-adaptation.json`; FN: none | PARTIAL: FPR measured (high under a workload shift, RESULTS §3; unseen users: P1); FN BLOCKED-EXT |
+| Correct false-positive and false-negative measurements | P1 predeclared protocol: FP per tumbling window (CIs over users), per user and per request (each counted once), on unseen users, a later period and workload shifts (`afw experiment benign-generalization`, `test_benign_generalization.py`); FN requires attack runs | `p1-2026-10-28/p1-eval.json`; FN: none | PARTIAL: FP measured with real denominators (v2: 13/16 unseen users restricted; v3 candidate: 0/16, but fails the sensitivity criterion); FN BLOCKED-EXT |
 
 ## Gate C: Genuine adaptation
 
@@ -42,6 +42,7 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 | Model state genuinely changes | Pivot detected, mean absolute score change 0.18 | `m2-2026-10-27/m2-replay-drift-relaxed.json` | MET (replay) |
 | Candidate promotion follows documented validation | `test_challenger_lifecycle.py` (20 tests, mutation-checked); live gate refusals (409) | `m3-2026-10-27/live-gate-refusals.txt`, `m3-2026-10-27/mutation-check.txt` | MET |
 | Distribution-shift experiment shows an actual benefit | M4 scenario A on real drift: HST holdout FPR 0.650 → 0.031 (calibrated) | `m3-2026-10-27/m4-adaptation.json` | PARTIAL: benefit shown offline for the HST arm only; IF and robust stats unchanged; gate fails, so no live promotion |
+| No silent sensitivity loss | Matched-window, per-feature `sensitive_invariance` (ADR-034) with a regression benchmark of deliberately desensitized challengers; cross-profile matched probes in P1 | `p1-2026-10-28/p2-mutation-check.txt` (6/6), `m4-adaptation-p2-gate.json`, `p1-eval.json` | MET: the M4 challenger and the v3 candidate both show measured losses and neither is promoted |
 | Poisoning and regressions do not silently corrupt the trusted model | M4 scenarios B and C; `test_benign_drift_cannot_vouch_for_poison_sharing_a_driver_name` | `m4-adaptation.json` (0/180 poison learned after fix), `m4-adaptation-v1-name-corroboration.json` (140/180 before) | MET, with a documented residual (4+ colluding sources) |
 | Rejected candidates and rollback demonstrated | Gate failure, probation auto-rollback (M4 C, unit tests) | `m4-adaptation.json` (rollback after 100 windows) | MET (replay and unit); no live promotion has been performed |
 
@@ -68,7 +69,7 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 |---|---|---|---|
 | Authenticated and constrained MCP | `tests/lab/test_mcp_lab.py`; channel-scoped tokens; no shell, no promotion tool | `m9-2026-10-27/pytest-lab.txt` | MET |
 | Auditable operations | Audit log for policies, promotions, rollbacks, mode, feedback | API `/api/audit`; dashboard | MET |
-| Secure API and deployment | Role tokens; MGMT-only API; mTLS sensors; host nftables default-deny | `test_api.py`, ADR-023/029 | PARTIAL: API is plain HTTP on MGMT (SSH-tunnel access, TLS opt-in); FW01 IDS feed plaintext |
+| Secure API and deployment | Role tokens; MGMT-only API; mTLS for all sensors incl. FW01 IDS (ADR-035, no plaintext listener); host nftables default-deny | `test_api.py`, `test_telemetry_v2.py`, `p1-2026-10-28/p5-ids-mtls.txt` | PARTIAL: API is plain HTTP on MGMT (SSH-tunnel access, TLS opt-in, ADR-023) |
 | Accurate operator dashboard | Live headless render, no console errors; panels read the API only | `m8-2026-10-27/dashboard-panels.txt` | MET |
 | Tested recovery mechanisms | Cold restart; controller restart; sensor reconnect and staleness | `cold-restart-2026-10-18.md`, `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt` | MET |
 
@@ -92,5 +93,5 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 | C Genuine adaptation | **PARTIAL**: works on real recorded drift offline; no live learning or promotion yet |
 | D Enforcement | **MET** |
 | E Independent value | **NOT MET**: benign-only comparison; attack-side value BLOCKED-EXT |
-| F Security and operations | **PARTIAL**: plain-HTTP API on MGMT and plaintext IDS feed |
+| F Security and operations | **PARTIAL**: plain-HTTP API on MGMT (all telemetry now mTLS) |
 | G Academic defensibility | **PARTIAL**: team demonstration BLOCKED-EXT |

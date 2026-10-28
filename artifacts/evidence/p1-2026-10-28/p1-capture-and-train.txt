@@ -52,3 +52,5 @@ profile v4 candidate windows=2255 sources=12 hash=1b41cbe7d500
   mdl-f4c34fa6d616 robust_stats       p1 retired
   mdl-e1ffb9af6980 isolation_forest   p1 retired
   mdl-6be7041f655b half_space_trees   p1 retired
+wrote 10216 observations to /var/lib/afw/datasets/p1-test
+wrote 2393 observations to /var/lib/afw/datasets/p1-shift

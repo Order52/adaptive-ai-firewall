@@ -1,0 +1,168 @@
+{
+ "dataset": "p1-test",
+ "reference": 2,
+ "magnitudes": {
+  "auth_fail_frac": {
+   "auth_fail_frac": 1.0
+  },
+  "client_err_frac": {
+   "client_err_frac": 1.0
+  },
+  "distinct_usernames": {
+   "distinct_usernames": 20.0
+  },
+  "login_rate": {
+   "login_rate": 60.0
+  },
+  "credential_attack": {
+   "auth_fail_frac": 1.0,
+   "client_err_frac": 1.0,
+   "distinct_usernames": 20.0,
+   "login_rate": 60.0
+  }
+ },
+ "versions": {
+  "v3": {
+   "robust_stats": {
+    "matched_bases": 479,
+    "auth_fail_frac": {
+     "reference": 1.0,
+     "new": 1.0
+    },
+    "client_err_frac": {
+     "reference": 1.0,
+     "new": 1.0
+    },
+    "distinct_usernames": {
+     "reference": 1.0,
+     "new": 1.0
+    },
+    "login_rate": {
+     "reference": 1.0,
+     "new": 1.0
+    },
+    "credential_attack": {
+     "reference": 1.0,
+     "new": 1.0
+    }
+   },
+   "isolation_forest": {
+    "matched_bases": 256,
+    "auth_fail_frac": {
+     "reference": 0.6055,
+     "new": 0.043
+    },
+    "client_err_frac": {
+     "reference": 0.1523,
+     "new": 0.0
+    },
+    "distinct_usernames": {
+     "reference": 0.0391,
+     "new": 0.0039
+    },
+    "login_rate": {
+     "reference": 0.0391,
+     "new": 0.0
+    },
+    "credential_attack": {
+     "reference": 0.7539,
+     "new": 1.0
+    }
+   },
+   "half_space_trees": {
+    "matched_bases": 232,
+    "auth_fail_frac": {
+     "reference": 0.7586,
+     "new": 0.4095
+    },
+    "client_err_frac": {
+     "reference": 0.7457,
+     "new": 0.4871
+    },
+    "distinct_usernames": {
+     "reference": 0.1293,
+     "new": 0.0517
+    },
+    "login_rate": {
+     "reference": 0.4698,
+     "new": 0.1983
+    },
+    "credential_attack": {
+     "reference": 1.0,
+     "new": 1.0
+    }
+   }
+  },
+  "v4": {
+   "robust_stats": {
+    "matched_bases": 479,
+    "auth_fail_frac": {
+     "reference": 1.0,
+     "new": 1.0
+    },
+    "client_err_frac": {
+     "reference": 1.0,
+     "new": 1.0
+    },
+    "distinct_usernames": {
+     "reference": 1.0,
+     "new": 1.0
+    },
+    "login_rate": {
+     "reference": 1.0,
+     "new": 1.0
+    },
+    "credential_attack": {
+     "reference": 1.0,
+     "new": 1.0
+    }
+   },
+   "isolation_forest": {
+    "matched_bases": 256,
+    "auth_fail_frac": {
+     "reference": 0.6055,
+     "new": 0.0039
+    },
+    "client_err_frac": {
+     "reference": 0.1523,
+     "new": 0.0
+    },
+    "distinct_usernames": {
+     "reference": 0.0391,
+     "new": 0.0
+    },
+    "login_rate": {
+     "reference": 0.0391,
+     "new": 0.0
+    },
+    "credential_attack": {
+     "reference": 0.7539,
+     "new": 0.9141
+    }
+   },
+   "half_space_trees": {
+    "matched_bases": 233,
+    "auth_fail_frac": {
+     "reference": 0.7597,
+     "new": 0.3948
+    },
+    "client_err_frac": {
+     "reference": 0.7468,
+     "new": 0.2275
+    },
+    "distinct_usernames": {
+     "reference": 0.1288,
+     "new": 0.0558
+    },
+    "login_rate": {
+     "reference": 0.4678,
+     "new": 0.0215
+    },
+    "credential_attack": {
+     "reference": 1.0,
+     "new": 1.0
+    }
+   }
+  }
+ }
+}

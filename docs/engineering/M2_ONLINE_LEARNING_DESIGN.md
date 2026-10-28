@@ -250,3 +250,41 @@ learn, durable updates, pivots and restart recovery live, 16 fresh users
 (10.77.20.67–82) run the workload v2 was trained on (one generator process per user)
 for 2.5 h from 07:12Z (`p4-live-times.txt`). After 7 minutes, 14 of the 16 were
 untainted; v2 proposed against 2, which are excluded as designed. Results: §10.
+
+## 10. Live adaptation results (P4, 2026-10-28)
+
+Run: 16 fresh users (10.77.20.67–82), one generator process per user (the workload v2
+was trained on), 07:12–09:42Z, during the P1 runs. Evidence in
+`artifacts/evidence/p1-2026-10-28/`: `p4-live-times.txt`,
+`p4-live-first-learning.txt`, `p4-restart-restore.txt`, `p4-rate-cap-fix.txt`,
+`p4-live-challenger-gate.txt`.
+
+| Requirement (P4) | Live result |
+|---|---|
+| Eligible traffic exists | 14 of 16 sources stayed untainted (the champion proposed against 2, which are excluded) |
+| Predict before learn | Every ledger entry records `challenger_score_before` and the champion score at admission |
+| Durable updates | First live admissions 07:52Z, with checkpoints committed together with the learned-window ledger (`ckpt-54bef309373f`, ...) |
+| Model state changes | Two live reference-mass pivots (n_learned 400, counter 41 at 08:11Z) |
+| Recovery | Two controller restarts (deploys at 08:11 and 08:19Z): both restored exactly the last checkpoint (seq 8, 367 learned); the 33 windows learned after it were never in the ledger, so model and ledger stay consistent |
+| Shadow evaluation | Gate on the unseen-user test set `p1-test` (never learned): challenger FPR 0.0035 vs champion 0.575 on 284 tumbling windows |
+| Justified promotion or rejection | **Rejected** (`ceval-2317edcea876`): `attack_recall_regression` (no labelled attack runs) and `sensitive_invariance` (client_err_frac −0.69 on 121 matched windows) fail. The champion is kept |
+| Drift recognition | Population-level `feature_shift` drift reports on this traffic: 07:12Z (13 sources; req_rate −3.19, login_rate −2.1 profile-scale units) and 07:38Z (12 sources); `p4-drift-and-adaptation.json` |
+
+**Defect found and fixed live.** The 20-windows-per-source-per-hour cap leaked: it was
+counted over the share-window deque (200 entries), so with 12 sources each was admitted
+30–31 windows in 17 minutes. It is now a separate per-source log, rebuilt from the
+ledger on restart, with regression tests and 3/3 mutants caught. After the fix was
+deployed (08:19Z), live admissions were refused as `source_rate` (140 by 08:35Z) until
+the over-cap windows left the trailing hour. **Disclosure:** the first 367 live
+windows were admitted while the cap leaked. They all passed every other eligibility
+check and came from benign lab users; the challenger is shadow-only and was rejected
+by the gate.
+
+What this does and does not show:
+
+* It shows the full governed live loop on CTRL01: eligibility, quarantine, tenure,
+  learning, pivots, checkpoints, restart recovery, gate evaluation and refusal.
+* It does not show a live *promotion*. That needs real attack runs (Gate B), and the
+  sensitivity check fails for the same reason as the P1 v3 candidate: learning varied
+  benign behaviour makes IF/HST-style models less sensitive to moderate client-error
+  changes, and the calibrated threshold amplifies that (P2).

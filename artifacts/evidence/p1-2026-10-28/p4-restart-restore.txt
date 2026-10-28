@@ -2,3 +2,7 @@ BEFORE restart 2026-10-28T08:11:10Z
 {"challenger": {"n_learned": 400, "counter": 41, "warm": true, "window_size": 180, "l_mass_total": 11275.0, "r_mass_total": 49500.0}, "last_checkpoint": {"id": "ckpt-6088fd369726", "seq": 8, "n_learned": 367, "created_at": "2026-10-28T08:09:34.054161+00:00"}}
 AFTER restart (deploy) 2026-10-28T08:11:28Z
 {"challenger": {"n_learned": 367, "counter": 8, "warm": true, "window_size": 180, "l_mass_total": 2200.0, "r_mass_total": 49500.0}, "last_checkpoint": {"id": "ckpt-6088fd369726", "seq": 8, "n_learned": 367, "created_at": "2026-10-28T08:09:34.054161+00:00"}}
+BEFORE restart 2 (rate-cap fix deploy) 2026-10-28T08:19:04Z
+{"challenger": {"n_learned": 367, "counter": 8, "warm": true, "window_size": 180, "l_mass_total": 2200.0, "r_mass_total": 49500.0}, "last_checkpoint": {"id": "ckpt-6088fd369726", "seq": 8, "n_learned": 367, "created_at": "2026-10-28T08:09:34.054161+00:00"}}
+AFTER restart 2 2026-10-28T08:19:19Z
+{"challenger": {"n_learned": 367, "counter": 8, "warm": true, "window_size": 180, "l_mass_total": 2200.0, "r_mass_total": 49500.0}, "last_checkpoint": {"id": "ckpt-6088fd369726", "seq": 8, "n_learned": 367, "created_at": "2026-10-28T08:09:34.054161+00:00"}}

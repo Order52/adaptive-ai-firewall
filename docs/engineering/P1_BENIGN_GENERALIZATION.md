@@ -1,7 +1,9 @@
 # P1: benign generalization of the detectors
 
-Status: **protocol predeclared 2026-10-28 07:10Z, before the test data existed.** Sections
-1–3 are fixed from here on; results are appended in §4 without changing §3.
+Status: protocol predeclared 2026-10-28 07:10Z, before the test data existed (commit
+`db1153d`). Sections 1–3 are unchanged since; results in §4. **Outcome: the v3 candidate
+removes almost all false positives on unseen users but fails the predeclared
+sensitivity criterion, so it is not promoted.**
 
 ## 1. Correction to the earlier "new users" result
 
@@ -53,8 +55,9 @@ window, burstier inter-arrival times, fewer usernames per window).
 
 Decision-level replay under the current code: on `real-benign-val` and
 `real-benign-train` no benign source is restricted (no pipeline regression); on
-`real-drift-hold` the M2 arm restricts benign sources (FPR 0.156, legitimate request
-success 0.865) and M1 none.
+`real-drift-hold` the M2 arm restricts 5 of 6 benign sources (window FPR 0.156;
+legitimate request success 0.861 with each request counted once, 0.865 under the
+earlier per-window count, see §4) and M1 none.
 
 Conclusion, tested in §3: the cause is **training data that covers one workload
 intensity**, exposed through rate and timing features. It is not a threshold that is
@@ -142,6 +145,126 @@ Cause attribution:
 * The P2 question of capping a challenger's calibrated threshold at the champion's
   (`M4_ADAPTATION_EXPERIMENTS.md` §2) is not decided here.
 
-## 4. Results
+## 4. Results (2026-10-28)
 
-Pending (Phase B and evaluation).
+Data actually collected (one process per user, authenticated telemetry):
+
+| Dataset | Users | Window (UTC) | Sessions | Observations |
+|---|---|---|---|---|
+| `p1-train` | 16 | 06:44:25–07:29:25 | 3809 | 28157 |
+| `p1-val` | 8 | same | 961 | 7908 |
+| `p1-test` | 16 unseen | 07:38:19–08:08:19 | 1426 | 10216 |
+| `p1-shift` | 6, shared generator | same | 410 | 2393 |
+
+Candidates (bootstrap, seed 42, thresholds at target FPR 0.01 on validation; **not
+promoted**): **v3** = `real-benign-train2` + `p1-train` (22 sources, 4865 windows);
+**v4** = the v3-6u ablation (`p1-train-6u`, 12 sources, 2255 windows).
+
+Evidence: `artifacts/evidence/p1-2026-10-28/p1-eval.json` (full report),
+`p1-eval-table.txt`, `p1-fp-drivers.json`, `p1-exploratory-sensitivity.json`.
+
+### 4.1 Primary test: 16 unseen users (`p1-test`, 569 tumbling windows)
+
+Detector false-positive rate per tumbling window (95 % CI over users); users with any
+flagged window; requests inside flagged windows.
+
+| Detector | v2 (trusted) | v3 | v4 (6 users) |
+|---|---|---|---|
+| Robust stats | 0.158 [0.079, 0.240]; 13/16 users; 1515/8775 req | **0.000**; 0/16; 0/8775 | 0.007 [0, 0.018]; 3/16 |
+| Isolation Forest | 0.550 [0.412, 0.706]; 16/16; 2726/8775 | **0.044** [0.021, 0.078]; 11/16; 107/8775 | 0.037 [0.015, 0.067]; 9/16 |
+| Half-Space Trees | 0.591 [0.442, 0.733]; 15/16; 3314/8775 | **0.021** [0.007, 0.041]; 7/16; 104/8775 | 0.023 [0.007, 0.045]; 7/16 |
+
+Decision level (the controller's actual proposals in replay; requests counted once each):
+
+| | v2 | v3 | v4 |
+|---|---|---|---|
+| M2: users rate-limited or blocked | **13/16** | **0/16** | 0/16 |
+| M2: legitimate requests impacted | 2132/10216 (success 0.791) | 0/10216 (1.000) | 0/10216 (1.000) |
+| M1 (statistical only) | 0/16 restricted | 0/16 | 0/16 |
+
+### 4.2 Shift and regression sets
+
+| Set | Detector | v2 | v3 | v4 |
+|---|---|---|---|---|
+| `p1-shift` (204 win.) | RS / IF / HST | 0.108 / 0.691 / 0.657 | 0.005 / 0.103 / 0.029 | 0.049 / 0.074 / 0.034 |
+| | M2 users restricted | 6/6 (success 0.826) | 0/6 (1.000) | 1/6 (0.980) |
+| `real-drift-hold` (193) | RS / IF / HST | 0.130 / 0.715 / 0.637 | 0.021 / 0.098 / 0.031 | 0.078 / 0.083 / 0.036 |
+| | M2 users restricted | 5/6 (0.861) | 0/6 (1.000) | 2/6 (0.981) |
+| `real-benign-train` (34, old regime) | RS / IF / HST | 0.029 / 0.088 / 0.059 | 0.176 / 0.029 / 0.029 | 0.118 / 0.029 / 0.000 |
+| | M2 users restricted | 0/4 | 0/4 | 0/4 |
+
+The old-regime set has only 34 tumbling windows (one window = 0.029), so criterion 3
+is coarse. v2's own rates there are 0.03–0.09 per tumbling window; the earlier
+"0 FPR" headline was decision-level, not detector-level.
+
+### 4.3 Sensitivity (criterion 4, predeclared)
+
+Probe flag rates on `p1-test` windows that v2 and v3 both score normal (probe values from
+v2's profile, as predeclared):
+
+| Detector (matched windows) | auth_fail | client_err | usernames | login_rate |
+|---|---|---|---|---|
+| Robust stats (479), v3 / v2 | 0.745 / 0.990 | **0.010 / 1.000** | 1.000 / 0.998 | 1.000 / 1.000 |
+| Isolation Forest (256) | **0.016 / 0.606** | 0.000 / 0.152 | 0.004 / 0.039 | 0.000 / 0.039 |
+| Half-Space Trees (232) | **0.013 / 0.608** | **0.000 / 0.746** | 0.035 / 0.099 | 0.043 / 0.272 |
+
+### 4.4 Verdict against the predeclared criteria
+
+| # | Criterion | v3 | |
+|---|---|---|---|
+| 1 | each detector FPR ≤ 0.02 and upper CI ≤ 0.05 on `p1-test` | RS 0.000 ✓; HST 0.021 (upper 0.041) ✗ by 0.001; IF 0.044 (upper 0.078) ✗ | **fail** |
+| 2 | M2: no user restricted, success ≥ 0.99 | 0/16, 1.000 | **pass** |
+| 3 | old regime: each detector ≤ 0.02 | RS 0.176, IF 0.029, HST 0.029 | **fail** |
+| 4 | matched probe sensitivity ≥ v2 − 0.05 | fails for 8 of 12 detector-feature pairs | **fail** |
+
+**v3 is not acceptable as a champion**, and the gate would not be asked: it stays a
+CANDIDATE. Nothing was retuned after these results.
+
+### 4.5 Cause attribution
+
+* **Data, not thresholds.** The same detectors, thresholds chosen by the same
+  procedure, go from 13/16 to 0/16 restricted users when trained on 45 minutes of
+  varied personas instead of 5.4 minutes of one generator. Raising v2's thresholds
+  would not have been equivalent: its IF/HST flag 55–59 % of unseen users' windows, so
+  any threshold that cleared them would sit far above its validated operating point.
+* **Diversity of behaviour, not head count.** v4 (6 users) and v3 (16 users) have
+  nearly the same unseen-user FPR (IF 0.037 vs 0.044, HST 0.023 vs 0.021), so at a
+  fixed duration the number of training users mattered little. What the personas add is
+  variation in cadence, depth, login use and account use.
+* **Features.** v2's false positives on unseen users are driven by `distinct_usernames`
+  (IF: 151 of 313 flagged windows), `route_count` (HST: 262 of 336) and
+  `interarrival_cv` (robust stats: 62 of 90). The v2 training generator logged into
+  4–7 accounts per address per window, which no real single user does, so a normal
+  one-account user looked anomalous. v3's few remaining false positives are driven by
+  `client_err_frac` (IF 18 of 25, HST 10 of 12): legitimate typos and errors.
+* **Model family.** Robust statistics degrade least everywhere (v2) and are 0 with v3;
+  Isolation Forest is the most data-hungry detector in this feature space.
+* **The sensitivity loss is the other side of the same coin.** v2 flags small changes
+  in `client_err_frac` (training range 0.22–0.29) and `auth_fail_frac` because its
+  training data barely varied; that is also why it flagged most real users. v3 learned
+  that legitimate users range up to about 0.4 and 0.5, so the predeclared probes (0.58
+  and 0.67) are no longer far outside normal for IF and HST.
+
+### 4.6 Exploratory (post hoc, not a criterion)
+
+To see what the sensitivity loss means for real attacks, the matched comparison was
+repeated with attack-sized values fixed before looking: fractions 1.0, 20 usernames,
+60 logins per window, and all four together (a credential-attack-shaped window).
+Robust statistics flag 100 % of every probe for v2, v3 and v4. With all four features
+together, IF and HST flag 100 % for v3 (v2: IF 0.754, HST 1.000). Single-feature probes
+remain much weaker for v3's IF and HST (e.g. IF `auth_fail_frac`=1.0: 0.043 vs 0.606).
+This suggests v3 would still catch credential attacks through robust statistics and
+combined anomalies, but loses single-signal subtlety in the ML detectors. **Only real
+labelled attack runs can settle this (Gate B, `P3_TEAM_ATTACK_RUNBOOK.md`).**
+
+### 4.7 What this means
+
+* The project's most important negative result (v2 harms legitimate users) is
+  explained and, on the benign side, fixed by data: training on varied realistic users
+  removes the harm on unseen users and under the workload shift.
+* It is **not** fixed without cost: the ML detectors lose sensitivity to moderate
+  single-feature changes. Whether that is acceptable depends on attack recall, which is
+  BLOCKED-EXT.
+* Next step, when attack runs exist: evaluate v2 and v3 on them with
+  `afw experiment evaluate --version 3`; promote only through the reviewed path, with
+  the regression gate.

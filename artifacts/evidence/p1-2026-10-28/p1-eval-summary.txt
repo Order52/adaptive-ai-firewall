@@ -1,0 +1,13 @@
+v2 p1-test: robust_stats=0.1582[13/16u] isolation_forest=0.5501[16/16u] half_space_trees=0.5905[15/16u]
+v2 p1-shift: robust_stats=0.1078[6/6u] isolation_forest=0.6912[6/6u] half_space_trees=0.6569[6/6u]
+v2 real-drift-hold-20261027: robust_stats=0.1295[6/6u] isolation_forest=0.715[6/6u] half_space_trees=0.6373[6/6u]
+v2 real-benign-train: robust_stats=0.0294[1/4u] isolation_forest=0.0882[3/4u] half_space_trees=0.0588[2/4u]
+v3 p1-test: robust_stats=0.0[0/16u] isolation_forest=0.0439[11/16u] half_space_trees=0.0211[7/16u]
+v3 p1-shift: robust_stats=0.0049[1/6u] isolation_forest=0.1029[6/6u] half_space_trees=0.0294[4/6u]
+v3 real-drift-hold-20261027: robust_stats=0.0207[3/6u] isolation_forest=0.0984[6/6u] half_space_trees=0.0311[2/6u]
+v3 real-benign-train: robust_stats=0.1765[4/4u] isolation_forest=0.0294[1/4u] half_space_trees=0.0294[1/4u]
+v4 p1-test: robust_stats=0.007[3/16u] isolation_forest=0.0369[9/16u] half_space_trees=0.0228[7/16u]
+v4 p1-shift: robust_stats=0.049[5/6u] isolation_forest=0.0735[6/6u] half_space_trees=0.0343[4/6u]
+v4 real-drift-hold-20261027: robust_stats=0.0777[6/6u] isolation_forest=0.0829[6/6u] half_space_trees=0.0363[2/6u]
+v4 real-benign-train: robust_stats=0.1176[3/4u] isolation_forest=0.0294[1/4u] half_space_trees=0.0[0/4u]
+wrote /tmp/p1-eval.json

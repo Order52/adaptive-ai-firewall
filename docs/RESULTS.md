@@ -90,6 +90,37 @@ quoted together with this section.
   `artifacts/evidence/m2-2026-10-27/live-shadow-final.txt`;
   `docs/engineering/M4_ADAPTATION_EXPERIMENTS.md` §1–2.
 
+## 3a. Unseen users, and what more varied training data buys (P1, 2026-10-28)
+
+The protocol was predeclared and committed before the test data existed
+(`engineering/P1_BENIGN_GENERALIZATION.md`). 16 **unseen** users, each with its own
+seeded persona (cadence, depth, login use, typos, own account), ran in a later period
+from addresses never used in training (10.77.20.45–60). Tumbling windows; 95 % CIs over
+users; requests counted once each.
+
+| On 16 unseen users | v2 (trusted, 5.4 min, 6 addresses) | v3 candidate (+ 45 min, 16 persona users) |
+|---|---|---|
+| Robust stats / IF / HST window FPR | 0.158 / 0.550 / 0.591 | 0.000 / 0.044 / 0.021 |
+| Users rate-limited by M2 (replay) | **13 of 16** | **0 of 16** |
+| Legitimate requests impacted | 2132 of 10216 | 0 of 10216 |
+
+On the workload-shift sets, v3 also restricts 0 users (v2: 6/6 and 5/6). v4, trained
+with only 6 of the 16 users, performs almost the same as v3: behavioural variety matters
+more than head count. v2's errors were driven by its generator's unrealistic
+multi-account logins (`distinct_usernames`), route counts and timing.
+
+**The improvement is not free.** On windows both models score normal, v3's ML detectors
+flag far fewer moderate single-feature probes (e.g. HST `client_err_frac` 0.000 vs
+0.746; IF `auth_fail_frac` 0.016 vs 0.606). v3 therefore **fails** the predeclared
+sensitivity criterion, as well as the old-regime and IF FPR criteria, and is **not
+promoted**. An exploratory check with attack-sized values (labelled post hoc) shows that
+robust statistics keep 100 % sensitivity, and that a combined credential-attack-shaped
+window is flagged by every v3 detector. Whether the loss matters is decided only by real
+attack runs (BLOCKED-EXT).
+
+- Evidence: `artifacts/evidence/p1-2026-10-28/p1-eval.json`, `p1-eval-table.txt`,
+  `p1-fp-drivers.json`, `p1-exploratory-sensitivity.json`.
+
 ## 4. The cost of ML over statistics
 
 At the *same* 1.30% validation FPR, the three detectors differ by three orders of
@@ -245,8 +276,9 @@ Evidence: `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt`;
 5. **Lab scale.** Results are from a small GNS3 lab on a single host; absolute
    latencies and memory figures are indicative of the architecture, not of a
    production-scale deployment.
-6. **Small training population.** The trusted profile came from about 15 minutes of
-   traffic from six addresses; §3 shows this is not enough under a workload shift.
+6. **Small training population.** The trusted profile came from one 5.4-minute run from
+   six addresses; §3 and §3a show this is not enough. Broader data fixes the false
+   positives at a measured sensitivity cost (§3a).
 7. **One drift run.** The adaptation CIs are over six sources in one run, not over runs.
 
 ## 9. Summary

@@ -1,0 +1,75 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-28T07:38:19+00:00",
+ "end": "2026-10-28T08:09:00+00:00",
+ "scenario": "P1 Phase B primary test: 16 unseen persona users",
+ "seed": 303,
+ "generator": "traffic/benign_personas.py AFW_MODE=personas AFW_SOURCES=10.77.20.45-60 AFW_SEED=303",
+ "notes": "P1 predeclared protocol; later period than training",
+ "sources": [
+  {
+   "ip": "10.77.20.45",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.46",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.47",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.48",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.49",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.50",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.51",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.52",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.53",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.54",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.55",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.56",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.57",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.58",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.59",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.60",
+   "role": "benign"
+  }
+ ]
+}

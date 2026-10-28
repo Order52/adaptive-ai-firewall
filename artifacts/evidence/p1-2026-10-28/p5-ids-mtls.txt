@@ -13,3 +13,8 @@ Recv-Q Send-Q Local Address:Port Peer Address:Port Process
 0      0        10.77.50.10:5514  10.77.40.10:37454       
 0      0        10.77.50.10:5514  10.77.30.10:57802       
 0      0        10.77.50.10:5514   10.77.50.1:40996       
+--- after P5 deploy 2026-10-28T08:19:30Z: listening sockets on CTRL01
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      100      10.77.50.10:5514      0.0.0.0:*          
+		ip saddr { 10.77.30.10, 10.77.40.10, 10.77.50.1 } tcp dport 5514 ct state invalid reject with tcp reset
+		ip saddr { 10.77.30.10, 10.77.40.10, 10.77.50.1 } tcp dport 5514 accept

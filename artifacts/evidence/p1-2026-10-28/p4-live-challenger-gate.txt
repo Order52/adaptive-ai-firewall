@@ -1,0 +1,8 @@
+PASS  min_learning               value=367.0 limit=180.0  HST predictions change only after a full reference window (pivot)
+PASS  holdout_not_learned        value=0.0 limit=0.0  learned windows overlapping a labelled holdout source's activity
+PASS  ledger_clean               value=0.0 limit=0.0  learned sources tainted after admission: none
+PASS  holdout_size               value=284.0 limit=30.0  non-overlapping benign holdout windows per half (569 total)
+PASS  benign_fpr_not_worse       value=0.0035 limit=0.5754  champion FPR on the same holdout = 0.5754
+FAIL  attack_recall_regression   value=None limit=None  no labelled attack runs supplied (team-supplied scenarios required)
+FAIL  sensitive_invariance       value=-0.6942 limit=-0.05  worst per-feature (challenger - champion) probe flag rate on 121 matched normal bases: client_err_frac
+evaluation ceval-2317edcea876: FAILED
