@@ -118,3 +118,21 @@ def test_wilson_interval():
     lo, hi = wilson(0, 30)
     assert lo == 0.0 and 0.10 < hi < 0.13
     assert wilson(0, 0) == (0.0, 1.0)
+
+
+def test_confirming_one_run_teaches_later_independent_runs():
+    from afw.ml.supervised import learn_new_family
+
+    r = learn_new_family(ALL, "scan", introduction=["run-b"], variants=["run-c"])
+    assert r["SYNTHETIC"] is True and r["confirmed_windows"] == 30
+    assert r["variants_named_before"] == 0.0  # frozen has no "scan" class at all
+    assert r["variants_named_after"] >= 0.9
+    assert r["benign_fpr_after"] <= r["benign_fpr_before"] + 0.01
+    assert r["eligible"] is True and not r["known_family_regressions"]
+
+
+def test_new_family_experiment_refuses_overlapping_runs():
+    from afw.ml.supervised import learn_new_family
+
+    with pytest.raises(ValueError, match="different datasets"):
+        learn_new_family(ALL, "scan", introduction=["run-b"], variants=["run-b"])

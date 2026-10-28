@@ -519,6 +519,9 @@ def experiment_supervised(
     train: Annotated[str, typer.Option(help="comma-separated labelled dataset ids")],
     test: Annotated[str, typer.Option(help="comma-separated dataset ids never trained on")],
     withhold: Annotated[str, typer.Option(help="attack family to leave out (novelty)")] = "",
+    introduce: Annotated[
+        str, typer.Option(help="with --withhold: confirmed runs of it to learn from (section 8)")
+    ] = "",
     allow_synthetic: bool = False,
     app_id: str = "rental",
 ) -> None:
@@ -529,6 +532,7 @@ def experiment_supervised(
         KnownThreatClassifier,
         evaluate,
         labelled_windows,
+        learn_new_family,
         split_by_dataset,
         withheld_family,
     )
@@ -540,13 +544,16 @@ def experiment_supervised(
         raise typer.Exit(1)
     catalog = _catalog(c.cfg, loaded[0])
     tr, te = [d for d in train.split(",") if d], [d for d in test.split(",") if d]
+    intro = [d for d in introduce.split(",") if d]
     windows = []
-    for ds in tr + te:
+    for ds in tr + intro + te:
         obs = sorted(c.datasets.observations(ds), key=lambda o: o.observed_at)
         vecs = replay_windows(obs, c.cfg.window, catalog)
         windows += labelled_windows(c.datasets.manifest(ds), vecs, allow_synthetic)
-    if withhold:
-        out: dict[str, object] = withheld_family(windows, withhold, te)
+    if withhold and intro:
+        out: dict[str, object] = learn_new_family(windows, withhold, intro, te)
+    elif withhold:
+        out = withheld_family(windows, withhold, te)
     else:
         fit, held = split_by_dataset(windows, te)
         out = evaluate(KnownThreatClassifier().fit(fit), held).as_dict()

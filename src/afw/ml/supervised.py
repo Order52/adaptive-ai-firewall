@@ -245,3 +245,78 @@ def withheld_family(
         "not_benign_ci95": [round(lo, 4), round(hi, 4)],
         "trained_families": list(clf.families),
     }
+
+
+def learn_new_family(
+    windows: Sequence[LabelledWindow],
+    family: str,
+    introduction: Iterable[str],
+    variants: Iterable[str],
+    seed: int = 0,
+    max_fpr_increase: float = 0.01,
+) -> dict[str, object]:
+    """Section 8 offline core: does confirming one run of a new family teach the model to
+    recognise *later, independent* runs of it, without losing what it knew?
+
+    * frozen: trained on every dataset except ``introduction`` and ``variants``, with
+      ``family`` excluded everywhere.
+    * challenger: frozen's training data plus the ``introduction`` run's confirmed
+      ``family`` windows (labels from its manifest, i.e. the team's record of what
+      they ran, never from a prediction).
+    * Both are measured on ``variants`` only, which neither saw. ``variants`` must
+      contain ``family`` windows plus benign and previously known families, so
+      benign generalisation and earlier recall are retested on the same unseen runs.
+
+    ``eligible`` is the offline part of the gate; promotion stays a human decision.
+    """
+    intro, var = set(introduction), set(variants)
+    if intro & var:
+        raise ValueError("introduction and variant runs must be different datasets")
+    base = [w for w in windows if w.dataset_id not in intro | var and w.family != family]
+    confirmed = [w for w in windows if w.dataset_id in intro and w.family == family]
+    test = [w for w in windows if w.dataset_id in var]
+    if not confirmed:
+        raise ValueError(f"the introduction runs contain no {family} windows")
+    if not any(w.family == family for w in test):
+        raise ValueError(f"the variant runs contain no {family} windows")
+    frozen = KnownThreatClassifier(seed=seed).fit(base)
+    challenger = KnownThreatClassifier(seed=seed).fit([*base, *confirmed])
+    intro_before = Counter(v.family for v in frozen.predict([w.fv for w in confirmed]))
+    before, after = evaluate(frozen, test), evaluate(challenger, test)
+
+    def new_family(ev: Evaluation) -> float:
+        row = ev.confusion.get(family, {})
+        return row.get(family, 0) / max(1, sum(row.values()))
+
+    def not_benign(ev: Evaluation) -> float:
+        row = ev.confusion.get(family, {})
+        return 1 - row.get(BENIGN, 0) / max(1, sum(row.values()))
+
+    fpr_b = before.benign_flagged / max(1, before.benign_windows)
+    fpr_a = after.benign_flagged / max(1, after.benign_windows)
+    known = [f for f in before.per_family if f != family]
+    regressions = {
+        f: (before.per_family[f]["recall"], after.per_family[f]["recall"])
+        for f in known
+        if after.per_family[f]["recall"] < before.per_family[f]["recall"] - 0.05
+    }
+    return {
+        "family": family,
+        "SYNTHETIC": any(w.synthetic for w in windows),
+        "confirmed_windows": len(confirmed),
+        "introduction_first_seen": dict(intro_before),  # step 3: what frozen made of it
+        "variants_named_before": new_family(before),
+        "variants_named_after": new_family(after),
+        "variants_not_benign_before": not_benign(before),
+        "variants_not_benign_after": not_benign(after),
+        "benign_fpr_before": fpr_b,
+        "benign_fpr_after": fpr_a,
+        "known_family_regressions": regressions,
+        "eligible": (
+            new_family(after) > new_family(before)
+            and fpr_a <= fpr_b + max_fpr_increase
+            and not regressions
+        ),
+        "before": before.as_dict(),
+        "after": after.as_dict(),
+    }
