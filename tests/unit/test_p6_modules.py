@@ -133,6 +133,15 @@ def test_evidence_weighted_replaces_fractions_only():
     assert w.values["req_rate"] == v.values["req_rate"]
 
 
+def test_evidence_weighted_transforms_residuals_consistently():
+    """A residual window is weighted exactly as the same requests would be on their own."""
+    page = [obs(0, "/"), obs(1), obs(2, "/cars/{car_id}", status=404)]
+    fail = obs(3, "/login", "POST", 401, auth_outcome=AuthOutcome.FAILURE)
+    w = evidence_weighted(fv([*page, fail]))
+    assert w.residuals is not None
+    assert w.residuals["auth"] == evidence_weighted(fv(page)).values
+
+
 # ------------------------------------------------------------- security path
 def test_calibrated_threshold_bounds_benign_flags():
     base = fv(list(benign_base().observations))

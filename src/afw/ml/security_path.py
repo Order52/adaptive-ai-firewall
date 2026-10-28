@@ -49,12 +49,30 @@ WEIGHTED_FRACTIONS = (
 )
 
 
+def _weighted_residual(values: dict[str, float], length_s: float) -> dict[str, float]:
+    """Counts behind a residual window's fractions are recovered from its rates."""
+    n = round(values["req_rate"] * length_s)
+    logins = round(values["login_rate"] * length_s / 60.0)
+    out = dict(values)
+    for f in WEIGHTED_FRACTIONS:
+        trials = logins if f == "auth_fail_frac" else n
+        out[f] = wilson_lower(round(values[f] * trials), trials)
+    return out
+
+
 def evidence_weighted(fv: FeatureVector) -> FeatureVector:
-    """The same window with each fraction replaced by its Wilson lower bound."""
+    """The same window with each fraction replaced by its Wilson lower bound (its
+    SV-1 residual windows too, so independence is judged in the same feature space)."""
     values = dict(fv.values)
     for f in WEIGHTED_FRACTIONS:
         values[f] = wilson_lower(*_count(fv, f))
-    return fv.model_copy(update={"values": values})
+    residuals = fv.residuals
+    if residuals is not None:
+        length = (fv.window_end - fv.window_start).total_seconds()
+        residuals = {
+            k: None if r is None else _weighted_residual(r, length) for k, r in residuals.items()
+        }
+    return fv.model_copy(update={"values": values, "residuals": residuals})
 
 
 QUANTITIES = (
