@@ -224,8 +224,6 @@ class ChallengerLifecycle:
                 self.artifacts.load(cand)  # sha256-verified
             except (OSError, ValueError, TypeError) as exc:
                 raise PromotionRefused(f"candidate artifact rejected: {exc}") from exc
-            self.models.set_status(parent.model_id, ModelStatus.RETIRED)
-            self.models.set_status(cand.model_id, ModelStatus.ACTIVE)
             fpr = ev.metrics.get("challenger_fpr")
             p = Probation(
                 probation_id=new_id("prob"),
@@ -237,7 +235,12 @@ class ChallengerLifecycle:
                 until=now + timedelta(seconds=self.pc.probation_s),
                 baseline_rate=max(float(fpr or 0.0), self.pc.target_fpr),
             )
+            # Probation first, then one atomic switch: a crash in between leaves a
+            # probation whose model never became active, which check() closes.
             self.repo.save_probation(p)
+            self.models.set_statuses(
+                [(parent.model_id, ModelStatus.RETIRED), (cand.model_id, ModelStatus.ACTIVE)]
+            )
             self._active[app_id] = p
             self.audit.record(
                 reviewer,
@@ -274,10 +277,12 @@ class ChallengerLifecycle:
             raise PromotionRefused(f"parent artifact rejected: {exc}") from exc
         now = self.clock()
         # A model that breached probation is never re-activated by accident.
-        self.models.set_status(
-            p.model_id, ModelStatus.REJECTED if automatic else ModelStatus.RETIRED
+        self.models.set_statuses(
+            [
+                (p.model_id, ModelStatus.REJECTED if automatic else ModelStatus.RETIRED),
+                (parent.model_id, ModelStatus.ACTIVE),
+            ]
         )
-        self.models.set_status(parent.model_id, ModelStatus.ACTIVE)
         closed = p.model_copy(
             update={"status": ProbationStatus.ROLLED_BACK, "closed_at": now, "reason": reason}
         )
@@ -300,7 +305,21 @@ class ChallengerLifecycle:
     def _probation(self, app_id: str) -> Probation | None:
         if app_id not in self._active:
             active = self.repo.probations(app_id, active_only=True)
-            self._active[app_id] = active[0] if active else None
+            p = active[0] if active else None
+            rec = None if p is None else self.models.get(p.model_id)
+            if p is not None and (rec is None or rec.status is not ModelStatus.ACTIVE):
+                # the promotion was interrupted before its model switch
+                self.repo.save_probation(
+                    p.model_copy(
+                        update={
+                            "status": ProbationStatus.ROLLED_BACK,
+                            "closed_at": self.clock(),
+                            "reason": "promotion incomplete: model never became active",
+                        }
+                    )
+                )
+                p = None
+            self._active[app_id] = p
         return self._active[app_id]
 
     def observe(self, app_id: str, detections: Sequence[DetectionResult]) -> None:
@@ -328,7 +347,7 @@ class ChallengerLifecycle:
                 return False
             fps = self.false_positives(app_id, p.started_at)
             if fps >= self.pc.probation_max_false_positives:
-                self._rollback(app_id, "probation", f"{fps} false-positive reports", automatic=True)
+                self._auto_rollback(app_id, p, f"{fps} false-positive reports")
                 return True
             if p.windows >= self.pc.probation_min_windows:
                 rate = p.anomalous / p.windows
@@ -338,11 +357,10 @@ class ChallengerLifecycle:
                 )
                 if rate > limit:
                     self.repo.save_probation(p)
-                    self._rollback(
+                    self._auto_rollback(
                         app_id,
-                        "probation",
+                        p,
                         f"anomalous rate {rate:.3f} > {limit:.3f} over {p.windows} windows",
-                        automatic=True,
                     )
                     return True
             if now >= p.until:
@@ -366,6 +384,30 @@ class ChallengerLifecycle:
                 self.repo.save_probation(p)
                 self._saved_at = now
             return False
+
+    def _auto_rollback(self, app_id: str, p: Probation, reason: str) -> None:
+        """Roll back a breached model. If the parent cannot be restored, the breached
+        model is still deactivated (fail closed: no HST rather than a breached one)."""
+        try:
+            self._rollback(app_id, "probation", reason, automatic=True)
+        except PromotionRefused as exc:
+            self.models.set_statuses([(p.model_id, ModelStatus.REJECTED)])
+            self.repo.save_probation(
+                p.model_copy(
+                    update={
+                        "status": ProbationStatus.ROLLED_BACK,
+                        "closed_at": self.clock(),
+                        "reason": f"{reason}; rollback failed: {exc}",
+                    }
+                )
+            )
+            self._active[app_id] = None
+            self.audit.record(
+                "probation",
+                "challenger.auto_rollback_failed",
+                f"{app_id}:{p.model_id}",
+                {"reason": reason, "error": str(exc)},
+            )
 
     def snapshot(self, app_id: str) -> dict[str, object]:
         with self._lock:

@@ -354,14 +354,32 @@ class SqlModelRepository(_Repo):
             return _load(ModelRecord, c.execute(q).all())
 
     def set_status(self, model_id: str, status: ModelStatus) -> None:
-        rec = self.get(model_id)
-        if rec is None:
-            raise KeyError(model_id)
-        if status is ModelStatus.ACTIVE:
-            for other in self.active(rec.app_id, rec.detector.value):
-                if other.model_id != model_id:
-                    self.save(other.model_copy(update={"status": ModelStatus.RETIRED}))
-        self.save(rec.model_copy(update={"status": status}))
+        self.set_statuses([(model_id, status)])
+
+    def set_statuses(self, changes: Sequence[tuple[str, ModelStatus]]) -> None:
+        """Apply several status changes atomically (one transaction). Activating a model
+        retires the other active models of its detector, unless ``changes`` sets them."""
+        recs = []
+        for model_id, status in changes:
+            rec = self.get(model_id)
+            if rec is None:
+                raise KeyError(model_id)
+            recs.append(rec.model_copy(update={"status": status}))
+        named = {r.model_id for r in recs}
+        for r in list(recs):
+            if r.status is ModelStatus.ACTIVE:
+                recs += [
+                    o.model_copy(update={"status": ModelStatus.RETIRED})
+                    for o in self.active(r.app_id, r.detector.value)
+                    if o.model_id not in named
+                ]
+        with self.engine.begin() as c:
+            for r in recs:
+                c.execute(
+                    update(t.models)
+                    .where(t.models.c.model_id == r.model_id)
+                    .values(status=r.status.value, body=r.model_dump_json())
+                )
 
 
 class SqlPolicyRepository(_Repo):

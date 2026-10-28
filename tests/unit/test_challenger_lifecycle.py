@@ -463,3 +463,66 @@ def test_controller_reloads_when_probation_rolls_back(settings, monkeypatch):
     monkeypatch.setattr(c.controller, "reload", lambda: reloads.append(True) or True)
     c.controller.tick(T0)
     assert reloads == [True]
+
+
+# ------------------------------------------- rollback reliability (directive item 8)
+def _fail_nth_model_write(env: Env, n: int):
+    """Simulate a crash: the n-th write to the models table from now on fails."""
+    from sqlalchemy import event
+
+    seen = [0]
+
+    def before(conn, cursor, statement, params, context, executemany):
+        s = statement.lstrip().upper()
+        if s.startswith(("UPDATE MODELS", "INSERT INTO MODELS")):
+            seen[0] += 1
+            if seen[0] == n:
+                raise RuntimeError("injected crash")
+
+    event.listen(env.models.engine, "before_cursor_execute", before)
+    return lambda: event.remove(env.models.engine, "before_cursor_execute", before)
+
+
+@pytest.mark.parametrize("n", [1, 2])
+def test_interrupted_rollback_never_leaves_no_active_model(env, n):
+    """Either the rollback happened completely or not at all: exactly one HST is active."""
+    rec = env.lc.promote("rental", env.evaluate().evaluation_id, "admin", "ok")
+    undo = _fail_nth_model_write(env, n)
+    with pytest.raises(Exception, match="injected crash"):
+        env.lc.rollback("rental", "admin", "operator decision")
+    undo()
+    assert [m.model_id for m in env.active_hst()] == [rec.model_id]
+    env.lc.rollback("rental", "admin", "retry")  # and the retry completes
+    assert [m.model_id for m in env.active_hst()] == [env.parent.model_id]
+
+
+@pytest.mark.parametrize("n", [1, 2])
+def test_interrupted_promotion_never_leaves_no_active_model(env, n):
+    ev = env.evaluate()
+    undo = _fail_nth_model_write(env, n)
+    with pytest.raises(Exception, match="injected crash"):
+        env.lc.promote("rental", ev.evaluation_id, "admin", "ok")
+    undo()
+    assert [m.model_id for m in env.active_hst()] == [env.parent.model_id]
+    restarted = env.lifecycle()  # e.g. after the crash
+    assert restarted.check("rental", env.now) is False
+    assert not env.repo.probations("rental", active_only=True)
+    rec = restarted.promote("rental", env.evaluate().evaluation_id, "admin", "again")
+    assert [m.model_id for m in env.active_hst()] == [rec.model_id]
+
+
+def test_breached_model_is_deactivated_even_if_parent_cannot_be_restored(env):
+    """Automatic rollback with an unloadable parent must not leave the breached model
+    active or raise on every controller tick: it is rejected, the probation is closed
+    with the reason, and the HST slot stays empty (learning pauses) until a human acts."""
+    rec = env.lc.promote("rental", env.evaluate().evaluation_id, "admin", "ok")
+    Path(env.parent.artifact_path).write_bytes(b"corrupted")
+    for _ in range(PC.probation_min_windows):
+        env.lc.observe("rental", [_hst(env, anomalous=True)])
+    assert env.lc.check("rental", env.now) is True
+    assert env.active_hst() == []
+    assert env.models.get(rec.model_id).status is ModelStatus.REJECTED
+    (p,) = env.repo.probations("rental")
+    assert p.status is ProbationStatus.ROLLED_BACK and "parent artifact rejected" in p.reason
+    assert "challenger.auto_rollback_failed" in env.actions()
+    assert env.lc.check("rental", env.now) is False  # closed: nothing more each tick
