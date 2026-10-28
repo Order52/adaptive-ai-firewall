@@ -514,6 +514,46 @@ def experiment_replay(
             )
 
 
+@exp_app.command("supervised")
+def experiment_supervised(
+    train: Annotated[str, typer.Option(help="comma-separated labelled dataset ids")],
+    test: Annotated[str, typer.Option(help="comma-separated dataset ids never trained on")],
+    withhold: Annotated[str, typer.Option(help="attack family to leave out (novelty)")] = "",
+    allow_synthetic: bool = False,
+    app_id: str = "rental",
+) -> None:
+    """N3/N4: known-threat classifier on labelled runs, split by run."""
+    from afw.features.windows import replay_windows
+    from afw.ml.experiments import _catalog
+    from afw.ml.supervised import (
+        KnownThreatClassifier,
+        evaluate,
+        labelled_windows,
+        split_by_dataset,
+        withheld_family,
+    )
+
+    c = _container()
+    loaded = c.learning.load_active(app_id)
+    if loaded is None:
+        typer.echo(f"no trusted profile for {app_id}; its endpoint catalog is needed")
+        raise typer.Exit(1)
+    catalog = _catalog(c.cfg, loaded[0])
+    tr, te = [d for d in train.split(",") if d], [d for d in test.split(",") if d]
+    windows = []
+    for ds in tr + te:
+        obs = sorted(c.datasets.observations(ds), key=lambda o: o.observed_at)
+        vecs = replay_windows(obs, c.cfg.window, catalog)
+        windows += labelled_windows(c.datasets.manifest(ds), vecs, allow_synthetic)
+    if withhold:
+        out: dict[str, object] = withheld_family(windows, withhold, te)
+    else:
+        fit, held = split_by_dataset(windows, te)
+        out = evaluate(KnownThreatClassifier().fit(fit), held).as_dict()
+    out |= {"train": tr, "test": te}
+    typer.echo(json.dumps(out, indent=2, default=str))
+
+
 @exp_app.command("online-replay")
 def experiment_online_replay(
     learn: Annotated[str, typer.Option(help="comma-separated dataset ids to learn from")],
