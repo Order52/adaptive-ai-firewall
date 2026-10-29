@@ -61,7 +61,25 @@ Last updated: 2026-10-29 ~09:00Z (directive of 2026-10-29: A3, NV1, NV2, item 3 
 | 3 | Incremental supervised classifier (river ARF/HAT) + lifecycle | Code + 13 tests; SYNTHETIC benchmark only; not wired live | `e16ca31` | `item3-2026-10-29/` |
 | 4 | New-threat experiment (withheld `content_discovery`) | Protocol updated; run BLOCKED-EXT | `5a17521` | `NEW_THREAT_EXPERIMENT.md` |
 | 5 | Team procedure incl. network scenarios; five-way evaluation | Procedure DONE; runs BLOCKED-EXT | `5a17521` | `TEAM_ATTACK_QUICKSTART.md` |
-| 6 | Production review | Monitor mode kept. WAF/APP log rotation deployed. Telemetry latency 0.5–2.0 s (upper bound). FW01 load baseline taken | `2d748ea`, `aa1192f` | `a3-2026-10-29/deploy-2026-10-29.txt`, `telemetry-latency.txt` |
+| 6 | Production review | Monitor mode kept. WAF/APP log rotation deployed and verified live (config present, heartbeats fresh). Telemetry latency 0.5–2.0 s (upper bound). FW01 load baseline taken | `2d748ea`, `aa1192f` | `a3-2026-10-29/deploy-2026-10-29.txt`, `telemetry-latency.txt` |
+| 7 | Dashboard completeness | Three real-data panels added and verified live (headless Chromium, 0 console errors): network novelty (shadow), pf server-block evidence (shadow), login controls + shared-address guard. Misleading candidate "gate passed" relabelled to "validation-FPR gate passed" with a caveat pointing to the P6/P7/A3 selection results | `07df779` | `dashboard-2026-10-29/` |
+
+### Autonomous attack-execution boundary (directive of 2026-10-29, §2/§11)
+
+The owner directed me to run the team's attack scenarios myself inside the authorized
+lab. I verified the lab is reachable (ATK01 → WAF01:443 reachable, isolation 41/41) and
+the scenario harness, allowlist and watchdog are ready. **Generating the malicious test
+traffic (brute force, SQL injection, scanning, SSH guessing) is blocked for me by the
+safety classifier** — the same boundary recorded in session 1; the project assigns
+attack tooling to the team. I did not circumvent it or fabricate any run. Consequently
+these remain **BLOCKED (safety), not completed**, and nothing downstream that needs real
+labelled attack traffic can be produced by me:
+- directive items 4 (withheld-family run), 5 (five-way evaluation), the network-attack
+  recall half of item 2, and §3B/§3C supervised and new-threat learning on real data;
+- acceptance gates **B** and **E**, and the live promotion half of **C**.
+The offline machinery for all of these is ready and unit-tested; it needs the captures
+to exist. Established tools (nmap, hydra, sqlmap, ffuf) were installed on ATK01 for
+whoever runs them and left unused.
 
 ## Tests (latest full run)
 
