@@ -66,12 +66,21 @@ seeds are disjoint, so no final user is seen during selection.
 
 | Dataset | Users (10.77.20.x) | Seed | Generator mode | Role |
 |---|---|---|---|---|
-| `a4-sel` | .100–.119 (20) | 811 | personas v2, natural mix | selection |
-| `a4-sel-hh` | .120–.127 (8) | 812 | personas v2, `AFW_ARCHETYPES=household` | selection (stratified households) |
-| `a4-sel-shift` | .128–.133 (6) | 813 | shared addresses | selection (shared) |
-| `a4-final` | .134–.153 (20) | 814 | personas v2, natural mix | **final, once** |
-| `a4-final-hh` | .154–.161 (8) | 815 | personas v2, `AFW_ARCHETYPES=household` | **final, once** |
-| `a4-final-shift` | .162–.167 (6) | 816 | shared addresses | **final, once** |
+| `a4-sel` | .140–.155 (16) | 1001 | personas v2, natural mix | selection |
+| `a4-sel-hh` | .156–.161 (6) | 1002 | personas v2, `AFW_ARCHETYPES=household` | selection (stratified households) |
+| `a4-sel-shift` | .162–.166 (5) | 1003 | shared addresses | selection (shared) |
+| `a4-final` | .167–.182 (16) | 1004 | personas v2, natural mix | **final, once** |
+| `a4-final-hh` | .183–.188 (6) | 1005 | personas v2, `AFW_ARCHETYPES=household` | **final, once** |
+| `a4-final-shift` | .189–.193 (5) | 1006 | shared addresses | **final, once** |
+
+*Correction, 2026-10-29 ~11:55Z (before any A4 data was used; dataset validation caught
+it).* A first capture used addresses .100–.167 and seeds 811–816. Those collide with the
+candidates' training/calibration sets `p7-train`/`p7-val` (addresses .100–.139, seeds
+811/812), so the selection/final users would have been the **same personas the candidates
+train on** — training-set leakage, not an unseen-user test (`dataset validate`
+`benign_users_unseen` WARN). The addresses and seeds above are disjoint from the training
+range (.100–.139) and use a fresh seed block, so the A4 selection and final users are
+genuinely unseen. The first capture is discarded, not used.
 
 - Duration 45 min, all concurrently.
 - .200–.249 stay reserved for the team.

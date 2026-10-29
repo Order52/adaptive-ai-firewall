@@ -24,7 +24,7 @@ rng = {"sel": {"p6-sel": (140, 155), "p6-sel-shift": (156, 161)},
        "n2": {"n2-benign-train": (100, 123), "n2-benign-val": (124, 135)},
        "a3": {"a3-sel": (140, 155), "a3-sel-shift": (156, 161), "nv1-train": (100, 123), "nv1-val": (124, 135)},
        "nv2": {"nv2-train": (100, 123), "nv2-heavy": (162, 169), "nv2-val": (124, 135), "nv2-test": (140, 155), "nv2-test-shift": (156, 161)},
-       "a4": {"a4-sel": (100, 119), "a4-sel-hh": (120, 127), "a4-sel-shift": (128, 133), "a4-final": (134, 153), "a4-final-hh": (154, 161), "a4-final-shift": (162, 167)}}[ph]
+       "a4": {"a4-sel": (140, 155), "a4-sel-hh": (156, 161), "a4-sel-shift": (162, 166), "a4-final": (167, 182), "a4-final-hh": (183, 188), "a4-final-shift": (189, 193)}}[ph]
 n = dict.fromkeys(rng, 0)
 import glob, gzip
 def lines():  # the live log and its rotations (copytruncate, dateext, gz)
