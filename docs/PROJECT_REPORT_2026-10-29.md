@@ -1,6 +1,13 @@
 # AI-Adaptive-Firewall: complete project report
 
-**As of 2026-10-29 ~13:05Z, branch `engineering-directive`.** This is the one document that covers everything. It replaces the earlier
+**As of 2026-10-29 ~13:05Z, branch `engineering-directive`.**
+
+> **Later updates (2026-10-29 evening).** (1) The FW01 Suricata **OOM is fixed** (RAM→2560 MB
+> + 1 GB swap, load-tested): `fw01-oom-fix-2026-10-29/`. (2) **Offline evaluation on real
+> recorded attack traffic** (CIC-IDS2017) through our pipeline: RandomForest 0.846 recall @
+> 0 FPR, held-out FTP→SSH 0.992 — on a **separate** gate from the live lab
+> (`engineering/GATE_STATES.md`, `RESULTS.md` §3h). (3) Consolidated current view:
+> `PROJECT_SUMMARY_AND_READINESS.md`. This is the one document that covers everything. It replaces the earlier
 version of this file (~02:15Z) and `PROJECT_REPORT_2026-10-28.md`.
 
 It covers:
