@@ -1,6 +1,6 @@
 # Project status
 
-**As of 2026-10-29 ~09:00Z, branch `engineering-directive`.** This is the single status page.
+**As of 2026-10-29 ~13:00Z, branch `engineering-directive`.** This is the single status page.
 Milestone detail is in `engineering/AUTONOMOUS_PROGRESS.md`; per-criterion evidence is
 in `VALIDATION_MATRIX.md`. Older status files are in `docs/archive/` and are superseded.
 
@@ -45,6 +45,17 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
   the detector stays in shadow.
 - *Incremental supervised learning (river ARF/HAT).* Built with a full governance
   lifecycle; benchmarked on SYNTHETIC data only.
+- *A4: AUTH household correction.* A3's final failed because households (multi-account
+  addresses) were absent from selection and `distinct_usernames` calibrated at 1. A4
+  makes `distinct_usernames` ceiling-only (fires at >= 5 accounts) and measures FPR on
+  household and shared sets too. On fresh unseen data with household coverage, candidate
+  S **passed** selection and the one-shot final: security-path FPR 0.0112 [0,0.034]
+  overall, 0.0 on households and shared addresses, 0 of 2 791 logins refused. SYNTHETIC
+  sensitivity preserved. Not promoted; monitor mode. No real attack-detection claim.
+- *Dashboard* gained network-novelty, pf server-block and login-control panels, verified
+  live (0 console errors); the misleading candidate "gate passed" status was relabelled.
+- *pf server-block evidence* (lateral-movement attempts from protected servers) runs live
+  in shadow.
 
 ## 2. Gates
 
@@ -84,6 +95,7 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | A3 | AUTH conflict: account-aware evidence, login-scoped graduated controls (ADR-044, `engineering/A3_AUTH_CONTROLS.md`) | DONE, **negative at the final stage**: selection passed (S); final evaluation on Phase E failed F1 (security path 0.0475 on household users); F2–F5 and attack resistance passed; 0/4 255 legitimate logins refused across 5 unseen sets. Not promoted. Controls deployed live in monitor mode |
 | NV1 | Network novelty on varied benign non-web traffic (`engineering/NV1_NETWORK_NOVELTY_VALIDATION.md`) | DONE, **negative**: dev 1.0 %, one-shot test on 22 unseen users 6.8 % [0.9, 15.8] and 1 strong verdict (heavy user, `dst_hosts_60` ceiling) |
 | NV2 | Network novelty revalidation (`engineering/NV2_NETWORK_NOVELTY_REVALIDATION.md`) | DONE, **positive (benign FP only)**: dev 1.45 %; one-shot test on 22 fresh unseen users 0.59 % [0.16, 1.15], 0 strong. The host-sweep change was not exercised (old ceiling: 0 windows). NV2 calibration live in shadow, identical to the frozen one; not validated for detection |
+| A4 | AUTH household revalidation (`engineering/A4_AUTH_HOUSEHOLD_REVALIDATION.md`) | DONE, **positive**: `distinct_usernames` ceiling-only; fresh unseen data with household coverage; S passed selection and one-shot final (security FPR 0.0112 [0,0.034], 0.0 on households/shared, 0/2791 logins refused, SYNTHETIC sensitivity 1.0). Not promoted; monitor mode |
 | Item 3 | Incremental supervised classifier (river ARF/HAT), verified delayed labels, poisoning/forgetting guards, lifecycle (`ml/incremental.py`) | Code + tests; SYNTHETIC benchmark only: not clearly better than periodic RF refit. Not wired live; never enforcing. Real labelled data BLOCKED-EXT |
 | Team procedure | All GNS3 scenarios incl. network (`TEAM_ATTACK_QUICKSTART.md`), withheld-family experiment (`NEW_THREAT_EXPERIMENT.md`) | Written; runs BLOCKED-EXT |
 | N7 | §8 new-threat experiment; cold restart; dataset archive | Protocol + offline core (run BLOCKED-EXT); restart recovered with no manual step; archive hashed |

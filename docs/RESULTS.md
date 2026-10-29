@@ -321,6 +321,36 @@ Limits:
 - Evidence: `artifacts/evidence/nv2-2026-10-29/`;
   `engineering/NV2_NETWORK_NOVELTY_REVALIDATION.md` §7.
 
+## 3g. A4: AUTH household correction, revalidated on fresh unseen users (2026-10-29)
+
+A3's one-shot final failed F1: candidate S's security path flagged 4.75 % of Phase E
+windows, all legitimate multi-account ("household") addresses that were absent from the
+selection set, because the `distinct_usernames` quantity was calibrated at 1. A4 makes
+two predeclared changes: `distinct_usernames` is **ceiling-only** (fires at >= 5 accounts,
+robust to calibration coverage), and benign FPR is a criterion on household and shared
+sets too.
+
+On fresh unseen data with household and shared-address coverage (disjoint from the
+candidates' training), S passed selection and the one-shot final:
+
+| Set | S security-path window FPR (final) |
+|---|---|
+| `a4-final` (16 natural users) | 0.0112 [0, 0.0343] |
+| `a4-final-hh` (6 households) | 0.0 |
+| `a4-final-shift` (5 shared addresses) | 0.0 |
+| union | 0.0068 [0, 0.0207] |
+
+0 of 2 791 legitimate logins refused; no login controls; no site restriction. SYNTHETIC
+must-detect sensitivity stayed 1.0 (nominal and stressed) on brute_force, stuffing,
+enumeration and idor. The A3 household failure is resolved.
+
+Limits: the sensitivity numbers are SYNTHETIC (no attack traffic); a 3-4 account spray is
+now caught by the live `credential_spraying` rule rather than this quantity; nothing is
+promoted (monitor mode); real attack recall still needs the team's runs.
+
+- Evidence: `artifacts/evidence/a4-2026-10-29/`;
+  `engineering/A4_AUTH_HOUSEHOLD_REVALIDATION.md` §8.
+
 ## 4. The cost of ML over statistics
 
 At the *same* 1.30% validation FPR, the three detectors differ by three orders of

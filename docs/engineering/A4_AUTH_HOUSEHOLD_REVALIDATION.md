@@ -157,4 +157,56 @@ candidate S is not promoted; A4 is a fresh selection.
 
 ## 8. Results
 
-(Empty until the selection and final have run.)
+*Recorded 2026-10-29 ~12:55Z. Capture 11:54:10–12:41:00Z (commit `c27fd91`): all six
+datasets validated, counts equal the WAF01 access-log lines. No overlap with the AUTH
+candidates' training/calibration (`p7-train`/`p7-val`); the only `benign_users_unseen`
+WARN is an address overlap with `nv2-train` (the network-novelty calibration, which the
+AUTH candidates are not fitted on). Evidence: `artifacts/evidence/a4-2026-10-29/`.*
+
+### 8.1 Selection (run once ~12:50Z): S eligible and selected
+
+Candidates D, F, S, FS eligible; R2/R3 fail B1 (the overfit references); C fails B1 on
+`a4-sel-shift` (isolation_forest 0.0212). SYNTHETIC attack resistance (criterion 5)
+passes. By the A3 tie-break (highest stressed must-detect, then simpler), **S** is
+selected, as in A3.
+
+S's enforcing-detector benign FPR on the selection sets (B1):
+
+| Set | security | robust_stats | isolation_forest | logins refused | controlled users |
+|---|---|---|---|---|---|
+| `a4-sel` (16, natural) | 0.0 | 0.0021 | 0.0032 | 0/1113 | 0 |
+| `a4-sel-hh` (6, households) | **0.0152** [0, 0.0378] | 0.0061 | 0.0091 | 0/867 | 0 |
+| `a4-sel-shift` (5, shared) | 0.0 | 0.0 | 0.0 | 0/437 | 0 |
+| union | 0.0039 [0, 0.012] | — | — | 0/2417 | 0 |
+
+Under A3, S's security path flagged **0.176** of the shared-set windows; A4's ceiling-only
+`distinct_usernames` brings households and shared addresses within B1. Frozen:
+`select/cand-S.pkl`, sha256 `a4f6e061…ef0f` (`select/cand-S.json`; backup outside the
+repo). No site-wide restriction on any set.
+
+### 8.2 Final (run once ~12:52Z): **PASS**
+
+| Criterion | Result |
+|---|---|
+| **F1** security-path FPR | `a4-final` **0.0112** [0, 0.0343]; `a4-final-hh` **0.0**; `a4-final-shift` **0.0**; union 0.0068 [0, 0.0207]. robust/IF ≤ 0.007 everywhere. **≤ 0.02, CI ≤ 0.05 — pass** (A3 failed F1 at 0.0475 on households) |
+| **F2** login friction | 0 of 2 791 legitimate logins refused; 0 login-controlled users; no site-wide restriction, on every set |
+| **F3** nominal sensitivity | brute_force, stuffing, enumeration, idor must-detect **1.0** |
+| **F4** vs R2 | no recall drop > 0.05 |
+| **F5** stressed sensitivity | all four families **1.0** under the adaptation stress |
+| **A3c5** SYNTHETIC attack resistance | pass |
+
+### 8.3 What this allows, and what it does not
+
+- **Allowed:** the A4 AUTH design generalises to unseen legitimate users **including
+  households and shared addresses**, at a measured security-path window FPR of 0.0112
+  [0, 0.034] (0.0 on households and shared addresses) and **zero** login friction, in
+  monitor mode. The A3 household failure is resolved.
+- **The sensitivity numbers are SYNTHETIC** (feature-level regression cases, no traffic).
+  They show the ceiling-only change did not weaken must-detect sensitivity — `stuffing`
+  at 10 accounts still reaches the ceiling — but they are **not** an attack-detection
+  result. Real recall needs the team's runs.
+- **Cost (restated, §1):** a spray across exactly 3–4 victim accounts, each below the
+  per-account streak, no longer raises `distinct_usernames`; it is caught by the live
+  `credential_spraying` rule and `auth_fail_lb`, not by this quantity.
+- **Not promoted.** A4 is a passing selection in monitor mode; promotion needs attack
+  recall and a human decision (§6). The controller stays in monitor mode with v2 trusted.

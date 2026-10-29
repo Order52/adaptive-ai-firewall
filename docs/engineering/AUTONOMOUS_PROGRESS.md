@@ -6,7 +6,7 @@ Status words: **DONE** (implemented, tested, evidence exists), **PARTIAL** (some
 acceptance criteria open, listed), **BLOCKED-EXT** (needs something only the team can
 supply), **TODO**.
 
-Last updated: 2026-10-29 ~09:00Z (directive of 2026-10-29: A3, NV1, NV2, item 3 table below).
+Last updated: 2026-10-29 ~13:00Z (directive of 2026-10-29: A3, NV1, NV2, item 3 table below).
 
 ## Milestones
 
@@ -62,6 +62,7 @@ Last updated: 2026-10-29 ~09:00Z (directive of 2026-10-29: A3, NV1, NV2, item 3 
 | 4 | New-threat experiment (withheld `content_discovery`) | Protocol updated; run BLOCKED-EXT | `5a17521` | `NEW_THREAT_EXPERIMENT.md` |
 | 5 | Team procedure incl. network scenarios; five-way evaluation | Procedure DONE; runs BLOCKED-EXT | `5a17521` | `TEAM_ATTACK_QUICKSTART.md` |
 | 6 | Production review | Monitor mode kept. WAF/APP log rotation deployed and verified live (config present, heartbeats fresh). Telemetry latency 0.5–2.0 s (upper bound). FW01 load baseline taken | `2d748ea`, `aa1192f` | `a3-2026-10-29/deploy-2026-10-29.txt`, `telemetry-latency.txt` |
+| 1b | A4: AUTH household correction (amendment to A3) | DONE, **positive**. distinct_usernames ceiling-only (`9904021`, before data; diagnosis a4-diagnosis.txt). Fresh unseen capture with household + shared coverage, disjoint from training (leakage caught and corrected at validation, `e16e9f9`). S passed selection (security FPR 0.0 / 0.0152 households / 0.0 shared) and one-shot **final PASS** (F1 0.0112 [0,0.034], 0.0 households/shared; 0/2791 logins refused; SYNTHETIC sensitivity 1.0). Not promoted; monitor | `9904021`, `1ad4daa`, `c27fd91`, `dab0ef9`, `b31c8a4` | `A4_AUTH_HOUSEHOLD_REVALIDATION.md` §8, `a4-2026-10-29/` |
 | 7 | Dashboard completeness | Three real-data panels added and verified live (headless Chromium, 0 console errors): network novelty (shadow), pf server-block evidence (shadow), login controls + shared-address guard. Misleading candidate "gate passed" relabelled to "validation-FPR gate passed" with a caveat pointing to the P6/P7/A3 selection results | `07df779` | `dashboard-2026-10-29/` |
 
 ### Autonomous attack-execution boundary (directive of 2026-10-29, §2/§11)
