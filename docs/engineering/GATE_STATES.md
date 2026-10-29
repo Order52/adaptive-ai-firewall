@@ -54,19 +54,20 @@ Evidence: `artifacts/evidence/offline-cic-2026-10-29/cic-offline-results.json`.
 | SSH-Patator | FTP-Patator | 0.00 | 0.00 |
 
 ### What this shows (gates 2, 3, 4 — offline only)
-- **Gate 2 (offline recorded-attack detection): supported.** Our pipeline, on real recorded
-  brute-force traffic, detects it — RandomForest 0.85 recall at **zero** benign false
-  positives.
-- **Gate 3 (supervised malicious-behaviour learning): supported, with a clear RF-vs-ARF
-  finding.** The batch RF is the stronger single-pass detector; the **incremental ARF
-  needs to learn continuously** — in its natural prequential mode it reaches 0.775 recall
-  at 0 FPR, but a *frozen* ARF snapshot fails to generalise across families (0.0). This is
-  the case *for* online learning: it adapts as new families arrive.
-- **Gate 4 (unfamiliar-threat): partial, honest asymmetry.** A model trained on FTP brute
-  force detects **withheld SSH** brute force at 0.99 (zero-day cross-family
-  generalisation) — but the reverse fails (0.0): an SSH-trained model overfits to the
-  port-22 signal that FTP lacks. So cross-family generalisation is real but **not
-  symmetric**. The unsupervised novelty detector catches 0.94 but at 3.8% FPR.
+- **Gate 2 (offline recorded-attack detection): supported.** RandomForest 0.846 recall
+  (95% CI [0.78, 0.90]) at **0 FP on 13,499 benign windows** (Wilson upper ~0.0003 — not
+  "zero FP" in general). **Audited** as behaviour-driven, not host/port-identity leakage
+  (`OFFLINE_CIC_AUDIT.md`).
+- **Gate 3 (supervised malicious-behaviour learning): supported; RF and ARF comparable.**
+  RF 0.846 @ 0 FPR; a fairly-trained incremental ARF ~0.92-0.98 (`OFFLINE_CIC_AUDIT.md`).
+  The earlier "frozen ARF 0.0" was a **data-ordering artifact** (attack in one late burst),
+  not evidence that continuous learning is superior — with representative ordering ARF
+  matches RF. No superiority claim.
+- **Gate 4 (unfamiliar-threat): partial.** A model trained on FTP brute force detects
+  withheld SSH at 0.99; SSH->FTP is 0.66 (behaviour-only; the earlier 0.0 was a
+  port-feature artifact, `OFFLINE_CIC_AUDIT.md`). This is **cross-protocol generalisation
+  within brute force on one dataset — NOT universal zero-day detection.** Unsupervised
+  novelty 0.94 @ 3.8% FPR.
 
 ### Domain-adaptation assessment (P5) — external → lab relevance
 These results are **CIC-specific** and do **not** transfer to our GNS3 lab as-is:

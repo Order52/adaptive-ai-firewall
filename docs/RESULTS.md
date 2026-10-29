@@ -369,10 +369,14 @@ the CICFlowMeter label errors of Engelen et al.):
 | Held-out family: train FTP → test **SSH** (withheld) | **0.992** | — | 0.00 |
 | Held-out family: train SSH → test FTP | 0.000 | — | 0.00 |
 
-Findings: the pipeline detects real brute force at zero benign FP; the incremental ARF
-needs continuous learning (a frozen snapshot fails); cross-family generalisation is real
-but asymmetric (FTP→SSH yes, SSH→FTP no). **Domain adaptation is required before this
-transfers to the lab** (CIC benign ≠ lab benign). Evidence:
+**Audited** (`engineering/OFFLINE_CIC_AUDIT.md`), with corrections: detection is
+behaviour-driven, **not** host/port-identity leakage (behaviour-only features recall 0.895,
+identity-only 0.0; a 300 s anti-overlap gap leaves 0.846 unchanged). The RF 0 FPR is **0 FP
+on 13,499 benign windows** (CI upper ~0.0003), not "zero FP" in general. The ARF "frozen
+0.0" was a **data-ordering artifact** (shuffled → 0.976 ≈ RF): **no claim that continuous
+learning is superior.** SSH→FTP "0.0" was a port-feature artifact (behaviour-only 0.66);
+FTP→SSH 0.99 is **cross-protocol generalisation within brute force, not universal zero-day.**
+Domain adaptation is required before any of this transfers to the lab. Evidence:
 `artifacts/evidence/offline-cic-2026-10-29/`.
 
 ## 4. The cost of ML over statistics
