@@ -1,6 +1,6 @@
 # Project status
 
-**As of 2026-10-28 ~20:05Z, branch `engineering-directive`.** This is the single status page.
+**As of 2026-10-29 ~05:50Z, branch `engineering-directive`.** This is the single status page.
 Milestone detail is in `engineering/AUTONOMOUS_PROGRESS.md`; per-criterion evidence is
 in `VALIDATION_MATRIX.md`. Older status files are in `docs/archive/` and are superseded.
 
@@ -24,6 +24,19 @@ gate. Its most important measured weakness: the trusted v2 models, trained on on
 5.4-minute run, restrict 13 of 16 unseen legitimate users in replay (`RESULTS.md` §3a).
 A candidate trained on more varied users (v3) removes those false positives but loses
 measurable ML sensitivity, so it fails its predeclared criteria and is not promoted.
+
+**Since 2026-10-29.**
+
+- *A3: authentication controls redesigned.* Per-account evidence and login-only
+  graduated controls. On new unseen-user data, candidate S passed selection: 0 of 1 837
+  legitimate logins refused, no site-wide restriction, FPR ≤ 0.0031. SYNTHETIC
+  attack-resistance arithmetic passed. S is frozen; its one-shot final evaluation on
+  Phase E data is **pending** (capture running).
+- *NV1: network novelty on varied non-web benign traffic.* **Failed** its one-shot test
+  on 22 unseen users: unfamiliar 6.8 %, and one legitimate heavy user hit the host-sweep
+  ceiling. The detector stays in shadow.
+- *Incremental supervised learning (river ARF/HAT).* Built with a full governance
+  lifecycle; benchmarked on SYNTHETIC data only.
 
 ## 2. Gates
 
@@ -60,6 +73,10 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | N1–N2 | Network visibility: Suricata flow/DNS/TLS/SSH metadata; residual network features; novelty detector | Live in **shadow** on ATTACK/USERS segments (ADR-042); calibration degenerate (web-only lab users) |
 | N3–N4 | Supervised known-threat classifier; withheld-family novelty | Code + tests (synthetic); evaluation BLOCKED-EXT |
 | N6 | Response states, shared-address guard | Deployed (ADR-043) |
+| A3 | AUTH conflict: account-aware evidence, login-scoped graduated controls (ADR-044, `engineering/A3_AUTH_CONTROLS.md`) | Selection DONE (S eligible and selected; 0/1 837 legitimate logins refused; SYNTHETIC attack resistance passes); frozen `39b0c3b`; Phase E final evaluation running. Deployed live in monitor mode |
+| NV1 | Network novelty on varied benign non-web traffic (`engineering/NV1_NETWORK_NOVELTY_VALIDATION.md`) | DONE, **negative**: dev 1.0 %, one-shot test on 22 unseen users 6.8 % [0.9, 15.8] and 1 strong verdict (heavy user, `dst_hosts_60` ceiling). Shadow; calibration installed live (shadow, not validated) |
+| Item 3 | Incremental supervised classifier (river ARF/HAT), verified delayed labels, poisoning/forgetting guards, lifecycle (`ml/incremental.py`) | Code + tests; SYNTHETIC benchmark only: not clearly better than periodic RF refit. Not wired live; never enforcing. Real labelled data BLOCKED-EXT |
+| Team procedure | All GNS3 scenarios incl. network (`TEAM_ATTACK_QUICKSTART.md`), withheld-family experiment (`NEW_THREAT_EXPERIMENT.md`) | Written; runs BLOCKED-EXT |
 | N7 | §8 new-threat experiment; cold restart; dataset archive | Protocol + offline core (run BLOCKED-EXT); restart recovered with no manual step; archive hashed |
 | Directive 10-28 items 5–8 | Attack-run preparation, four-way comparison, promotion review, reliability | DONE where not blocked: `afw dataset validate`; S-ML/HYB arms and IDS alerts in datasets (runbook §4.1); `engineering/AUTO_PROMOTION_REVIEW.md` (not enabled); crash-consistent switches (ADR-040) |
 
@@ -70,12 +87,14 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
    → `afw dataset capture` → `afw dataset validate` → `afw experiment evaluate
    --streaming`. Procedure: `engineering/P3_TEAM_ATTACK_RUNBOOK.md`. Also confirms the
    SV-1 fix live (pure brute force is expected to be rate limited, not blocked).
-2. **A decision on the AUTH-rule conflict (human).** On clean data the FS candidate
-   (evidence-weighted features + one-sided security path) has window FPR ≤ 0.009 and
-   stressed synthetic must-detect 1.00, but the brute-force rule rate-limits one
-   "forgetful" legitimate user once, which the predeclared criterion forbids. Accept,
-   change the rule, or change the criterion: each needs a new predeclared amendment and
-   new selection data (`RESULTS.md` §3c). The trusted v2 champion remains in place.
+2. **AUTH conflict: being resolved under A3 (owner-authorized).**
+   - Selection passed and candidate S is frozen. Its final evaluation on Phase E runs
+     once.
+   - Passing would make S *eligible* for human promotion only. The controller stays in
+     monitor mode, and the trusted v2 champion remains until then.
+   - Limitation: the generated users never come near the AUTH thresholds (at most 3
+     failures on one account). Friction for real users who fail 5 or more times is shown
+     only by SYNTHETIC friction runs.
 3. **Online learning cannot correct the champion's own false positives** (policed
    sources are tainted, fail-closed by design; `M2_ONLINE_LEARNING_DESIGN.md` §9). An
    operator FALSE_POSITIVE path is the governed way to clear taint.
@@ -86,11 +105,18 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
    Left: FW01's IDS feed cannot use RELP (OPNsense), so it keeps a ~100 s loss window.
    Real-country inbound enforcement can only be verified by read-back in this lab.
 6. **Residual poisoning risk** from 4 or more colluding similar sources.
-7. **Network-wide visibility is partial.** Only ATTACK and USERS cross FW01's Suricata;
-   DMZ/APP/DB/MGMT and intra-segment traffic are invisible; TLS is opaque beyond
-   SNI/version. Network novelty is calibrated on web-only users and runs in shadow; it
-   needs non-HTTP benign activity and team-run network attacks (scans, SSH guessing) to
-   be evaluated. The supervised classifier has no live promotion path.
+7. **Network-wide visibility is partial, and network novelty is not yet validated.**
+   - *Visibility.* Only the ATTACK and USERS segments cross FW01's Suricata.
+     DMZ/APP/DB/MGMT and intra-segment traffic are invisible, and TLS is opaque beyond
+     SNI/version. Expanding the sensors is costed (`nv1-2026-10-29/fw01-load-*`) but not
+     enabled.
+   - *NV1 test failed.* Legitimate heavy users with up to 5.7 DNS lookups/min were not
+     covered by the 3 heavy users in training. One heavy user reached the
+     10-hosts-per-minute host-sweep ceiling.
+   - *A further attempt* needs a new predeclared protocol, with per-habit or stratified
+     calibration and a reasoned host-sweep ceiling, plus fresh data.
+   - *Network attack recall* needs the team's runs. The incremental classifier is not
+     wired live.
 
 ## 5. Is it ready as a final-year project?
 

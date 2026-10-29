@@ -1,0 +1,10 @@
+# Live deployment after the A3/NV1 capture ended (04:11:35Z); no capture running at the time.
+05:31Z  afw lab deploy --limit waf01,app01 --check: changes = helper code (A3 login controls), rsyslog imfile
+        reopenOnTruncate, /etc/logrotate.d/afw-{waf,app}; handlers: restart helper, restart rsyslog (nginx not restarted)
+05:32Z  afw lab deploy --limit waf01,app01: waf01 ok=38 changed=5, app01 ok=33 changed=3, failed=0
+        afw-waf, afw-waf-helper, rsyslog active; logrotate -d parses both files
+05:33Z  afw lab deploy --limit ctrl01: wheel installed (A3 code), controller restarted 05:33:03Z; ok=21 changed=3 failed=0
+05:34Z  afw experiment network-calibrate --datasets nv1-train --write (shadow detector; effective levels equal the
+        frozen NV1 calibration 90a1793b; NOT validated: the NV1 test failed); controller restarted
+        /api/health: status ok, mode monitor, telemetry_degraded false, model_error null, nothing enforced
+safety.behavior_only_rate_limit unchanged (True live). No mode change. No promotion.

@@ -9,7 +9,7 @@ evidence that support it. Status words:
 * **BLOCKED-EXT**: needs something only the team can supply.
 
 Gate definitions are unchanged from the directive. Evidence paths are relative to
-`artifacts/evidence/`. Latest runs (2026-10-28):
+`artifacts/evidence/`. Latest runs (2026-10-28; 2026-10-29 additions in the N-series table):
 
 * unit/integration: 218 passed, 14 skipped (skips: live-lab tests without `AFW_LAB=1`);
 * live lab: `AFW_LAB=1 pytest tests/lab` 14/14 and isolation 37/37 after the P5 changes
@@ -96,11 +96,13 @@ Gate definitions are unchanged from the directive. Evidence paths are relative t
 | Gate | Criterion | Tests / procedure | Evidence | Status |
 |---|---|---|---|---|
 | Network visibility | Flow/DNS/TLS/SSH metadata from FW01 stored as versioned events, dedup, bounded; residual features; coverage limits documented | `test_network_events.py`, `test_network_features.py`; ADR-042 | Live 2026-10-28: ~1,600 events/min under 36 users, 0 drops (`n1-2026-10-28/load-under-traffic.txt`); ATTACK and USERS segments only | PARTIAL (segment coverage; no attack traffic seen yet) |
-| Known-threat learning | Supervised family classifier, run-grouped splits, abstention, CIs | `test_supervised.py` (SYNTHETIC vectors); `afw experiment supervised` | No team attack runs | BLOCKED-EXT |
-| Novelty | Withheld-family protocol; network novelty with fixed ceilings that calibration cannot raise | `withheld_family()`; `test_network_detector.py` (poisoned calibration) | No team attack runs; network calibration on real benign flows done but degenerate (web-only lab users) | BLOCKED-EXT / PARTIAL |
+| Known-threat learning | Supervised family classifier, run-grouped splits, abstention, CIs; batch RF baseline plus incremental river ARF/HAT with verified delayed labels, predict-before-learn, LabelGuard, rehearsal, checkpoints, lifecycle (gate, approval, probation, rollback; never enforcing) | `test_supervised.py`, `test_incremental.py` (SYNTHETIC) | `item3-2026-10-29/incremental-benchmark-synthetic.json` (SYNTHETIC: incremental not clearly better than periodic RF refit); no team attack runs | BLOCKED-EXT (mechanics only) |
+| Novelty | Withheld-family protocol; network novelty with fixed ceilings that calibration cannot raise; FP on unseen legitimate users with varied non-web traffic (NV1, predeclared) | `withheld_family()`; `test_network_detector.py`; `nv1_eval.py` | NV1 2026-10-29: dev 0.0102; **one-shot test 0.0678 [0.0088, 0.1575], 1 legitimate user strong** (`nv1-2026-10-29/nv1-test.json`, diagnosis `nv1-posthoc-diag.txt`); no team attack runs | **NOT MET** (benign FP) / BLOCKED-EXT (recall) |
 | Self-learning (§8) | Frozen vs challenger after one confirmed run, measured on later independent runs | `learn_new_family()`; `docs/NEW_THREAT_EXPERIMENT.md` | Not run (team captures needed); no live promotion path for the classifier | BLOCKED-EXT / NOT MET |
 | Safe adaptation | Labels only from manifests or human feedback; poisoning-bounded learning | ADR-028/030/034/040 (HTTP path); ADR-042 ceilings | M4 poisoning experiment | PARTIAL |
 | Enforcement states | Explicit response states; shared address never auto-blocked | `test_response_states.py`; ADR-043 | Deployed 2026-10-28; not yet triggered live | PARTIAL (no live trigger) |
+| AUTH protection without legitimate friction (A3) | Account-aware streaks, AUTH-only view, login-route throttle → deny → repeat deny; shared-address deny needs a human; predeclared B1–B4 + SYNTHETIC attack resistance | `test_auth_controls.py`, `test_waf_helper_login.py`, `test_a3_resistance.py`; ADR-044 | `a3-2026-10-29/select/a3-select.json`: S eligible, 0/1 837 legitimate logins refused, AR1–AR4 pass (SYNTHETIC); frozen `39b0c3b`; Phase E final pending. Deployed live (monitor) 2026-10-29 05:33Z | PARTIAL (final evaluation pending; generated users never near thresholds; real attack runs BLOCKED-EXT) |
+| Telemetry latency | Marked benign request USR01 → WAF01 → CTRL01 store | `a3-2026-10-29/tools/latency.sh` | `a3-2026-10-29/telemetry-latency.txt`: 8 requests 2026-10-29: 0.5–2.0 s (upper bound; ~0.5 s poller floor) | MET (lab scale) |
 
 ## Overall
 

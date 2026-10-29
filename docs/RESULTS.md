@@ -203,6 +203,82 @@ new predeclared amendment and new selection data.
   `phaseD-capture.txt`, `select/summary.txt`, `select/select.json`,
   `select/diagnosis-restrictions.json`); protocol §8.4.
 
+## 3d. A3: resolving the AUTH conflict (2026-10-29)
+
+The window brute-force rule was replaced by two things, predeclared before any data
+(`engineering/A3_AUTH_CONTROLS.md`, ADR-044):
+- **per-account failure streaks**, so a success clears the account;
+- **login-route-only graduated controls**: throttle (3 r/min), then deny, then a longer
+  deny for repeat offenders. A deny on a shared address needs a human.
+
+**Selection data.** 22 new users: 17 503 + 4 179 requests, of which 1 837 were
+legitimate logins.
+
+**Selection result (run once).** D, F, C, S and FS are all eligible. **S** is selected
+(stressed must-detect 1.0; simpler than FS).
+
+| Measure | S | Criterion |
+|---|---|---|
+| Enforcing window FPR on `a3-sel` | ≤ 0.0031 (upper CI ≤ 0.0069); security path 0 | ≤ 0.02 / ≤ 0.05 |
+| Site-wide restriction of a legitimate user | 0 (both sets) | 0 |
+| Legitimate logins refused | 0 / 1 837 | ≤ 0.5 % |
+| Legitimate users with a login control | 0 | ≤ 1 per set |
+| Legitimate request success | 1.0 | ≥ 0.99 |
+
+R2 and R3, the stored v2/v3 models, still fail on FPR (IF 0.93 and 0.56).
+
+**Attack resistance (SYNTHETIC: scripted attempt sequences through the real decision
+code and nginx `limit_req` arithmetic; no traffic, no attack tool).**
+
+| Family | Accepted (A3) | Accepted (A2 rule) |
+|---|---|---|
+| 1 guess/s, one account | 25 of 3 600 | 3 600 of 3 600 |
+| 1 guess/20 s, one account | 25 of 180 | 180 of 180 |
+| 1 guess/s, spraying | 25 of 3 600 | 3 600 of 3 600 |
+| 1 guess/min, spraying | 20 of 60 | 60 of 60 |
+
+- A user who mistypes 4, 6 or 8 times is never refused.
+- The A2 site-wide limit (1 r/s) never binds against a 1 r/s guesser. This is a real
+  weakness of the old rule, found by this arithmetic.
+
+**Limits.**
+- The generated users never came near the thresholds: at most 3 failures in a row on one
+  account. So the benign result does not test real users who fail 5 or more times.
+- Distributed guessing and slow multi-source spraying are outside a per-source rule.
+- Real attack runs remain BLOCKED-EXT.
+
+**Status.** S is frozen (`39b0c3b`). Its final evaluation on the untouched Phase E sets
+runs once, after the capture that started 05:42Z.
+
+- Evidence: `artifacts/evidence/a3-2026-10-29/`.
+
+## 3e. NV1: network novelty on unseen legitimate users (2026-10-29)
+
+The benign users now also generate ordinary non-web activity:
+- DNS through their resolver;
+- NTP;
+- occasional pings;
+- typed-URL visits.
+
+They are split into light, normal and heavy habits. Calibration used 24 users
+(109 615 network events). Development on 12 users gave an unfamiliar rate of 0.0102.
+
+**The one-shot test on 22 unseen users failed.**
+- Unfamiliar window rate 0.0678 [0.0088, 0.1575], against a criterion of ≤ 0.02 with
+  upper CI ≤ 0.05.
+- One legitimate heavy user reached a fixed ceiling: 11 distinct hosts in 60 s, against
+  the host-sweep ceiling of 10.
+
+Almost all unfamiliar verdicts come from heavy users (mean share 0.24, against ≤ 0.006
+for light and normal). Training had 3 heavy users, at 3.3–4.7 DNS lookups/min; the test
+had 6, at up to 5.7.
+
+The detector stays in shadow. A further attempt needs a new predeclared protocol and
+fresh data. Network attack recall is still unmeasured.
+
+- Evidence: `artifacts/evidence/nv1-2026-10-29/`;
+  `engineering/NV1_NETWORK_NOVELTY_VALIDATION.md` §7.
+
 ## 4. The cost of ML over statistics
 
 At the *same* 1.30% validation FPR, the three detectors differ by three orders of
@@ -400,3 +476,6 @@ is blocked on team-run attack scenarios. The harness for it (M6) is complete.
 | Online replay (pivot, restore) | `afw experiment online-replay` | real-benign and drift datasets | 2026-10-27 | `m2-2026-10-27/m2-replay-*.json` |
 | Telemetry recovery | scripted restarts (see file) | live | 2026-10-27 20:15–20:48 | `m5-2026-10-27/reconnect.txt`, `heartbeat-liveness.txt` |
 | Isolation, live-lab suite | `afw lab verify`; `AFW_LAB=1 pytest tests/lab` | live | 2026-10-27 20:59–21:00 | `m9-2026-10-27/` |
+| A3 selection (run once) | `a3_run.py <snap> select …` | `a3-sel`, `a3-sel-shift` (+ `p7-train`/`p7-val` for training) | capture 2026-10-29 03:11–04:13; run ~05:30 | `a3-2026-10-29/select/` |
+| NV1 calibration and test (once) | `nv1_eval.py <snap> dev …`, then `test …` | `nv1-train`, `nv1-val`; test `a3-sel`, `a3-sel-shift` | same capture; test ~05:40 | `nv1-2026-10-29/` |
+| Telemetry latency | `a3-2026-10-29/tools/latency.sh` | live, marked benign requests | 2026-10-29 ~05:35 | `a3-2026-10-29/telemetry-latency.txt` |

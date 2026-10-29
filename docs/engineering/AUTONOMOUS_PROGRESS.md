@@ -6,7 +6,7 @@ Status words: **DONE** (implemented, tested, evidence exists), **PARTIAL** (some
 acceptance criteria open, listed), **BLOCKED-EXT** (needs something only the team can
 supply), **TODO**.
 
-Last updated: 2026-10-28 ~20:05Z (M0–M9, P1–P5, P6 result; N0–N7 table below).
+Last updated: 2026-10-29 ~05:55Z (directive of 2026-10-29: A3, NV1, item 3 table below).
 
 ## Milestones
 
@@ -51,6 +51,17 @@ Last updated: 2026-10-28 ~20:05Z (M0–M9, P1–P5, P6 result; N0–N7 table bel
 | N5 | Governed adaptation, poisoning defences | Existing for the HTTP path (ADR-028/030/034/040, M4); network calibration bounded by fixed ceilings; classifier labels from manifests only. No live promotion path for the classifier | — | M4 doc, ADR-042 |
 | N6 | Response-policy states, shared-address guard | DONE, deployed (live since 18:52Z); guard not yet triggered live | `505bc5d` | ADR-043, `test_response_states.py` |
 | N7 | §8 new-threat experiment, evaluation, recovery, archive | §8 protocol + offline core DONE, run **BLOCKED-EXT**; cold lab restart recovered with no manual step (exact learner restore, 41/41, 14/14; `lab stop` defect fixed); dataset archive with SHA-256 | `1771b9f`, `e73401b` | `NEW_THREAT_EXPERIMENT.md`, `n7-2026-10-28/` |
+
+## Directive of 2026-10-29 (items 1–7)
+
+| Item | Scope | Status | Commits | Evidence |
+|---|---|---|---|---|
+| 1 | A3: account-aware AUTH evidence, login-scoped graduated controls, predeclared B1–B4 + SYNTHETIC attack resistance | Protocol and code `7eaa8d4`, `aa7ef1c`, `ecf2ec8` (before data). Selection run once: **S eligible and selected** (0/1 837 legitimate logins refused; AR1–AR4 pass). Frozen `39b0c3b`. Phase E capture started 05:42:35Z; the final evaluation runs once afterwards. Deployed live in monitor mode 05:33Z | `a7d10e7`, `39b0c3b`, `b56286d` | `A3_AUTH_CONTROLS.md` §8, `a3-2026-10-29/` |
+| 2 | NV1: varied benign non-web traffic, calibration, unseen-user FP | DONE, **negative**: dev 0.0102. One-shot test 0.0678 [0.0088, 0.1575]; heavy user .156 hits the `dst_hosts_60` ceiling. Shadow only. Display defect fixed. Sensor expansion costed, not enabled | `abd0366`, `ea584fd` | `NV1_NETWORK_NOVELTY_VALIDATION.md` §7, `nv1-2026-10-29/` |
+| 3 | Incremental supervised classifier (river ARF/HAT) + lifecycle | Code + 13 tests; SYNTHETIC benchmark only; not wired live | `e16ca31` | `item3-2026-10-29/` |
+| 4 | New-threat experiment (withheld `content_discovery`) | Protocol updated; run BLOCKED-EXT | `5a17521` | `NEW_THREAT_EXPERIMENT.md` |
+| 5 | Team procedure incl. network scenarios; five-way evaluation | Procedure DONE; runs BLOCKED-EXT | `5a17521` | `TEAM_ATTACK_QUICKSTART.md` |
+| 6 | Production review | Monitor mode kept. WAF/APP log rotation deployed. Telemetry latency 0.5–2.0 s (upper bound). FW01 load baseline taken | `2d748ea`, `aa1192f` | `a3-2026-10-29/deploy-2026-10-29.txt`, `telemetry-latency.txt` |
 
 ## Tests (latest full run)
 
@@ -112,9 +123,10 @@ attack-detection results stays **failed/blocked** until real labelled attack run
 
 All achievable directive work is done and verified; the rest is external:
 
-1. P6: capture Phase C, run Phase D, selection, freeze, Phase E, final evaluation once.
-2. Live checks between phases: RELP crash loss (kill -9 during dedicated benign
-   traffic), whether a hung Suricata still heartbeats (pgrep-based).
+1. A3: capture Phase E (running), then the final evaluation once
+   (`a3_run.py <snap> final …`); report in A3 §8.2.
+2. ~~P6 phases~~ (superseded by P7/A3); ~~RELP crash loss, IDS stall~~ (done,
+   `p6-2026-10-28/reliability/`).
 3. Team attack runs (`P3_TEAM_ATTACK_RUNBOOK.md`) → Gate B, Gate E, M3 live gate, live
    SV-1 confirmation, the four-way comparison.
 4. Team demonstration (Gate G).
