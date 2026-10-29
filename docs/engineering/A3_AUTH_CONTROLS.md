@@ -305,3 +305,63 @@ users who fail 5 or more times; the friction runs above are the evidence for tha
 Next steps under §5: collect Phase E (`p6-final*`, .170–.197, seeds 701–703), then run
 the final evaluation once. Nothing is promoted by this result; the controller stays in
 monitor mode.
+
+*Note added 2026-10-29 ~06:45Z, after the final evaluation (factual omission in §8.1, no
+criterion change).* On `a3-sel-shift`, S's security path flagged **0.1756** of windows
+(72 of 410, shared addresses). B1 is measured on `a3-sel` only, so this was not a
+criterion, but §8.1 should have reported it as a warning sign. It had no decision
+effect: 0 requests impacted.
+
+### 8.2 Final evaluation on Phase E (2026-10-29, run once ~06:35Z): **FAIL (F1)**
+
+*Data.* Phase E capture 05:42:35–06:29:00Z (commit `58d7ad1`), under the predeclared P6
+script with the A3 generator:
+- `p6-final`: 16 users, 19 400 requests;
+- `p6-final-shift`: 6 shared addresses, 2 944 requests;
+- `p6-final-v1`: 6 v1 users, 1 670 requests.
+
+All 48 validation checks passed, and counts equal the WAF01 log. Frozen S was verified
+by sha256 `8994dfe8…ec70`. Report: `final/a3-final.json` (206 s).
+
+| Criterion | Result | |
+|---|---|---|
+| F1 enforcing FPR on `p6-final` | robust 0.004, IF 0.007, **security 0.0475 [0.0, 0.1402]** | **fail** |
+| F2 B2/B3/B4 on each Phase E set | no site-wide restriction; 0 of 2 418 legitimate logins refused; no login control; success 1.0, 1.0, 1.0 | pass |
+| F3 nominal must-detect | 1.0 for every family | pass |
+| F4 versus R2 | equal (1.0) | pass |
+| F5 stressed must-detect | 1.0 for every family (R2 stressed: 0.63–1.0) | pass |
+| A3 criterion 5 (SYNTHETIC) | unchanged, pass | pass |
+
+**S is not eligible for promotion.** v2 remains the trusted profile, and the controller
+stays in monitor mode.
+
+*Diagnosis (post-hoc, no re-test):*
+- All 47 flagged `p6-final` windows come from the 2 **household** users (2–4 accounts
+  behind one address: 47 of their 133 windows). Every other archetype has 0.
+- The security path's calibrated `distinct_usernames` level is 1.0: no window in
+  `p7-val` had two usernames. So any legitimate multi-account address flags.
+- Selection could not see this. `a3-sel`'s random archetype draw contained no
+  household user. The shared-address sets showed it (0.176 and 0.135), but B1/F1
+  measure the main set only.
+
+*Preserved sets (reported, P1 criteria).* S's robust and IF FPR are ≤ 0.011 on all four.
+Its security path flags 82–100 % of windows there (old-regime data, multi-account
+generator and 404 artifacts), against R2's enforcing 0.09–0.73.
+
+*What the result shows.*
+- The **A3 controls** resolved the conflict they were built for. Across 4 255 legitimate
+  logins on 5 unseen sets, including shared addresses, none was refused, no user got a
+  login control, and nobody was restricted site-wide.
+- The SYNTHETIC attack-resistance arithmetic holds.
+- What failed is the ML candidate's **security path**, on legitimate multi-account
+  addresses.
+
+A further attempt needs:
+- a new predeclared amendment (for example, `distinct_usernames` calibrated on data
+  that includes household users, or that quantity scored only together with failures);
+- stratified archetype coverage in selection;
+- B1/F1 on the shared sets too;
+- **new** selection and final data. Phase E is now consumed.
+
+That choice is left to the owner.
+

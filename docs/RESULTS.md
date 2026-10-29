@@ -247,8 +247,22 @@ code and nginx `limit_req` arithmetic; no traffic, no attack tool).**
 - Distributed guessing and slow multi-source spraying are outside a per-source rule.
 - Real attack runs remain BLOCKED-EXT.
 
-**Status.** S is frozen (`39b0c3b`). Its final evaluation on the untouched Phase E sets
-runs once, after the capture that started 05:42Z.
+**Final evaluation (Phase E, run once): FAIL, so S is not promoted.**
+
+- *What passed.*
+  - The login controls passed on all three sets (2 418 legitimate logins, 0 refused, no
+    restriction, success 1.0).
+  - Synthetic must-detect was 1.0, nominal and stressed.
+- *What failed.* S's one-sided security path flagged 4.75 % of windows on `p6-final`
+  [0, 14 %] (criterion ≤ 2 %). All 47 flags were from the 2 "household" users (several
+  accounts behind one address): its `distinct_usernames` level had been calibrated at 1.
+- *Why selection missed it.* The selection set contained no household user. The
+  shared-address sets showed the same effect (13–18 %), but the FPR criterion covers
+  only the main set.
+
+So the AUTH-control redesign met its friction and resistance criteria, but the selected
+ML candidate did not generalise to multi-account addresses. A further attempt needs a
+new amendment and new data (A3 §8.2).
 
 - Evidence: `artifacts/evidence/a3-2026-10-29/`.
 
@@ -478,4 +492,5 @@ is blocked on team-run attack scenarios. The harness for it (M6) is complete.
 | Isolation, live-lab suite | `afw lab verify`; `AFW_LAB=1 pytest tests/lab` | live | 2026-10-27 20:59–21:00 | `m9-2026-10-27/` |
 | A3 selection (run once) | `a3_run.py <snap> select …` | `a3-sel`, `a3-sel-shift` (+ `p7-train`/`p7-val` for training) | capture 2026-10-29 03:11–04:13; run ~05:30 | `a3-2026-10-29/select/` |
 | NV1 calibration and test (once) | `nv1_eval.py <snap> dev …`, then `test …` | `nv1-train`, `nv1-val`; test `a3-sel`, `a3-sel-shift` | same capture; test ~05:40 | `nv1-2026-10-29/` |
+| A3 final evaluation (once) | `a3_run.py <snap> final … cand-S.pkl` | `p6-final`, `p6-final-shift`, `p6-final-v1` (+ preserved P1 sets) | capture 2026-10-29 05:42–06:29; run ~06:35 | `a3-2026-10-29/final/a3-final.json` |
 | Telemetry latency | `a3-2026-10-29/tools/latency.sh` | live, marked benign requests | 2026-10-29 ~05:35 | `a3-2026-10-29/telemetry-latency.txt` |

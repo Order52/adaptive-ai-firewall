@@ -6,7 +6,7 @@ Status words: **DONE** (implemented, tested, evidence exists), **PARTIAL** (some
 acceptance criteria open, listed), **BLOCKED-EXT** (needs something only the team can
 supply), **TODO**.
 
-Last updated: 2026-10-29 ~05:55Z (directive of 2026-10-29: A3, NV1, item 3 table below).
+Last updated: 2026-10-29 ~06:50Z (directive of 2026-10-29: A3, NV1, item 3 table below).
 
 ## Milestones
 
@@ -56,7 +56,7 @@ Last updated: 2026-10-29 ~05:55Z (directive of 2026-10-29: A3, NV1, item 3 table
 
 | Item | Scope | Status | Commits | Evidence |
 |---|---|---|---|---|
-| 1 | A3: account-aware AUTH evidence, login-scoped graduated controls, predeclared B1–B4 + SYNTHETIC attack resistance | Protocol and code `7eaa8d4`, `aa7ef1c`, `ecf2ec8` (before data). Selection run once: **S eligible and selected** (0/1 837 legitimate logins refused; AR1–AR4 pass). Frozen `39b0c3b`. Phase E capture started 05:42:35Z; the final evaluation runs once afterwards. Deployed live in monitor mode 05:33Z | `a7d10e7`, `39b0c3b`, `b56286d` | `A3_AUTH_CONTROLS.md` §8, `a3-2026-10-29/` |
+| 1 | A3: account-aware AUTH evidence, login-scoped graduated controls, predeclared B1–B4 + SYNTHETIC attack resistance | Protocol and code `7eaa8d4`, `aa7ef1c`, `ecf2ec8` (before data). Selection run once: **S eligible and selected** (0/1 837 legitimate logins refused; AR1–AR4 pass). Frozen `39b0c3b`. **Final on Phase E (once): FAIL F1**: S security path 0.0475 on household users, absent from selection. F2–F5 pass; 0/2 418 logins refused. Not promoted. Deployed live in monitor mode 05:33Z; live lab 14/14, isolation 41/41 | `a7d10e7`, `39b0c3b`, `b56286d`, `58d7ad1` | `A3_AUTH_CONTROLS.md` §8, `a3-2026-10-29/` |
 | 2 | NV1: varied benign non-web traffic, calibration, unseen-user FP | DONE, **negative**: dev 0.0102. One-shot test 0.0678 [0.0088, 0.1575]; heavy user .156 hits the `dst_hosts_60` ceiling. Shadow only. Display defect fixed. Sensor expansion costed, not enabled | `abd0366`, `ea584fd` | `NV1_NETWORK_NOVELTY_VALIDATION.md` §7, `nv1-2026-10-29/` |
 | 3 | Incremental supervised classifier (river ARF/HAT) + lifecycle | Code + 13 tests; SYNTHETIC benchmark only; not wired live | `e16ca31` | `item3-2026-10-29/` |
 | 4 | New-threat experiment (withheld `content_discovery`) | Protocol updated; run BLOCKED-EXT | `5a17521` | `NEW_THREAT_EXPERIMENT.md` |
@@ -123,8 +123,8 @@ attack-detection results stays **failed/blocked** until real labelled attack run
 
 All achievable directive work is done and verified; the rest is external:
 
-1. A3: capture Phase E (running), then the final evaluation once
-   (`a3_run.py <snap> final …`); report in A3 §8.2.
+1. A3 is complete and negative at the final stage. Next is a human decision on a new
+   amendment (see A3 §8.2); new selection and final data would be needed.
 2. ~~P6 phases~~ (superseded by P7/A3); ~~RELP crash loss, IDS stall~~ (done,
    `p6-2026-10-28/reliability/`).
 3. Team attack runs (`P3_TEAM_ATTACK_RUNBOOK.md`) → Gate B, Gate E, M3 live gate, live

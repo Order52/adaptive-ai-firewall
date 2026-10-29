@@ -1,6 +1,6 @@
 # Project status
 
-**As of 2026-10-29 ~05:50Z, branch `engineering-directive`.** This is the single status page.
+**As of 2026-10-29 ~06:50Z, branch `engineering-directive`.** This is the single status page.
 Milestone detail is in `engineering/AUTONOMOUS_PROGRESS.md`; per-criterion evidence is
 in `VALIDATION_MATRIX.md`. Older status files are in `docs/archive/` and are superseded.
 
@@ -30,8 +30,12 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 - *A3: authentication controls redesigned.* Per-account evidence and login-only
   graduated controls. On new unseen-user data, candidate S passed selection: 0 of 1 837
   legitimate logins refused, no site-wide restriction, FPR ≤ 0.0031. SYNTHETIC
-  attack-resistance arithmetic passed. S is frozen; its one-shot final evaluation on
-  Phase E data is **pending** (capture running).
+  attack-resistance arithmetic passed. **The one-shot final evaluation on Phase E failed
+  (F1).**
+  - The login controls again caused no friction: 0 of 2 418 logins refused.
+  - But S's security path flagged 4.75 % of windows from legitimate multi-account
+    ("household") users, who were absent from the selection set.
+  - S is not promoted.
 - *NV1: network novelty on varied non-web benign traffic.* **Failed** its one-shot test
   on 22 unseen users: unfamiliar 6.8 %, and one legitimate heavy user hit the host-sweep
   ceiling. The detector stays in shadow.
@@ -73,7 +77,7 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | N1–N2 | Network visibility: Suricata flow/DNS/TLS/SSH metadata; residual network features; novelty detector | Live in **shadow** on ATTACK/USERS segments (ADR-042); calibration degenerate (web-only lab users) |
 | N3–N4 | Supervised known-threat classifier; withheld-family novelty | Code + tests (synthetic); evaluation BLOCKED-EXT |
 | N6 | Response states, shared-address guard | Deployed (ADR-043) |
-| A3 | AUTH conflict: account-aware evidence, login-scoped graduated controls (ADR-044, `engineering/A3_AUTH_CONTROLS.md`) | Selection DONE (S eligible and selected; 0/1 837 legitimate logins refused; SYNTHETIC attack resistance passes); frozen `39b0c3b`; Phase E final evaluation running. Deployed live in monitor mode |
+| A3 | AUTH conflict: account-aware evidence, login-scoped graduated controls (ADR-044, `engineering/A3_AUTH_CONTROLS.md`) | DONE, **negative at the final stage**: selection passed (S); final evaluation on Phase E failed F1 (security path 0.0475 on household users); F2–F5 and attack resistance passed; 0/4 255 legitimate logins refused across 5 unseen sets. Not promoted. Controls deployed live in monitor mode |
 | NV1 | Network novelty on varied benign non-web traffic (`engineering/NV1_NETWORK_NOVELTY_VALIDATION.md`) | DONE, **negative**: dev 1.0 %, one-shot test on 22 unseen users 6.8 % [0.9, 15.8] and 1 strong verdict (heavy user, `dst_hosts_60` ceiling). Shadow; calibration installed live (shadow, not validated) |
 | Item 3 | Incremental supervised classifier (river ARF/HAT), verified delayed labels, poisoning/forgetting guards, lifecycle (`ml/incremental.py`) | Code + tests; SYNTHETIC benchmark only: not clearly better than periodic RF refit. Not wired live; never enforcing. Real labelled data BLOCKED-EXT |
 | Team procedure | All GNS3 scenarios incl. network (`TEAM_ATTACK_QUICKSTART.md`), withheld-family experiment (`NEW_THREAT_EXPERIMENT.md`) | Written; runs BLOCKED-EXT |
@@ -87,11 +91,15 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
    → `afw dataset capture` → `afw dataset validate` → `afw experiment evaluate
    --streaming`. Procedure: `engineering/P3_TEAM_ATTACK_RUNBOOK.md`. Also confirms the
    SV-1 fix live (pure brute force is expected to be rate limited, not blocked).
-2. **AUTH conflict: being resolved under A3 (owner-authorized).**
-   - Selection passed and candidate S is frozen. Its final evaluation on Phase E runs
-     once.
-   - Passing would make S *eligible* for human promotion only. The controller stays in
-     monitor mode, and the trusted v2 champion remains until then.
+2. **AUTH conflict: the controls are fixed; the candidate is not (A3, human decision
+   next).**
+   - The login-scoped controls passed every friction criterion on 5 unseen sets.
+   - The selected ML candidate S failed its final FPR criterion: its security path
+     flags legitimate multi-account addresses.
+   - Phase E is consumed. A new amendment needs stratified archetype coverage, FPR
+     measured on shared sets as well, a fixed `distinct_usernames` treatment, and new
+     selection and final data.
+   - v2 remains trusted, and the controller stays in monitor mode.
    - Limitation: the generated users never come near the AUTH thresholds (at most 3
      failures on one account). Friction for real users who fail 5 or more times is shown
      only by SYNTHETIC friction runs.
