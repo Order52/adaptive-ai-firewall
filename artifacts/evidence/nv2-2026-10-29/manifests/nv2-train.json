@@ -1,0 +1,139 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-29T07:32:58+00:00",
+ "end": "2026-10-29T08:35:00+00:00",
+ "scenario": "NV2 network calibration: 24 v2 persona users + 8 stratified heavy-habit users",
+ "seed": 941,
+ "generator": "traffic/benign_personas.py AFW_PERSONA_SET=v2 (one thread per user); NV2 generator (AFW_NET=1); seed 945 AFW_NET_HABITS=heavy for .162-.169",
+ "notes": "seed 941, from 2026-10-29T07:32:58+00:00",
+ "sources": [
+  {
+   "ip": "10.77.20.100",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.101",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.102",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.103",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.104",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.105",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.106",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.107",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.108",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.109",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.110",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.111",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.112",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.113",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.114",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.115",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.116",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.117",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.118",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.119",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.120",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.121",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.122",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.123",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.162",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.163",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.164",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.165",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.166",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.167",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.168",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.169",
+   "role": "benign"
+  }
+ ]
+}

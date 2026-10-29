@@ -1,0 +1,41 @@
+app reviews: off (AFW_APP_REVIEWS=auto)
+net 10.77.20.156: normal dns/min=1.49 visit=0.55 pings/h=0.01 typed/h=0.56 resolver=8.8.8.8
+net 10.77.20.157: normal dns/min=1.63 visit=0.53 pings/h=0.32 typed/h=0.28 resolver=8.8.8.8
+net 10.77.20.158: heavy dns/min=4.64 visit=0.66 pings/h=0.88 typed/h=0.66 resolver=1.1.1.1
+net 10.77.20.159: normal dns/min=2.46 visit=0.54 pings/h=0.75 typed/h=0.32 resolver=8.8.8.8
+net 10.77.20.160: light dns/min=0.22 visit=0.33 pings/h=0.05 typed/h=0.20 resolver=1.1.1.1
+net 10.77.20.161: heavy dns/min=2.65 visit=0.60 pings/h=1.45 typed/h=0.76 resolver=1.1.1.1
+net error from 10.77.20.161 (dns): timed out
+net error from 10.77.20.159 (dns): timed out
+net error from 10.77.20.161 (dns): timed out
+net error from 10.77.20.159 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.156 (dns): timed out
+net error from 10.77.20.158 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.160 (dns): timed out
+net error from 10.77.20.159 (dns): timed out
+net error from 10.77.20.159 (dns): timed out
+net error from 10.77.20.158 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.159 (dns): timed out
+net error from 10.77.20.159 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.159 (dns): timed out
+net error from 10.77.20.161 (dns): timed out
+net error from 10.77.20.159 (dns): timed out
+net error from 10.77.20.159 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.157 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.161 (dns): timed out
+net error from 10.77.20.156 (dns): timed out
+net error from 10.77.20.161 (dns): timed out
+net error from 10.77.20.161 (dns): timed out
+net error from 10.77.20.159 (dns): timed out
+net error from 10.77.20.159 (dns): timed out
+net error from 10.77.20.156 (dns): timed out
+net error from 10.77.20.156 (dns): timed out
+net error from 10.77.20.161 (dns): timed out
+net error from 10.77.20.156 (dns): timed out
+net error from 10.77.20.161 (dns): timed out
+net error from 10.77.20.159 (dns): timed out
+net error from 10.77.20.161 (dns): timed out
+net error from 10.77.20.161 (dns): timed out
+net error from 10.77.20.158 (dns): timed out
+done: 792 legitimate sessions over 3600s from 6 sources
+network activity: {'dns': 731, 'error': 32, 'ntp': 36, 'ping': 3, 'typed': 2}

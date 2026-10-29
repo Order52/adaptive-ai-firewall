@@ -1,0 +1,84 @@
+app reviews: off (AFW_APP_REVIEWS=auto)
+net 10.77.20.124: light dns/min=0.33 visit=0.42 pings/h=0.02 typed/h=0.24 resolver=1.1.1.1
+net 10.77.20.125: normal dns/min=1.74 visit=0.56 pings/h=0.44 typed/h=0.19 resolver=8.8.8.8
+net 10.77.20.126: light dns/min=0.29 visit=0.35 pings/h=0.34 typed/h=0.30 resolver=8.8.8.8
+net 10.77.20.127: normal dns/min=1.97 visit=0.46 pings/h=0.92 typed/h=0.04 resolver=1.1.1.1
+net 10.77.20.128: light dns/min=0.58 visit=0.48 pings/h=0.28 typed/h=0.01 resolver=8.8.8.8
+net 10.77.20.129: normal dns/min=1.54 visit=0.47 pings/h=0.07 typed/h=0.41 resolver=1.1.1.1
+net 10.77.20.130: normal dns/min=1.64 visit=0.56 pings/h=0.32 typed/h=0.51 resolver=8.8.8.8
+net 10.77.20.131: normal dns/min=2.12 visit=0.43 pings/h=0.50 typed/h=0.25 resolver=8.8.8.8
+net 10.77.20.132: heavy dns/min=5.30 visit=0.51 pings/h=1.86 typed/h=0.86 resolver=8.8.8.8
+net 10.77.20.133: light dns/min=0.76 visit=0.44 pings/h=0.10 typed/h=0.15 resolver=8.8.8.8
+net 10.77.20.134: normal dns/min=2.46 visit=0.55 pings/h=0.94 typed/h=0.17 resolver=8.8.8.8
+net 10.77.20.135: normal dns/min=1.54 visit=0.52 pings/h=0.78 typed/h=0.13 resolver=8.8.8.8
+persona 10.77.20.124: {'think': 4.0, 'depth': 2, 'auth': 0.2086465819154066, 'typo': 0.07528102159523231, 'book': 0.7107390941843086, 'review': 0.3983550462311729, 'gap': 90.0, 'user': ('user34', 'pw-34'), 'archetype': 'city', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user34', 'pw-34')], 'city': 0.5738530887909041, 'detail': 0.3}
+persona 10.77.20.125: {'think': 1.0, 'depth': 1, 'auth': 0.8, 'typo': 0.03884926670298844, 'book': 0.6352543867131082, 'review': 0.10131866157906613, 'gap': 2.0, 'user': ('user16', 'pw-16'), 'archetype': 'household', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user18', 'pw-18'), ('user4', 'pw-4')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.126: {'think': 1.0, 'depth': 3, 'auth': 0.19772307748819812, 'typo': 0.014089467551155149, 'book': 0.2141493932778474, 'review': 0.10826645534465516, 'gap': 90.0, 'user': ('user26', 'pw-26'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user26', 'pw-26')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.127: {'think': 8.0, 'depth': 4, 'auth': 0.29092523890342825, 'typo': 0.05489783391944248, 'book': 0.41289911395637313, 'review': 0.34682665654061795, 'gap': 120.0, 'user': ('user13', 'pw-13'), 'archetype': 'slow', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user13', 'pw-13')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.128: {'think': 2.0, 'depth': 3, 'auth': 0.20287068260802302, 'typo': 0.01086167301717057, 'book': 0.7930539600218092, 'review': 0.12408086168725148, 'gap': 8.0, 'user': ('user30', 'pw-30'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user30', 'pw-30')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.129: {'think': 1.0, 'depth': 3, 'auth': 0.05390259895451377, 'typo': 0.10961037025560902, 'book': 0.7951607852326334, 'review': 0.2399248527457148, 'gap': 2.0, 'user': ('user5', 'pw-5'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user5', 'pw-5')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.130: {'think': 4.0, 'depth': 1, 'auth': 0.8, 'typo': 0.00908683701054318, 'book': 0.3999408127908997, 'review': 0.1233109821869296, 'gap': 2.0, 'user': ('user11', 'pw-11'), 'archetype': 'household', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user50', 'pw-50'), ('user25', 'pw-25'), ('user30', 'pw-30')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.131: {'think': 6.0, 'depth': 4, 'auth': 0.6082222595545621, 'typo': 0.018607840172488944, 'book': 0.45511736787596474, 'review': 0.07987445796323898, 'gap': 120.0, 'user': ('user7', 'pw-7'), 'archetype': 'slow', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user7', 'pw-7')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.132: {'think': 0.5, 'depth': 1, 'auth': 0.2270600672988754, 'typo': 0.06706764134127324, 'book': 0.3669185474836759, 'review': 0.24546372162240848, 'gap': 30.0, 'user': ('user4', 'pw-4'), 'archetype': 'stale', 'stale': 0.13684057843159372, 'max_typos': 1, 'accounts': [('user4', 'pw-4')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.133: {'think': 1.0, 'depth': 1, 'auth': 0.6749310748744575, 'typo': 0.11214720536171197, 'book': 0.6421291886885019, 'review': 0.09773715463580875, 'gap': 90.0, 'user': ('user24', 'pw-24'), 'archetype': 'regular', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user24', 'pw-24')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.134: {'think': 1.0, 'depth': 2, 'auth': 0.7891848029728459, 'typo': 0.14563739464810174, 'book': 0.3924282700144449, 'review': 0.1737770894485014, 'gap': 90.0, 'user': ('user26', 'pw-26'), 'archetype': 'stale', 'stale': 0.18098796480108323, 'max_typos': 1, 'accounts': [('user26', 'pw-26')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.135: {'think': 2.0, 'depth': 3, 'auth': 0.9361334560588177, 'typo': 0.09469683759482342, 'book': 0.7163708263461204, 'review': 0.16651615391604963, 'gap': 8.0, 'user': ('user24', 'pw-24'), 'archetype': 'city', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user24', 'pw-24')], 'city': 0.978481809996637, 'detail': 0.3}
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.127 (dns): timed out
+net error from 10.77.20.134 (dns): timed out
+net error from 10.77.20.135 (dns): timed out
+net error from 10.77.20.128 (dns): timed out
+net error from 10.77.20.125 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.125 (dns): timed out
+net error from 10.77.20.127 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.130 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.128 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.130 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.125 (dns): timed out
+net error from 10.77.20.125 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.126 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.130 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.132 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.125 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.124 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.127 (dns): timed out
+net error from 10.77.20.127 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.127 (dns): timed out
+net error from 10.77.20.132 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.127 (dns): timed out
+net error from 10.77.20.125 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.127 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.132 (dns): timed out
+net error from 10.77.20.127 (dns): timed out
+net error from 10.77.20.134 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.128 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.127 (dns): timed out
+net error from 10.77.20.127 (dns): timed out
+done: 2355 legitimate sessions over 3600s from 12 persona users: {'10.77.20.125': 687, '10.77.20.129': 653, '10.77.20.128': 229, '10.77.20.135': 221, '10.77.20.130': 259, '10.77.20.132': 126, '10.77.20.126': 33, '10.77.20.133': 31, '10.77.20.134': 36, '10.77.20.124': 32, '10.77.20.131': 23, '10.77.20.127': 25}
+network activity: {'dns': 1167, 'error': 57, 'ntp': 84, 'ping': 4, 'typed': 2}

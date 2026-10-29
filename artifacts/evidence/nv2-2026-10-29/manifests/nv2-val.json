@@ -1,0 +1,59 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-29T07:32:58+00:00",
+ "end": "2026-10-29T08:35:00+00:00",
+ "scenario": "NV2 network development: 12 v2 persona users",
+ "seed": 942,
+ "generator": "traffic/benign_personas.py AFW_PERSONA_SET=v2 (one thread per user); NV2 generator (AFW_NET=1)",
+ "notes": "seed 942, from 2026-10-29T07:32:58+00:00",
+ "sources": [
+  {
+   "ip": "10.77.20.124",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.125",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.126",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.127",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.128",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.129",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.130",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.131",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.132",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.133",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.134",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.135",
+   "role": "benign"
+  }
+ ]
+}
