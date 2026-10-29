@@ -96,9 +96,28 @@
     </article>
   </section>
 
+  <section class="grid2">
+    <article class="card">
+      <h2>Network novelty (shadow)</h2>
+      <p class="sub">Per-source residual network behaviour (flows/DNS/failed connections) scored against a benign calibration and fixed protocol ceilings (ADR-042). Shadow only: never used for a decision. Recall against attacks is unmeasured.</p>
+      <div id="network"></div>
+    </article>
+    <article class="card">
+      <h2>Server-block evidence (pf, shadow)</h2>
+      <p class="sub">Connections FW01's pf dropped from a <em>protected</em> server or management address toward a forbidden zone — the shape of lateral movement. Evidence only; protected sources are never acted on (<code>SENSOR_EXPANSION_DECISION.md</code>).</p>
+      <div id="netblocks"></div>
+    </article>
+  </section>
+
+  <section class="card">
+    <h2>Login controls &amp; shared-address protection</h2>
+    <p class="sub">Account-aware AUTH controls, scoped to the login endpoint only (A3, ADR-044): throttle then deny login, never the whole site. An address used by ≥ 3 accounts in the last hour is shared, so a block becomes a human-approved strict rate limit (ADR-043). Reconciled live state from the WAF/firewall backends.</p>
+    <div id="authctl"></div>
+  </section>
+
   <section class="card">
     <h2>Static vs statistical vs ML-assisted experiments</h2>
-    <p class="sub">Results recorded by <code>afw experiment</code> from captured lab runs. Empty until experiments are run.</p>
+    <p class="sub">Results recorded by <code>afw experiment</code> from captured lab runs. Empty until experiments are run. Predeclared model-selection results (P6/P7/A3, NV1/NV2) are offline and live in <code>RESULTS.md</code>, not here.</p>
     <div id="experiments"></div>
   </section>
 

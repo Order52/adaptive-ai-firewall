@@ -195,9 +195,10 @@ async function renderAdaptation() {
   try { a = await api("/api/adaptation"); } catch (_) { return; }
   const mon = a.monitor;
   const reports = a.drift_reports.slice(0, 5).map((d) => `<div class="ev"><b>${tShort(d.detected_at)}</b> · ${esc(d.signals.join(", "))} · <b>${esc(d.assessment)}</b> (${d.distinct_sources} sources)<br><span class="mono">${esc(JSON.stringify(d.details))}</span></div>`).join("");
-  const evals = a.evaluations.slice(0, 3).map((e) => `<div class="ev"><b>Candidate profile v${e.candidate_profile_version}</b> — ${badge(e.passed ? "var(--good)" : "var(--critical)", e.passed ? "gate passed" : "gate failed")}<br>${e.checks.map((c) => `<span class="check">${c.passed ? "✔" : "✘"} ${esc(c.name)} ${c.value !== null ? `= ${fmt(c.value, 4)}` : ""}${c.limit !== null ? ` (limit ${fmt(c.limit, 4)})` : ""}</span>`).join("<br>")}</div>`).join("");
+  const evals = a.evaluations.slice(0, 3).map((e) => `<div class="ev"><b>Candidate profile v${e.candidate_profile_version}</b> — ${badge(e.passed ? "var(--neutral)" : "var(--critical)", e.passed ? "validation-FPR gate passed" : "gate failed")}<br>${e.checks.map((c) => `<span class="check">${c.passed ? "✔" : "✘"} ${esc(c.name)} ${c.value !== null ? `= ${fmt(c.value, 4)}` : ""}${c.limit !== null ? ` (limit ${fmt(c.limit, 4)})` : ""}</span>`).join("<br>")}</div>`).join("");
+  const caveat = `<div class="sub" style="margin-top:6px">“Passed” here is the bootstrap validation-FPR gate only — <b>not</b> a generalization or sensitivity qualification. On unseen users and the predeclared selection gates (P6/P7/A3, <code>RESULTS.md</code>) no candidate has qualified; none is promoted.</div>`;
   $("#adaptation").innerHTML = `${mon ? `<dl class="kv"><dt>shadow windows accepted</dt><dd>${mon.accepted_windows}</dd><dt>rejected (reputation gate)</dt><dd class="mono">${esc(JSON.stringify(mon.rejected))}</dd><dt>new routes (sources)</dt><dd class="mono">${esc(JSON.stringify(mon.new_routes))}</dd><dt>new app versions</dt><dd class="mono">${esc(JSON.stringify(mon.new_versions))}</dd><dt>shadow anomaly rate</dt><dd>${fmt(mon.shadow_anomaly_rate, 3)}</dd></dl>` : `<div class="empty">No trusted profile loaded.</div>`}
-    <h3>Drift reports</h3>${reports || `<div class="empty">None.</div>`}<h3>Candidate evaluations</h3>${evals || `<div class="empty">None.</div>`}`;
+    <h3>Drift reports</h3>${reports || `<div class="empty">None.</div>`}<h3>Candidate evaluations</h3>${evals ? evals + caveat : `<div class="empty">None.</div>`}`;
 }
 
 async function renderModels() {
@@ -287,6 +288,68 @@ async function renderAudit() {
   $("#audit tbody").innerHTML = a.map((r) => `<tr><td>${tShort(r.at)}</td><td>${esc(r.actor)}</td><td>${esc(r.action)}</td><td class="mono">${esc(r.subject)}</td></tr>`).join("");
 }
 
+async function renderNetwork() {
+  let n;
+  try { n = await api("/api/network?limit=200"); } catch (_) { return; }
+  const d = n.detector || {}, w = n.windows || {}, ev = n.events || {};
+  const cal = d.calibration_error
+    ? badge("var(--critical)", `calibration error: ${esc(d.calibration_error)}`)
+    : d.calibrated_on
+      ? badge("var(--good)", `calibrated on ${d.calibrated_on} benign windows`)
+      : badge("var(--warning)", "ceilings only (no calibration)");
+  const strong = (ev.net_strong || 0), unfam = (ev.net_unfamiliar || 0);
+  const verdicts = (n.recent || []).filter((v) => v.unfamiliar || v.strong).slice(0, 8);
+  const rows = verdicts.map((v) => `<tr><td>${tShort(v.window_end)}</td><td class="mono">${esc(v.source_ip)}</td>
+    <td>${badge(v.strong ? "var(--serious)" : "var(--warning)", v.strong ? "strong" : "unfamiliar")}</td>
+    <td class="num">${fmt(v.score, 2)}</td><td class="mono">${esc((v.reasons || []).slice(0, 3).join("; ")) || "–"}</td></tr>`).join("");
+  $("#network").innerHTML = `<dl class="kv">
+      <dt>mode</dt><dd>${esc(n.mode || "–")}</dd>
+      <dt>calibration</dt><dd>${cal}</dd>
+      <dt>validation</dt><dd class="sub">benign false-unfamiliar rate only (NV2); recall needs attack runs</dd>
+      <dt>tracked sources</dt><dd class="num">${w.tracked_sources ?? 0}</dd>
+      <dt>windows too late / dropped</dt><dd class="num">${w.too_late ?? 0} / ${w.dropped ?? 0}</dd>
+      <dt>verdicts since start</dt><dd>${unfam} unfamiliar, ${strong} strong</dd>
+    </dl>
+    <h3>Recent non-benign windows</h3>${verdicts.length
+      ? `<div class="table-wrap short"><table><thead><tr><th>Window end</th><th>Source</th><th>Verdict</th><th class="num">Score</th><th>Reasons</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : `<div class="empty">No unfamiliar or strong network windows in the recent history.</div>`}`;
+
+  const blocks = n.protected_blocked || [];
+  const bcount = {};
+  for (const b of blocks) { const k = `${b.src_ip}→${b.dst_ip}:${b.dst_port}/${b.proto}`; bcount[k] = bcount[k] || { ...b, n: 0 }; bcount[k].n++; }
+  const brows = Object.values(bcount).slice(0, 12).map((b) => `<tr><td class="mono">${esc(b.src_ip)}</td><td class="mono">${esc(b.dst_ip)}:${esc(b.dst_port ?? "")}</td>
+    <td>${esc(b.proto)}</td><td>${esc(b.iface)}</td><td class="sub">${esc(b.source_reason)}</td><td class="num">${b.n}</td></tr>`).join("");
+  $("#netblocks").innerHTML = `<dl class="kv">
+      <dt>protected-source blocks</dt><dd class="num">${ev.pf_block_protected || 0}</dd>
+      <dt>client blocks (counted only)</dt><dd class="num">${ev.pf_block_client || 0}</dd>
+      <dt>other pf lines (pass/outbound/IPv6)</dt><dd class="num">${ev.pf_other || 0}</dd>
+    </dl>
+    ${blocks.length
+      ? `<div class="table-wrap short"><table><thead><tr><th>From (protected)</th><th>To (forbidden)</th><th>Proto</th><th>Iface</th><th>Why protected</th><th class="num">n</th></tr></thead><tbody>${brows}</tbody></table></div>`
+      : `<div class="empty">No protected-source blocks seen. (Normal operation produces none; the isolation suite does.)</div>`}`;
+}
+
+async function renderAuthCtl() {
+  let h;
+  try { h = await api("/api/health"); } catch (_) { return; }
+  const waf = (h.backends || []).find((b) => b.backend === "waf") || {};
+  const fw = (h.backends || []).find((b) => b.backend === "opnsense") || {};
+  const lc = waf.login_controls || fw.login_controls || {};
+  const rl = waf.rate_limited || {};
+  const lcRows = Object.entries(lc);
+  const rlRows = Object.entries(rl);
+  const guard = rlRows.filter(([, v]) => JSON.stringify(v).includes("shared_address"));
+  $("#authctl").innerHTML = `<div class="grid2">
+    <div><h3>Active login controls (A3)</h3>${lcRows.length
+      ? `<div class="table-wrap short"><table><thead><tr><th>Account / source</th><th>Control</th></tr></thead><tbody>${lcRows.map(([k, v]) => `<tr><td class="mono">${esc(k)}</td><td>${badge("var(--warning)", esc(typeof v === "object" ? JSON.stringify(v) : v))}</td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty">No login controls active. In monitor mode these are proposed, not applied; A3 is deployed and refused 0 of 4 255 legitimate logins in evaluation.</div>`}</div>
+    <div><h3>Shared-address guard</h3>${guard.length
+      ? `<div class="table-wrap short"><table><thead><tr><th>Address</th><th>Downgraded to</th></tr></thead><tbody>${guard.map(([k, v]) => `<tr><td class="mono">${esc(k)}</td><td>${badge("var(--neutral)", "strict rate limit · human approval")}</td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty">No shared address under guard now. A block proposed for an address shared by ≥ 3 accounts becomes a human-approved strict rate limit (ADR-043); not yet triggered live.</div>`}
+    <h3>Active rate limits</h3>${rlRows.length ? kvList(rl) : `<div class="empty">None.</div>`}</div>
+  </div>`;
+}
+
 async function refresh() {
   try {
     overview = await api("/api/overview");
@@ -302,7 +365,7 @@ async function refresh() {
   renderGeo(overview);
 }
 
-async function slow() { renderPolicies(); renderAdaptation(); renderShadow(); renderChallenger(); renderIdsOnly(); renderModels(); renderExperiments(); renderAudit(); if (selected) renderBaseline(); }
+async function slow() { renderPolicies(); renderAdaptation(); renderShadow(); renderChallenger(); renderIdsOnly(); renderModels(); renderNetwork(); renderAuthCtl(); renderExperiments(); renderAudit(); if (selected) renderBaseline(); }
 
 refresh(); slow();
 setInterval(refresh, 2000);
