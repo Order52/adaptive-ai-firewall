@@ -620,34 +620,39 @@ without team input (§10, step 6).
 
 ---
 
-## 9. Current deployed state (2026-10-29 ~10:40Z)
+## 9. Current deployed state (2026-10-29 ~13:30Z)
 
 - **Controller (CTRL01).**
-  - Code at `f16798a` or later.
+  - Code at `35d2b6b` (HEAD).
   - **Monitor mode**; `behavior_only_rate_limit` on; strategy ml.
   - Trusted profile **v2**; model `isolation_forest-p2`.
   - No active policies.
-- **A3 login controls.** Deployed, monitor mode.
+- **A3/A4 login controls.** Deployed, monitor mode. A4 passed its one-shot final (households resolved); not promoted.
 - **Network novelty.**
   - Calibration: NV2, 3 680 emissions, live file identical to frozen `c311aeeb…`.
   - Mode: **shadow** ("not used for decisions"), no calibration error.
 - **pf evidence.** Live in shadow; `protected_blocked` in `/api/network`.
 - **FW01.**
-  - Suricata 8.0.6, pcap on vtnet2 (ATTACK) and vtnet3 (USERS).
+  - Suricata 8.0.6, pcap on vtnet2 (ATTACK) and vtnet3 (USERS). **Rebooted 2026-10-29
+    ~13:25Z** to recover from an OOM kill under the A4 capture load; Suricata stable
+    since, IDS path verified end to end (§5 / §7).
   - `afw-netflow.yaml` and `afw-liveness.yaml` included.
   - Syslog feed `suricata,filterlog` over mTLS to CTRL01:5514.
   - DMZ/APP/DB not inspected (by decision).
 - **WAF01/APP01.** RELP over mTLS; daily copytruncate log rotation.
 - **Telemetry.** All three heartbeats fresh; not degraded.
 - **Data.**
-  - Today's datasets on CTRL01: a3-sel, a3-sel-shift, nv1-train, nv1-val, p6-final,
-    p6-final-shift, p6-final-v1, nv2-train, nv2-val, nv2-test, nv2-test-shift.
-  - Older datasets are archived in `~/afw-datasets-archive/` with hashes.
-  - The frozen A3 candidate is backed up at `~/.local/share/afw-frozen/`.
+  - Datasets on CTRL01 include the A3/NV1/NV2/A4 sets; the A4 selection/final sets
+    (a4-sel/-hh/-shift, a4-final/-hh/-shift) are the newest.
+  - Archived in `~/afw-datasets-archive/` (refreshed 20261029T130209Z, 100 files, hashes
+    in `artifacts/evidence/n7-2026-10-28/SHA256SUMS-20261029T130209Z`).
+  - Frozen A3 and A4 candidates backed up at `~/.local/share/afw-frozen/`.
 - **Git.**
-  - **27 commits on `engineering-directive` are not pushed** (`origin` is at
-    `7eaa8d4`), plus this report.
+  - **41 commits on `engineering-directive` are not pushed** (`origin` is at
+    `7eaa8d4`).
   - Push only when the owner asks.
+- **Automated verification.** `scripts/final_verification.sh` runs every non-attack check
+  and prints the acceptance-gate matrix (directive §10 entry point).
 
 ---
 
@@ -709,10 +714,13 @@ Report every begun run, including aborted ones.
 This closes gates B and E and the known-threat, novelty-recall and independent-value
 gates. A negative result is acceptable if it is reported honestly.
 
-### Step 3: decide the AUTH model (owner), then re-run (agent)
+### Step 3: AUTH model — **A4 done** (owner may review)
 
-A3's login controls work; its ML security path does not generalize to households. The
-owner chooses one of:
+A3's household failure is **resolved by A4** (ceiling-only `distinct_usernames`; S passed
+selection and the one-shot final on fresh unseen household/shared data, §4.2). A4 is a
+passing selection in monitor mode, not a promotion. No further AUTH work is required for
+the benign side; promotion still needs attack recall (step 1) and a human decision. The
+options below remain only if the owner wants a different AUTH design:
 - **(a) a new amendment A4.** It would have:
   - stratified archetype coverage, including households and shared addresses;
   - FPR measured on the shared sets as well;
