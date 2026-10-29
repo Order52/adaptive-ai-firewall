@@ -1,0 +1,63 @@
+{
+ "provenance": "EXTERNAL CIC-IDS2017 Tuesday, Suricata offline (-r); NOT a GNS3 lab run",
+ "n_network_events": 1063502,
+ "n_windows": 13784,
+ "n_attack_windows": 285,
+ "n_benign_windows": 13499,
+ "attacker_sources": [
+  "172.16.0.1"
+ ],
+ "split": {
+  "train": 8270,
+  "train_attack": 142,
+  "test": 5514,
+  "test_attack": 143
+ },
+ "random_forest": {
+  "recall": 0.8461538461538461,
+  "precision": 1.0,
+  "fpr": 0.0,
+  "tp": 121,
+  "fp": 0,
+  "fn": 22,
+  "tn": 5371
+ },
+ "river_arf": {
+  "recall": 0.0,
+  "precision": null,
+  "fpr": 0.0,
+  "tp": 0,
+  "fp": 0,
+  "fn": 143,
+  "tn": 5371
+ },
+ "network_novelty_cic": {
+  "recall": 0.9370629370629371,
+  "precision": 0.3941176470588235,
+  "fpr": 0.03835412399925526,
+  "tp": 134,
+  "fp": 206,
+  "fn": 9,
+  "tn": 5165,
+  "note": "calibrated on CIC benign (domain-adapted); unsupervised"
+ },
+ "family_counts": {
+  "benign": 13499,
+  "ftp": 159,
+  "ssh": 126
+ },
+ "held_out_family": {
+  "train_ftp_test_ssh": {
+   "withheld_family_recall": 0.9921,
+   "benign_fpr": 0.0,
+   "n_train_attack": 159,
+   "n_withheld": 126
+  },
+  "train_ssh_test_ftp": {
+   "withheld_family_recall": 0.0,
+   "benign_fpr": 0.0,
+   "n_train_attack": 126,
+   "n_withheld": 159
+  }
+ }
+}

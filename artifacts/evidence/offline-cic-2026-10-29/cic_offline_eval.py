@@ -128,21 +128,40 @@ def main():
         rf.fit(Xtr, ytr)
         report["random_forest"] = metrics(yte, rf.predict(Xte))
 
-    # --- River ARF (incremental, predict-before-learn) ---
+    # --- River ARF (incremental): two evaluations ---
+    # (a) batch-style, same split as RF (train then predict test, no learning on test).
+    # (b) prequential (the natural streaming mode): on the time-ordered stream, after a
+    #     warmup, predict-BEFORE-learn each window, then learn it. Recall/FPR scored on
+    #     windows after the warmup. This is the fair incremental evaluation.
     try:
         from river import forest
-        arf = forest.ARFClassifier(n_models=10, seed=0)
+
         names = list(FEATURE_NAMES)
-        preds = []
-        for xi, yi in zip(Xtr, ytr):  # warm the incremental model on the train stream
+
+        def new_arf():
+            return forest.ARFClassifier(n_models=10, seed=0)
+
+        # (a) batch-style, matching RF's split
+        arf = new_arf()
+        for xi, yi in zip(Xtr, ytr):
+            arf.learn_one(dict(zip(names, map(float, xi))), int(yi))
+        pa = [int(arf.predict_one(dict(zip(names, map(float, xi)))) or 0) for xi in Xte]
+        report["river_arf_batch_split"] = metrics(yte, np.array(pa))
+
+        # (b) prequential on the full time-ordered stream
+        arf2 = new_arf()
+        warm = max(500, int(0.2 * len(yo)))
+        pstream, ystream = [], []
+        for i, (xi, yi) in enumerate(zip(Xo, yo)):
             d = dict(zip(names, map(float, xi)))
-            arf.learn_one(d, int(yi))
-        for xi in Xte:  # predict-before-learn on the test stream
-            d = dict(zip(names, map(float, xi)))
-            preds.append(int(arf.predict_one(d) or 0))
-        report["river_arf"] = metrics(yte, np.array(preds))
+            if i >= warm:
+                pstream.append(int(arf2.predict_one(d) or 0))
+                ystream.append(int(yi))
+            arf2.learn_one(d, int(yi))  # learn after predicting (predict-before-learn)
+        report["river_arf_prequential"] = metrics(np.array(ystream), np.array(pstream))
+        report["river_arf_prequential"]["warmup_windows"] = warm
     except Exception as e:
-        report["river_arf"] = {"error": str(e)[:200]}
+        report["river_arf_prequential"] = {"error": str(e)[:200]}
 
     # --- Unsupervised network novelty, calibrated on CIC BENIGN (domain-adapted) ---
     try:

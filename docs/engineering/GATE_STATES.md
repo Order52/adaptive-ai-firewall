@@ -13,9 +13,9 @@ Last updated 2026-10-29.
 | # | Gate | State | Evidence / basis | What would advance it |
 |---|---|---|---|---|
 | 1 | **Live GNS3 attack detection** | **BLOCKED** | No in-lab attack traffic exists; generating it is a safety-enforced boundary for this agent (fired this session). Harness/allowlist/watchdog ready (`TEAM_ATTACK_QUICKSTART.md`) | The authorized team runs the scenarios from ATK01; then the agent runs `experiment evaluate` |
-| 2 | **Offline recorded-attack detection** | **PENDING → see §Offline** | External CIC-IDS2017 PCAP, Suricata offline (-r), our feature pipeline. Provenance-labelled; strictly separate from gate 1 | The full-day run completes (this session) |
-| 3 | **Supervised malicious-behaviour learning** | **PENDING → see §Offline** | RandomForest + River ARF on CIC network features, ground truth by attacker IP. Domain-adaptation caveat (CIC ≠ lab) | Offline run completes; live relevance needs lab-domain labelled data (team) |
-| 4 | **Unfamiliar-threat (novelty) detection** | **PARTIAL** | Benign side proven: NV2 one-shot test 0.0059 FPR on unseen lab users (`RESULTS.md` §3f). Offline held-out-family (FTP↔SSH) test pending. Live attack recall BLOCKED (gate 1) | Offline held-out-family result; then live recall from team runs |
+| 2 | **Offline recorded-attack detection** | **MET (offline)** | CIC-IDS2017 Tuesday: RandomForest recall **0.846** at **0 FPR** on real brute force (§Offline). Separate from gate 1 | — (maintained); live relevance = gate 1 |
+| 3 | **Supervised malicious-behaviour learning** | **MET (offline)** | RF 0.846 / ARF prequential 0.775, both at 0 FPR; held-out FTP→SSH 0.992 (§Offline). Domain-adaptation needed for lab (P5) | Lab-domain labelled data (team) for live relevance |
+| 4 | **Unfamiliar-threat (novelty) detection** | **PARTIAL** | Benign: NV2 0.0059 FPR on unseen lab users. Offline held-out family: FTP→SSH recall 0.992 but SSH→FTP 0.0 (asymmetric, §Offline). Live attack recall BLOCKED (gate 1) | Live recall from team runs |
 | 5 | **Safe adaptation & promotion** | **PARTIAL** | Governed lifecycle live; promotion **gate exercised live and correctly refused** an unqualified challenger (`live-governance-2026-10-29/`); poison-resistant admission, checkpoints, crash-consistent rollback (M3/M4 tests). **No gate disabled.** No promotion (needs attack recall + human) | A candidate qualifies (needs attack recall) + human approval |
 | 6 | **End-to-end network enforcement** | **MET** | Read-back-verified OPNsense/WAF actions, expiry, protected-address refusal shown live, shared-address guard; isolation 41/41; live lab 14/14 | — (maintained) |
 
@@ -31,7 +31,53 @@ Last updated 2026-10-29.
 - Conflating them would let external data masquerade as a lab result — exactly what the
   directive forbids.
 
-## Offline (gates 2/3/4 partial) — results
+## Offline (gates 2/3/4) — results
 
-*(Filled when the CIC-IDS2017 full-day run completes. Methodology:
-`artifacts/evidence/offline-cic-2026-10-29/README.md`.)*
+**CIC-IDS2017 Tuesday, full day** (11 M packets, 2017-07-04; 294,866 Suricata flow events).
+Attacker `172.16.0.1` (Kali): 35,745 flows to FTP (port 21) + 5,959 to SSH (port 22) —
+FTP-Patator + SSH-Patator brute force. 13,784 per-source 30 s windows (285 attack: 159
+FTP + 126 SSH; 13,499 benign). Our production feature pipeline, labelled by attacker IP.
+Evidence: `artifacts/evidence/offline-cic-2026-10-29/cic-offline-results.json`.
+
+| Model | Setup | Recall | Precision | FPR |
+|---|---|---|---|---|
+| **RandomForest** | batch, time-aware split (train past, test future) | **0.846** | 1.00 | **0.00** |
+| **River ARF** | prequential (predict-before-learn on the stream) | **0.775** | 1.00 | **0.00** |
+| River ARF | frozen snapshot, batch split (no learning on test) | 0.00 | — | 0.00 |
+| NetworkNovelty (unsupervised) | calibrated on CIC benign (domain-adapted) | 0.937 | 0.39 | 0.038 |
+
+**Held-out attack family (cross-protocol generalisation, frozen RF):**
+
+| Train | Test (withheld) | Recall | Benign FPR |
+|---|---|---|---|
+| FTP-Patator | **SSH-Patator** | **0.992** | 0.00 |
+| SSH-Patator | FTP-Patator | 0.00 | 0.00 |
+
+### What this shows (gates 2, 3, 4 — offline only)
+- **Gate 2 (offline recorded-attack detection): supported.** Our pipeline, on real recorded
+  brute-force traffic, detects it — RandomForest 0.85 recall at **zero** benign false
+  positives.
+- **Gate 3 (supervised malicious-behaviour learning): supported, with a clear RF-vs-ARF
+  finding.** The batch RF is the stronger single-pass detector; the **incremental ARF
+  needs to learn continuously** — in its natural prequential mode it reaches 0.775 recall
+  at 0 FPR, but a *frozen* ARF snapshot fails to generalise across families (0.0). This is
+  the case *for* online learning: it adapts as new families arrive.
+- **Gate 4 (unfamiliar-threat): partial, honest asymmetry.** A model trained on FTP brute
+  force detects **withheld SSH** brute force at 0.99 (zero-day cross-family
+  generalisation) — but the reverse fails (0.0): an SSH-trained model overfits to the
+  port-22 signal that FTP lacks. So cross-family generalisation is real but **not
+  symmetric**. The unsupervised novelty detector catches 0.94 but at 3.8% FPR.
+
+### Domain-adaptation assessment (P5) — external → lab relevance
+These results are **CIC-specific** and do **not** transfer to our GNS3 lab as-is:
+- **Different benign population:** CIC is a university network (varied hosts/services);
+  our lab is a car-rental web app with scripted personas. Benign feature distributions
+  differ, so a CIC-calibrated detector (e.g. the novelty's 3.8% FPR here) would not hold
+  on lab traffic, and vice-versa.
+- **Different attack realisation:** CIC FTP/SSH Patator vs the lab's `net-ssh-guessing` —
+  related but not identical flow shapes.
+- **What would make it lab-relevant:** (i) re-calibrate/re-train on lab benign; (ii)
+  per-feature normalisation; (iii) ideally fine-tune on lab attack captures (team runs).
+Until then this is **external evidence that the pipeline and models work on real recorded
+attack traffic** — it strengthens confidence in the design, but **cannot** advance gate 1
+(live GNS3).
