@@ -63,3 +63,32 @@ scenarios:
     max_duration_s: 3600
     expected_evidence: [auth]
     team_tooling: "team choice, e.g. hydra with long waits"
+
+  # Network scenarios (NV1, 2026-10-29). FW01 drops every client connection to WAF01:22,
+  # so these produce only connection attempts that the IDS/flow sensor sees on vtnet2;
+  # nothing reaches an SSH server. The registry allows 4 WAF01 ports, so the 15-port
+  # scan ceiling (ADR-042) cannot fire on net-portscan; only the calibrated
+  # "unfamiliar" level and the SSH/failed-flow ceilings can.
+  - id: net-ssh-guessing
+    family: ssh_bruteforce
+    description: Repeated SSH connection/password attempts at WAF01:22 (blocked by FW01; flow/IDS-visible only).
+    attackers: [10.77.10.10]
+    targets: [{ip: 10.77.30.10, port: 22}]
+    purpose: test
+    max_duration_s: 900
+    expected_evidence: [ids, network_novelty]
+    team_tooling: "team choice, e.g. hydra ssh or a loop of ssh connection attempts"
+
+  - id: net-slow-scan
+    family: port_scan_slow
+    description: The registry's four WAF01 ports probed slowly, minutes apart (hard case for the 300 s horizon).
+    attackers: [10.77.10.10]
+    targets:
+      - {ip: 10.77.30.10, port: 443}
+      - {ip: 10.77.30.10, port: 22}
+      - {ip: 10.77.30.10, port: 80}
+      - {ip: 10.77.30.10, port: 3306}
+    purpose: holdout
+    max_duration_s: 3600
+    expected_evidence: [network_novelty]
+    team_tooling: "team choice, e.g. nmap -T1 limited to the four registry ports"
