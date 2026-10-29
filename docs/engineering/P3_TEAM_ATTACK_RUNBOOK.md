@@ -143,7 +143,7 @@ Predeclared 2026-10-28, before any team run exists.
 
 ```bash
 afwc experiment evaluate --datasets <all runs of the series> --streaming \
-  --warmup p6-final,p6-final-shift --out /tmp/eval-4way.json
+  --warmup p7-sel,p7-sel-shift --out /tmp/eval-4way.json
 ```
 
 | Arm | What decides | Learns during the run |

@@ -1,5 +1,7 @@
 # AI-Adaptive-Firewall: complete project report
 
+> **Superseded** by `PROJECT_REPORT_2026-10-29.md` (P6/P7 results, network work N1–N7, later fixes).
+
 **As of 2026-10-28 ~15:40Z, branch `engineering-directive`.** This document covers
 everything in one place:
 - what the project is;

@@ -114,7 +114,7 @@ any problems. **Every begun run is reported, including aborted ones.**
 ## 6. After a family's runs (the agent can do this from here)
 
 ```bash
-afwc experiment evaluate --datasets <ids> --streaming --warmup p6-final,p6-final-shift --out /tmp/eval-<family>.json
+afwc experiment evaluate --datasets <ids> --streaming --warmup p7-sel,p7-sel-shift --out /tmp/eval-<family>.json
 ```
 
 This gives static, frozen-ML, streaming-ML and hybrid arms with recall, precision, FPR,
