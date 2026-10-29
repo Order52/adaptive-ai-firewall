@@ -1,0 +1,35 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-29T11:54:10+00:00",
+ "end": "2026-10-29T12:41:00+00:00",
+ "scenario": "A4 final (once): 6 stratified household users",
+ "seed": 1005,
+ "generator": "traffic/benign_personas.py AFW_PERSONA_SET=v2 AFW_ARCHETYPES=household; A4",
+ "notes": "seed 1005, from 2026-10-29T11:54:10+00:00",
+ "sources": [
+  {
+   "ip": "10.77.20.183",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.184",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.185",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.186",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.187",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.188",
+   "role": "benign"
+  }
+ ]
+}
