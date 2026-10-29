@@ -351,6 +351,30 @@ promoted (monitor mode); real attack recall still needs the team's runs.
 - Evidence: `artifacts/evidence/a4-2026-10-29/`;
   `engineering/A4_AUTH_HOUSEHOLD_REVALIDATION.md` §8.
 
+## 3h. Offline evaluation on recorded real attack traffic (CIC-IDS2017, 2026-10-29)
+
+**Separate gate from live GNS3** (`engineering/GATE_STATES.md`): external recorded PCAP,
+processed offline with Suricata, through our production feature pipeline. NOT an in-lab
+attack; cannot advance the live GNS3 gate.
+
+CIC-IDS2017 Tuesday (FTP-Patator + SSH-Patator brute force; 294,866 flows; attacker
+172.16.0.1), 13,784 windows (285 attack), labelled by attacker IP (defect-resistant vs
+the CICFlowMeter label errors of Engelen et al.):
+
+| Model | Recall | Precision | FPR |
+|---|---|---|---|
+| RandomForest (batch, time-split) | **0.846** | 1.00 | **0.00** |
+| River ARF (prequential, predict-before-learn) | 0.775 | 1.00 | 0.00 |
+| NetworkNovelty (unsupervised, CIC-calibrated) | 0.937 | 0.39 | 0.038 |
+| Held-out family: train FTP → test **SSH** (withheld) | **0.992** | — | 0.00 |
+| Held-out family: train SSH → test FTP | 0.000 | — | 0.00 |
+
+Findings: the pipeline detects real brute force at zero benign FP; the incremental ARF
+needs continuous learning (a frozen snapshot fails); cross-family generalisation is real
+but asymmetric (FTP→SSH yes, SSH→FTP no). **Domain adaptation is required before this
+transfers to the lab** (CIC benign ≠ lab benign). Evidence:
+`artifacts/evidence/offline-cic-2026-10-29/`.
+
 ## 4. The cost of ML over statistics
 
 At the *same* 1.30% validation FPR, the three detectors differ by three orders of
