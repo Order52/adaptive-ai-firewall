@@ -1,0 +1,29 @@
+FW01 Suricata OOM during heavy capture load — found and recovered 2026-10-29.
+
+Symptom (found while running the live lab suite ~13:05Z after the A4 work):
+- tests/lab test_ids_alert_reaches_controller FAILED: no IDS alert reached CTRL01.
+- /api/overview telemetry since the 13:00 controller restart had only pf_* (filterlog)
+  counters; no suricata metadata (net_flow/net_ssh), no ids alerts, no ids heartbeat.
+- FW01: `pgrep suricata` empty. eve.json last event 2026-10-29T11:59:25Z (during the
+  first A4 capture). configctl ids start -> runs ~20-40s then dies, repeatedly.
+
+Root cause (dmesg on FW01):
+  pid NNNN (suricata), jid 0, uid 0, was killed: failed to reclaim memory   (x3)
+- OPNsense Nano on FW01 has 1.5 GB RAM and NO swap (`swapinfo` empty).
+- After the heavy A4 capture (66 concurrent persona users -> large Suricata flow/stream
+  tables), memory stayed under pressure (1010M Laundry, 36M Free). Suricata's ~332M RSS
+  could not be sustained, so the kernel OOM-killed it on each start.
+- NOT caused by the 2026-10-29 filterlog change: the syslog filter is correct
+  (`program("suricata") or program("filterlog")`), filterlog delivered throughout, and
+  the Suricata config validates (`suricata -T` clean, afw includes intact).
+
+Recovery (authorized, reversible):
+- Rebooted FW01 via the OPNsense API (/api/core/system/reboot). Memory cleared to
+  ~460M Free; Suricata started and stayed up (pid stable > 90s).
+- IDS alert path verified end to end: SYN ATK01->10.77.30.10:3306 -> alert at CTRL01
+  within <1s. ids heartbeat fresh (11s). Isolation 41/41, live lab tests 14/14.
+
+Mitigation / follow-up (not yet applied):
+- During captures, keep FW01 memory headroom: fewer concurrent generator users, or
+  lower Suricata stream/flow memcap (OPNsense IDS advanced settings) so it survives
+  load on a no-swap 1.5 GB firewall. Tracked as a limitation.

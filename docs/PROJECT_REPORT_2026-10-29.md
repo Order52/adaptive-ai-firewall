@@ -525,6 +525,13 @@ Every item was demonstrated before it was fixed.
   window of about 100 s.
 - RELP acknowledges on queueing, so a crash can lose sub-second, unprocessed lines.
 - The IDS heartbeat proves the engine loop runs, not that every packet is inspected.
+- **FW01 Suricata can be OOM-killed under heavy capture load.** OPNsense Nano on FW01 has
+  1.5 GB RAM and no swap. The A4 capture (66 concurrent users) left it under memory
+  pressure and the kernel killed Suricata ("failed to reclaim memory"); it stayed down
+  from ~11:59Z until found and recovered by a reboot at ~13:25Z (IDS metadata/alerts were
+  lost for that window; filterlog and the other sensors were unaffected). Mitigation
+  (not yet applied): fewer concurrent capture users or a lower Suricata memcap. Evidence:
+  `artifacts/evidence/fw01-ids-oom-2026-10-29/`.
 
 **Response**
 - An attacker with several compromised accounts behind one address looks "shared". The
