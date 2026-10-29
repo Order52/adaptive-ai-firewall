@@ -20,11 +20,13 @@ agent cannot cross.
 
 Two things change the picture versus a plain "blocked" status:
 1. **Benign generalisation is now proven** (A4 for logins, NV2 for network novelty).
-2. **On real recorded attack traffic (CIC-IDS2017), evaluated offline, the pipeline
-   works**: RandomForest detects FTP/SSH brute force at **0.846 recall, 0 false
-   positives**; a model trained on FTP detects **withheld SSH** brute force at **0.992**.
-   This is strong evidence for the design, kept on a **separate gate** that can never
-   substitute for in-lab validation.
+2. **On real recorded attack traffic (CIC-IDS2017), evaluated offline and independently
+   audited, the pipeline works**: RandomForest detects FTP/SSH brute force at **0.846
+   recall (CI [0.78, 0.90]), 0 FP on 13,499 benign windows**. The audit confirms this is
+   **behavioural, not host/port-identity leakage** (behaviour-only features 0.85-0.90,
+   identity-only 0.0). Cross-protocol generalisation (FTP→SSH 0.99) is **within brute
+   force, not universal zero-day**. Separate gate; cannot substitute for in-lab validation
+   (`engineering/OFFLINE_CIC_AUDIT.md`, `REVISED_ASSESSMENT.md`).
 
 **Readiness: ~78 % of a strong final-year project is done and verifiable now.** The
 remaining ~22 % is one external dependency — the team running the in-lab attack scenarios
@@ -177,8 +179,13 @@ sidesteps the documented CICFlowMeter label defects).
 | **Held-out family** | train FTP → test **withheld SSH** | **0.992** | — | 0.00 |
 | Held-out family | train SSH → test FTP | 0.000 | — | 0.00 |
 
-**Findings (honest, including negatives):**
-- The pipeline detects real brute force at **zero benign false positives** (RF).
+**Findings (honest, audited — `engineering/OFFLINE_CIC_AUDIT.md`):**
+- Detection is **behavioural, not host/port-identity leakage** (behaviour-only 0.85-0.90,
+  identity-only 0.0; survives a 300 s anti-overlap gap). 0 FP is **on 13,499 benign
+  windows** (CI upper ~0.0003), not "zero FP" in general.
+- The frozen-ARF "0.0" was a **data-ordering artifact** (shuffled → 0.976 ≈ RF): **no
+  claim that continuous learning is superior.**
+- FTP→SSH 0.99 is cross-protocol within brute force; SSH→FTP 0.66 (behaviour-only).
 - The **incremental ARF needs continuous learning** — in its natural prequential mode it
   reaches 0.775 at 0 FPR; a *frozen* snapshot fails (0.0). This is the case *for* online
   learning.
