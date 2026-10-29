@@ -33,6 +33,7 @@ QUANTITIES = (
     "flows",  # residual connections started
     "failed",  # of which unanswered or reset before data
     "dst_hosts",  # distinct destination addresses
+    "sweep_hosts",  # distinct destinations reached internally or not at all (host sweep)
     "dst_ports",  # distinct destination ports
     "max_ports_per_host",  # widest port fan-out to one host (vertical scan)
     "udp_flows",
@@ -84,6 +85,7 @@ def quantities(events: Sequence[NetworkEvent]) -> dict[str, float]:
         "flows": float(len(flows)),
         "failed": float(sum(f.failed for f in flows)),
         "dst_hosts": float(len({f.dst_ip for f in flows})),
+        "sweep_hosts": float(len({f.dst_ip for f in flows if f.failed or f.dst_ip.is_private})),
         "dst_ports": float(len({(f.dst_port or 0) for f in flows})),
         "max_ports_per_host": float(max((len(p) for p in ports_per_host.values()), default=0)),
         "udp_flows": float(sum(f.proto == "UDP" for f in flows)),

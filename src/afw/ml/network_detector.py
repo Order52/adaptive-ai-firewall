@@ -34,7 +34,9 @@ CEILINGS: Mapping[str, float] = {
     "failed_60": 20,  # unanswered/reset connection attempts
     "dst_ports_60": 15,  # horizontal + vertical port fan-out
     "max_ports_per_host_60": 15,  # vertical scan of one host
-    "dst_hosts_60": 10,  # host sweep
+    # host sweep: internal or unanswered destinations. Answered internet hosts are not
+    # counted: one page load reaches several CDN hosts (NV1 §7.3, NV2)
+    "sweep_hosts_60": 10,
     "ssh_flows_60": 10,  # SSH connection attempts (password guessing)
     "dns_nxdomain_60": 20,  # random-name lookups (DGA-like, tunnelling probes)
     "dst_ports_300": 50,  # slow scans spread over minutes

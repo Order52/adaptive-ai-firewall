@@ -108,6 +108,7 @@ def test_horizontal_and_vertical_scan_shapes():
     assert v.values["dst_ports_60"] == 99
     assert v.values["max_ports_per_host_60"] == 99
     assert v.values["failed_60"] == 99 + 6 and v.values["dst_hosts_60"] == 7
+    assert v.values["sweep_hosts_60"] == 7  # internal destinations
     assert v.values["ssh_flows_60"] == 7  # port 22 on WAF01 + 6 hosts
     assert set(v.values) == set(FEATURE_NAMES)
 
@@ -176,3 +177,23 @@ def test_vector_cost_is_small(n, benchmark=None):
     t = time.perf_counter()
     vector(ATK, ev, T0 + dt.timedelta(seconds=60))
     assert time.perf_counter() - t < 0.05  # 1000 events in well under 50 ms
+
+
+def test_browsing_many_internet_hosts_is_not_a_sweep():
+    """NV1 §7.3: one heavy user reached 11 answered internet web servers in 60 s."""
+    ev = [
+        fl(src=USER, dst=IPv4Address(f"151.101.{h}.55"), port=443, at=1 + h * 4.0)
+        for h in range(12)
+    ]
+    ev.append(fl(src=USER, dst=IPv4Address("1.1.1.1"), port=53, proto="UDP", at=1.0))
+    v = vector(USER, [e for e in ev if residual(e, SERVICES)], T0 + dt.timedelta(seconds=60))
+    assert v.values["dst_hosts_60"] == 13 and v.values["sweep_hosts_60"] == 0
+    # the same fan-out unanswered, or towards lab addresses, is a sweep
+    dead = [
+        fl(src=USER, dst=IPv4Address(f"151.101.{h}.55"), at=1 + h, answered=False)
+        for h in range(12)
+    ]
+    lab = [fl(src=USER, dst=IPv4Address(f"10.77.40.{h}"), at=1 + h) for h in range(12)]
+    for evs in (dead, lab):
+        v = vector(USER, [e for e in evs if residual(e, SERVICES)], T0 + dt.timedelta(seconds=60))
+        assert v.values["sweep_hosts_60"] == 12

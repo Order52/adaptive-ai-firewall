@@ -39,7 +39,8 @@ resolvers (favourite and occasional new sites, plus the local-name lookups that
 real machines leak, which answer NXDOMAIN), a visit to some looked-up sites
 (HEAD / over HTTPS, rarely plain HTTP), NTP to the gateway, an occasional ping of
 the gateway, and now and then an ``http://`` address typed for the app (port 80 is
-closed, so the connection fails). Each user draws a light, normal or heavy habit.
+closed, so the connection fails). Each user draws a light, normal or heavy habit;
+AFW_NET_HABITS=heavy (or a comma list) restricts that draw, for stratified coverage.
 No scanning, no guessing, nothing towards blocked lab zones.
 """
 
@@ -66,6 +67,7 @@ SEED = int(os.environ.get("AFW_SEED", "1"))
 MODE = os.environ.get("AFW_MODE", "shared")
 PERSONA_SET = os.environ.get("AFW_PERSONA_SET", "v1")
 ARCHETYPES = [a for a in os.environ.get("AFW_ARCHETYPES", "").split(",") if a]
+NET_ONLY = [h for h in os.environ.get("AFW_NET_HABITS", "").split(",") if h]
 NET = os.environ.get("AFW_NET", "0") == "1"
 GATEWAY = os.environ.get("AFW_GATEWAY", "10.77.20.1")
 CITIES = ["Tripoli", "Benghazi", "Misrata", "Sabha"]
@@ -459,6 +461,8 @@ def _typed_http(source: str) -> None:
 def _net_user(source: str, end: float, seed: int, counts: dict) -> None:
     rng = random.Random(seed)
     habit = rng.choices(list(NET_HABITS), weights=[2, 3, 1])[0]
+    if NET_ONLY:  # stratified coverage (NV2); unset, the stream is unchanged
+        habit = rng.choice(NET_ONLY)
     (d0, d1), (v0, v1), (p0, p1), (h0, h1) = NET_HABITS[habit]
     dns_per_min, visit, pings_h, typed_h = (
         rng.uniform(d0, d1),

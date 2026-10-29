@@ -54,9 +54,16 @@ def test_poisoned_calibration_cannot_raise_a_threshold_above_its_ceiling():
 def test_strong_reason_names_the_ceiling_not_the_calibrated_level():
     # NV1 §7.3: a calibrated level of 7 was printed as "ceiling at 7" (ceiling 10)
     d = NetworkNovelty()
-    d.calibrate([*benign(), *[v(dst_hosts_60=7) for _ in range(20)]])
-    r = d.assess(v(dst_hosts_60=11))
-    assert r.strong and r.reasons == ("dst_hosts_60=11 (ceiling at 10)",)
+    d.calibrate([*benign(), *[v(sweep_hosts_60=7) for _ in range(20)]])
+    r = d.assess(v(sweep_hosts_60=11))
+    assert r.strong and r.reasons == ("sweep_hosts_60=11 (ceiling at 10)",)
+
+
+def test_many_answered_internet_hosts_are_at_most_unfamiliar():
+    d = NetworkNovelty()
+    d.calibrate(benign())
+    r = d.assess(v(dst_hosts_60=11))  # NV1: a heavy legitimate browser
+    assert r.unfamiliar and not r.strong
 
 
 def test_calibration_needs_enough_windows():
