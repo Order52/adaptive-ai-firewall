@@ -441,7 +441,9 @@ def create_app(c: Container) -> FastAPI:
         verdicts = list(ctl.net_verdicts)[-min(limit, 500) :]
         return {
             "mode": "shadow (not used for decisions)",
-            "events": {k: v for k, v in counts.items() if k.startswith(("net_", "duplicate_net"))},
+            "events": {
+                k: v for k, v in counts.items() if k.startswith(("net_", "duplicate_net", "pf_"))
+            },
             "windows": {
                 "tracked_sources": ctl.net_windows.tracked_sources,
                 "too_late": ctl.net_windows.too_late,
@@ -453,6 +455,11 @@ def create_app(c: Container) -> FastAPI:
                 "effective_thresholds": ctl.net_detector.effective(),
             },
             "recent": [v.__dict__ for v in reversed(verdicts)],
+            # pf blocks of protected sources (lateral-movement evidence, shadow only)
+            "protected_blocked": [
+                b.model_dump(mode="json")
+                for b in reversed(list(ctl.protected_blocks)[-min(limit, 500) :])
+            ],
         }
 
     @app.get("/api/learning/shadow")

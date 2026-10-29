@@ -10,7 +10,8 @@ The controller's own key cannot change these settings (ADR-017).
 - EVE alerts → local syslog (program ``suricata``) → CTRL01. Default: mutually
   authenticated TLS to 5514 with the ``fw01-telemetry.lab.afw`` client certificate (role
   ``ids``, P5); ``plaintext=True`` restores the earlier TCP feed to 5515. Only Suricata
-  is forwarded.
+  and pf's ``filterlog`` are forwarded; the controller keeps pf blocks of protected
+  sources only (lateral-movement evidence, shadow).
 - RELP pass rules (ADR-038) for a FW01 built before RELP: WAF01 (DMZ) and APP01 (APP)
   to CTRL01:5516, as automation rules. New builds carry the same rules in config.xml.
 """
@@ -39,7 +40,7 @@ CLIENT_DESCR = "AFW FW01 telemetry client (mTLS to CTRL01)"
 DESTINATION = {
     "enabled": "1",
     "transport": "tcp4",
-    "program": "suricata",
+    "program": "suricata,filterlog",  # filterlog: pf blocks (SENSOR_EXPANSION_DECISION §3)
     "level": "info,notice,warn,err,crit,alert,emerg",
     "facility": "",
     "hostname": "10.77.50.10",
@@ -126,7 +127,9 @@ def destination(c: httpx.Client, plaintext: bool, log: Callable[[str], None] = p
     else:
         _post(c, "/syslog/settings/add_destination", {"destination": dest})
     _post(c, "/syslog/service/reconfigure")
-    log(f"syslog destination CTRL01:{dest['port']} ({dest['transport']}, suricata only) applied")
+    log(
+        f"syslog destination CTRL01:{dest['port']} ({dest['transport']}, {dest['program']}) applied"
+    )
 
 
 RELP_RULES = [

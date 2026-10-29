@@ -104,3 +104,22 @@ class NetworkEvent(DomainModel):
         if self.kind is not NetKind.FLOW:
             return False
         return not self.answered or (self.rst and self.bytes_to_client == 0)
+
+
+class BlockedConnection(DomainModel):
+    """A connection pf dropped on its way into FW01 (``filterlog``), kept only when the
+    source is protected: a server or management address trying to reach a zone the
+    policy forbids, as a compromised server moving laterally would. Client blocks are
+    not kept: Suricata already sees those packets as failed flows. Shadow evidence: a
+    protected source is never acted on (`SENSOR_EXPANSION_DECISION.md` §3)."""
+
+    observed_at: datetime  # receipt at the controller (forwarded lines carry no year)
+    sensor_id: str
+    iface: str
+    src_ip: IPv4Address
+    dst_ip: IPv4Address
+    proto: str
+    src_port: int | None = None
+    dst_port: int | None = None
+    rule: str = ""  # pf rule label
+    source_reason: str = ""  # why the source is protected (config)

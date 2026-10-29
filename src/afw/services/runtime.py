@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from ipaddress import IPv4Address
 from pathlib import Path
+from typing import Any
 
 import structlog
 
@@ -27,7 +28,7 @@ from afw.domain.common import utcnow
 from afw.domain.detection import DetectionResult, DetectorKind
 from afw.domain.events import HttpObservation
 from afw.domain.features import FeatureVector
-from afw.domain.network import NetworkEvent
+from afw.domain.network import BlockedConnection, NetworkEvent
 from afw.domain.policy import Policy, PolicyKind, SourceTarget
 from afw.domain.risk import EvidenceCategory, RiskAssessment, RiskBand
 from afw.features.extract import EndpointCatalog
@@ -53,6 +54,7 @@ from afw.telemetry.parsers.lines import (
     classify,
     is_network_event,
     parse_app,
+    parse_filterlog,
     parse_suricata,
     parse_suricata_net,
     parse_waf_access,
@@ -74,6 +76,7 @@ _ROLE_OF_KIND = {
     "afw-waf-audit": "waf",
     "afw-app": "app",
     "suricata": "ids",
+    "filterlog": "ids",  # FW01's pf log, on the IDS sensor's channel
 }
 
 
@@ -145,6 +148,8 @@ class Controller:
         self.net_windows = NetworkWindows((s.address, s.port) for s in cfg.services)
         self.net_detector = NetworkNovelty()
         self.net_verdicts: deque[NetworkVerdict] = deque(maxlen=500)
+        # pf blocks of protected (server/management) sources: shadow evidence only
+        self.protected_blocks: deque[BlockedConnection] = deque(maxlen=500)
         self._drop_samples: deque[tuple[float, int]] = deque(maxlen=1000)
         self._ids_only_at: dict[IPv4Address, datetime] = {}
         self._started_at: float | None = None  # set by start(): heartbeats expected
@@ -254,10 +259,36 @@ class Controller:
                         return
                     self.correlation.add_ids(alert)
                     self.reputation.taint(alert.src_ip, alert.observed_at, "ids_alert")
+                case "filterlog":
+                    self._pf_block(payload, sender)
                 case _:
                     self.stats.inc("ignored")
         except ParseError as exc:
             self.stats.inc(f"parse_error:{exc.reason}")
+
+    def _pf_block(self, payload: dict[str, Any], sender: IPv4Address) -> None:
+        blk = parse_filterlog(payload, str(sender), self.clock())
+        if blk is None:
+            self.stats.inc("pf_other")  # passes, outbound, IPv6: not used
+            return
+        reason = next(
+            (p.reason for p in self.cfg.safety.protected if blk.src_ip in p.network), None
+        )
+        if reason is None:
+            # a client's blocked attempt: Suricata already sees it as a failed flow
+            self.stats.inc("pf_block_client")
+            return
+        self.stats.inc("pf_block_protected")
+        self.protected_blocks.append(blk.model_copy(update={"source_reason": reason}))
+        log.warning(
+            "protected_source_blocked",
+            src=str(blk.src_ip),
+            dst=str(blk.dst_ip),
+            proto=blk.proto,
+            dst_port=blk.dst_port,
+            iface=blk.iface,
+            source=reason,
+        )
 
     def _flush_net(self) -> list[NetworkEvent]:
         if not self._net_pending:

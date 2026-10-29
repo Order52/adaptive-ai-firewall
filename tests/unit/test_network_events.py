@@ -10,7 +10,12 @@ import pytest
 from test_telemetry_v2 import FW, SCANNER, T, ctl, ids_line  # noqa: F401 (fixture)
 
 from afw.domain.network import FlowState, NetKind
-from afw.telemetry.parsers.lines import ParseError, classify, parse_suricata_net
+from afw.telemetry.parsers.lines import (
+    ParseError,
+    classify,
+    parse_filterlog,
+    parse_suricata_net,
+)
 
 WAF = "10.77.30.10"
 
@@ -211,3 +216,79 @@ def test_protected_management_sources_are_stored_but_never_assessed(ctl):  # noq
     ctl.tick(T + dt.timedelta(seconds=60))
     assert list(ctl.net_verdicts) == []
     assert ctl.stats.snapshot()["counts"]["net_protected_source"] == 30
+
+
+# pf's filterlog as FW01 writes it (RFC 5424 locally; BSD format when forwarded)
+PF_CSV = (
+    "94,,,f8a02fd7-49ec-4bc7-aa19-82a2acadd6c4,{iface},match,{action},{dir},4,0x0,,64,50189,0,"
+    "DF,{pnum},{proto},60,{src},{dst},60859,{dport},0,S,661415917,,64240,,mss;sackOK;TS;nop;wscale"
+)
+
+
+def pf(src="10.77.30.10", dst="10.77.60.10", dport=5432, iface="vtnet4", action="block",
+       dir="in", proto="tcp", pnum=6, bsd=False) -> str:  # fmt: skip
+    csv = PF_CSV.format(src=src, dst=dst, dport=dport, iface=iface, action=action, dir=dir,
+                        proto=proto, pnum=pnum)  # fmt: skip
+    if bsd:
+        return f"<134>Oct 29 08:31:25 FW01.lab.afw filterlog[82700]: {csv}"
+    head = '<134>1 2026-10-29T08:31:25+00:00 FW01.lab.afw filterlog 82700 - [meta sequenceId="1"] '
+    return head + csv
+
+
+@pytest.mark.parametrize("bsd", [False, True])
+def test_filterlog_block_is_parsed_from_either_syslog_format(bsd):
+    kind, p = classify(pf(bsd=bsd))
+    b = parse_filterlog(p, "fw01", T)
+    assert kind == "filterlog" and b is not None
+    assert (str(b.src_ip), str(b.dst_ip), b.proto, b.src_port, b.dst_port, b.iface) == (
+        "10.77.30.10",
+        "10.77.60.10",
+        "TCP",
+        60859,
+        5432,
+        "vtnet4",
+    )
+    assert b.rule == "f8a02fd7-49ec-4bc7-aa19-82a2acadd6c4" and b.observed_at == T
+
+
+def test_filterlog_keeps_inbound_ipv4_blocks_only():
+    for line_ in (pf(action="pass"), pf(dir="out")):
+        assert parse_filterlog(classify(line_)[1], "fw01", T) is None
+    with pytest.raises(ParseError, match="bad_filterlog"):
+        parse_filterlog({"csv": "94,,,x,vtnet4,match,block"}, "fw01", T)
+    icmp = (
+        "94,,,x,vtnet4,match,block,in,4,0x0,,64,1,0,none,1,icmp,84,10.77.30.10,10.77.60.10,request"
+    )
+    b = parse_filterlog({"csv": icmp}, "fw01", T)
+    assert b is not None and b.proto == "ICMP" and b.dst_port is None
+
+
+def test_a_json_line_mentioning_filterlog_is_not_taken_for_one():
+    assert classify(line(flow(in_iface="filterlog")))[0] == "suricata"
+
+
+def test_protected_source_blocks_are_kept_in_shadow_and_never_acted_on(ctl):  # noqa: F811
+    """A server trying to reach a forbidden zone (WAF01 -> DB01:5432) is kept as
+    evidence with the reason its source is protected; client blocks are only counted
+    (Suricata already sees them), and nothing reaches the client network features."""
+    ctl.ingest_line(FW, pf(), "ids")
+    ctl.ingest_line(FW, pf(src="10.77.20.168", dst="10.77.30.10", dport=80, iface="vtnet3"), "ids")
+    ctl.ingest_line(FW, pf(action="pass"), "ids")
+    ctl.tick(T)
+    ctl.tick(T + dt.timedelta(seconds=60))
+    (b,) = ctl.protected_blocks
+    assert str(b.src_ip) == "10.77.30.10" and b.source_reason == "WAF/DMZ infrastructure"
+    counts = ctl.stats.snapshot()["counts"]
+    assert (counts["pf_block_protected"], counts["pf_block_client"], counts["pf_other"]) == (
+        1,
+        1,
+        1,
+    )
+    assert ctl.net_windows.tracked_sources == 0 and list(ctl.net_verdicts) == []
+    assert ctl.policies.active() == []
+
+
+def test_pf_lines_need_the_ids_identity(ctl):  # noqa: F811
+    ctl.ingest_line(IPv4Address(WAF), pf(), "waf")
+    assert ctl.stats.snapshot()["counts"]["role_mismatch"] == 1
+    assert list(ctl.protected_blocks) == []

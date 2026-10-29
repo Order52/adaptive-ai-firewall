@@ -15,7 +15,7 @@ from ipaddress import IPv4Address, ip_address
 from typing import Any
 
 from afw.domain.events import AuthOutcome
-from afw.domain.network import FlowState, NetKind, NetworkEvent
+from afw.domain.network import BlockedConnection, FlowState, NetKind, NetworkEvent
 from afw.telemetry.parsers.records import AppRecord, SuricataAlert, WafAccess, WafAudit
 
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9_\-]{8,64}$")
@@ -35,9 +35,15 @@ class ParseError(ValueError):
         self.reason = reason
 
 
+_FILTERLOG = re.compile(r"\bfilterlog\b")
+
+
 def classify(line: str) -> tuple[str, dict[str, Any]]:
-    """Return (kind, json payload) for a syslog line carrying JSON."""
+    """Return (kind, json payload) for a syslog line carrying JSON. pf's ``filterlog``
+    carries CSV instead: its payload is ``{"csv": <last field of the line>}``."""
     brace = line.find("{")
+    if brace < 0 and _FILTERLOG.search(line):
+        return "filterlog", {"csv": line.rsplit(maxsplit=1)[-1]}
     if brace < 0:
         raise ParseError("no_json")
     header = line[:brace]
@@ -354,4 +360,31 @@ def parse_suricata_net(p: dict[str, Any], sensor_id: str) -> NetworkEvent:
         app_proto=_short(p.get("app_proto"), 16),
         flow_id=flow_id,
         **fields,
+    )
+
+
+def parse_filterlog(
+    p: dict[str, Any], sensor_id: str, received: datetime
+) -> BlockedConnection | None:
+    """An IPv4 connection pf blocked on the way in, from OPNsense's ``filterlog`` CSV;
+    None for anything else (passes, outbound, IPv6). Fields used: 3 rule label,
+    4 interface, 6 action, 7 direction, 8 IP version, 16 protocol, 18 source,
+    19 destination, 20/21 ports (TCP and UDP only)."""
+    f = str(p.get("csv", "")).split(",")
+    if len(f) < 20:
+        raise ParseError("bad_filterlog")
+    if f[6] != "block" or f[7] != "in" or f[8] != "4":
+        return None
+    proto = f[16].upper()
+    ports = proto in ("TCP", "UDP") and len(f) > 21
+    return BlockedConnection(
+        observed_at=received,
+        sensor_id=sensor_id,
+        iface=_short(f[4], 16),
+        src_ip=_ipv4(f[18]),
+        dst_ip=_ipv4(f[19]),
+        proto=_short(proto, 8),
+        src_port=_int(f[20]) if ports else None,
+        dst_port=_int(f[21]) if ports else None,
+        rule=_short(f[3], 64),
     )
