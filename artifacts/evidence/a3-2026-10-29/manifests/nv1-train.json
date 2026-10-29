@@ -1,0 +1,107 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-29T03:11:16+00:00",
+ "end": "2026-10-29T04:13:00+00:00",
+ "scenario": "NV1 network calibration: 24 v2 persona users with ordinary network use",
+ "seed": 921,
+ "generator": "traffic/benign_personas.py AFW_PERSONA_SET=v2 (one thread per user); NV1 generator (AFW_NET=1)",
+ "notes": "seed 921, from 2026-10-29T03:11:16+00:00",
+ "sources": [
+  {
+   "ip": "10.77.20.100",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.101",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.102",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.103",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.104",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.105",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.106",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.107",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.108",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.109",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.110",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.111",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.112",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.113",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.114",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.115",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.116",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.117",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.118",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.119",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.120",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.121",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.122",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.123",
+   "role": "benign"
+  }
+ ]
+}

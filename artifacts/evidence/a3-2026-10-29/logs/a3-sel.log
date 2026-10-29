@@ -1,0 +1,59 @@
+app reviews: off (AFW_APP_REVIEWS=auto)
+net 10.77.20.140: light dns/min=0.77 visit=0.32 pings/h=0.27 typed/h=0.08 resolver=8.8.8.8
+net 10.77.20.141: normal dns/min=2.09 visit=0.49 pings/h=0.95 typed/h=0.34 resolver=8.8.8.8
+net 10.77.20.142: normal dns/min=1.62 visit=0.41 pings/h=0.40 typed/h=0.36 resolver=1.1.1.1
+net 10.77.20.143: heavy dns/min=3.93 visit=0.50 pings/h=1.25 typed/h=0.99 resolver=8.8.8.8
+net 10.77.20.144: light dns/min=0.40 visit=0.30 pings/h=0.14 typed/h=0.08 resolver=8.8.8.8
+net 10.77.20.145: normal dns/min=0.80 visit=0.42 pings/h=0.61 typed/h=0.52 resolver=8.8.8.8
+net 10.77.20.146: light dns/min=0.63 visit=0.42 pings/h=0.43 typed/h=0.18 resolver=8.8.8.8
+net 10.77.20.147: normal dns/min=0.88 visit=0.41 pings/h=0.86 typed/h=0.34 resolver=8.8.8.8
+net 10.77.20.148: light dns/min=0.78 visit=0.32 pings/h=0.40 typed/h=0.02 resolver=8.8.8.8
+net 10.77.20.149: normal dns/min=1.14 visit=0.59 pings/h=0.76 typed/h=0.38 resolver=8.8.8.8
+net 10.77.20.150: light dns/min=0.26 visit=0.43 pings/h=0.25 typed/h=0.18 resolver=1.1.1.1
+net 10.77.20.151: heavy dns/min=2.58 visit=0.57 pings/h=0.75 typed/h=0.27 resolver=1.1.1.1
+net 10.77.20.152: heavy dns/min=4.14 visit=0.60 pings/h=1.00 typed/h=0.92 resolver=1.1.1.1
+net 10.77.20.153: heavy dns/min=4.85 visit=0.64 pings/h=1.59 typed/h=0.28 resolver=8.8.8.8
+net 10.77.20.154: heavy dns/min=4.95 visit=0.61 pings/h=1.23 typed/h=0.38 resolver=1.1.1.1
+net 10.77.20.155: normal dns/min=2.50 visit=0.56 pings/h=0.16 typed/h=0.58 resolver=8.8.8.8
+persona 10.77.20.140: {'think': 6.0, 'depth': 2, 'auth': 0.7854492860519602, 'typo': 0.11235012068873616, 'book': 0.4981810811340417, 'review': 0.12284609717139428, 'gap': 180.0, 'user': ('user25', 'pw-25'), 'archetype': 'slow', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user25', 'pw-25')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.141: {'think': 4.0, 'depth': 2, 'auth': 0.4940931546922045, 'typo': 0.1115480475858483, 'book': 0.5624630339474637, 'review': 0.2936160020559495, 'gap': 30.0, 'user': ('user28', 'pw-28'), 'archetype': 'regular', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user28', 'pw-28')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.142: {'think': 0.5, 'depth': 1, 'auth': 0.3205475049008947, 'typo': 0.12058522870043197, 'book': 0.44821182064889187, 'review': 0.37426665976383394, 'gap': 30.0, 'user': ('user50', 'pw-50'), 'archetype': 'regular', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user50', 'pw-50')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.143: {'think': 1.0, 'depth': 3, 'auth': 0.010845436364917277, 'typo': 0.05446253166184679, 'book': 0.26421238756301246, 'review': 0.1499274525015785, 'gap': 8.0, 'user': ('user17', 'pw-17'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user17', 'pw-17')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.144: {'think': 4.0, 'depth': 2, 'auth': 0.6268545735778015, 'typo': 0.14242160020852762, 'book': 0.21696475857789427, 'review': 0.10581507922973175, 'gap': 30.0, 'user': ('user6', 'pw-6'), 'archetype': 'regular', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user6', 'pw-6')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.145: {'think': 1.0, 'depth': 1, 'auth': 0.5579666065114106, 'typo': 0.11177363381051601, 'book': 0.6893098036904955, 'review': 0.28484776396343486, 'gap': 30.0, 'user': ('user13', 'pw-13'), 'archetype': 'regular', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user13', 'pw-13')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.146: {'think': 0.5, 'depth': 1, 'auth': 0.2435028016353285, 'typo': 0.025356770186367342, 'book': 0.6045674501029374, 'review': 0.3368715285836088, 'gap': 2.0, 'user': ('user12', 'pw-12'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user12', 'pw-12')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.147: {'think': 1.0, 'depth': 3, 'auth': 0.09496532539309233, 'typo': 0.0012536193880943625, 'book': 0.5820875376586266, 'review': 0.10404626973747662, 'gap': 2.0, 'user': ('user43', 'pw-43'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user43', 'pw-43')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.148: {'think': 1.0, 'depth': 3, 'auth': 0.054401031223764135, 'typo': 0.04382782584353182, 'book': 0.3472746251818207, 'review': 0.3638783745249284, 'gap': 30.0, 'user': ('user12', 'pw-12'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user12', 'pw-12')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.149: {'think': 1.0, 'depth': 2, 'auth': 0.24776368417289724, 'typo': 0.040243960635710015, 'book': 0.5946885983485374, 'review': 0.2283381769253084, 'gap': 30.0, 'user': ('user42', 'pw-42'), 'archetype': 'regular', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user42', 'pw-42')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.150: {'think': 2.0, 'depth': 1, 'auth': 0.1275652647367379, 'typo': 0.06565964014817004, 'book': 0.7910717337673738, 'review': 0.04441550015080407, 'gap': 8.0, 'user': ('user41', 'pw-41'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user41', 'pw-41')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.151: {'think': 4.0, 'depth': 1, 'auth': 0.39662476356503973, 'typo': 0.13438030180743377, 'book': 0.5607682466413138, 'review': 0.2774541865324362, 'gap': 120.0, 'user': ('user4', 'pw-4'), 'archetype': 'slow', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user4', 'pw-4')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.153: {'think': 4.0, 'depth': 2, 'auth': 0.7345669138656037, 'typo': 0.12366651328169631, 'book': 0.3699337048995507, 'review': 0.33490326857779057, 'gap': 8.0, 'user': ('user44', 'pw-44'), 'archetype': 'regular', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user44', 'pw-44')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.152: {'think': 2.0, 'depth': 3, 'auth': 0.7088184407356839, 'typo': 0.07286283544032236, 'book': 0.715598988218384, 'review': 0.19931311570081936, 'gap': 8.0, 'user': ('user17', 'pw-17'), 'archetype': 'city', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user17', 'pw-17')], 'city': 0.8815944751797163, 'detail': 0.3}
+persona 10.77.20.154: {'think': 2.0, 'depth': 4, 'auth': 0.6918031081888801, 'typo': 0.5316876711457248, 'book': 0.4173023934030333, 'review': 0.35758719896066177, 'gap': 8.0, 'user': ('user10', 'pw-10'), 'archetype': 'forgetful', 'stale': 0.0, 'max_typos': 3, 'accounts': [('user10', 'pw-10')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.155: {'think': 1.0, 'depth': 3, 'auth': 0.07614722287045039, 'typo': 0.14335335772421942, 'book': 0.63439210815208, 'review': 0.3053405315843465, 'gap': 8.0, 'user': ('user15', 'pw-15'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user15', 'pw-15')], 'city': 0.0, 'detail': 0.3}
+net error from 10.77.20.143 (dns): timed out
+net error from 10.77.20.153 (dns): timed out
+net error from 10.77.20.154 (dns): timed out
+net error from 10.77.20.154 (dns): timed out
+net error from 10.77.20.152 (dns): timed out
+net error from 10.77.20.143 (dns): timed out
+net error from 10.77.20.141 (dns): timed out
+net error from 10.77.20.143 (dns): timed out
+net error from 10.77.20.142 (dns): timed out
+net error from 10.77.20.155 (dns): timed out
+net error from 10.77.20.141 (dns): timed out
+net error from 10.77.20.152 (dns): timed out
+net error from 10.77.20.141 (dns): timed out
+net error from 10.77.20.143 (dns): timed out
+net error from 10.77.20.145 (dns): timed out
+net error from 10.77.20.143 (dns): timed out
+net error from 10.77.20.154 (dns): timed out
+net error from 10.77.20.143 (dns): timed out
+net error from 10.77.20.143 (dns): timed out
+net error from 10.77.20.143 (dns): timed out
+net error from 10.77.20.154 (dns): timed out
+net error from 10.77.20.143 (dns): timed out
+net error from 10.77.20.153 (dns): timed out
+net error from 10.77.20.150 (dns): timed out
+done: 3874 legitimate sessions over 3600s from 16 persona users: {'10.77.20.146': 1071, '10.77.20.147': 648, '10.77.20.143': 321, '10.77.20.155': 304, '10.77.20.142': 122, '10.77.20.154': 179, '10.77.20.150': 289, '10.77.20.152': 231, '10.77.20.148': 117, '10.77.20.141': 80, '10.77.20.153': 162, '10.77.20.145': 118, '10.77.20.140': 17, '10.77.20.149': 110, '10.77.20.144': 89, '10.77.20.151': 16}
+network activity: {'dns': 1875, 'ntp': 89, 'error': 24, 'ping': 9, 'typed': 11}
