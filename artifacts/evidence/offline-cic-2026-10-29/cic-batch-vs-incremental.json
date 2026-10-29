@@ -1,0 +1,40 @@
+{
+ "provenance": "EXTERNAL CIC-IDS2017 offline; behaviour-only; prequential; attack oversampled (fair)",
+ "stream_windows": 13784,
+ "warmup": 2067,
+ "batch_retrain_cadence_K": 1000,
+ "incremental_arf": {
+  "recall": 0.9415,
+  "recall_ci95": [
+   0.8983,
+   0.967
+  ],
+  "precision": 0.7729,
+  "fpr": 0.00451,
+  "n_attack": 188,
+  "total_train_seconds": 4.05,
+  "updates": 13784,
+  "model_bytes": 382023
+ },
+ "periodic_batch_rf": {
+  "recall": 0.8936,
+  "recall_ci95": [
+   0.8414,
+   0.9301
+  ],
+  "precision": 0.9032,
+  "fpr": 0.001561,
+  "n_attack": 188,
+  "total_train_seconds": 3.41,
+  "retrains": 12,
+  "model_bytes": 402721,
+  "note": "retrained 12x from scratch on cumulative data"
+ },
+ "comparison": {
+  "which_higher_recall": "incremental",
+  "which_cheaper_train": "batch",
+  "forgetting_note": "batch retrains from scratch -> cannot catastrophically forget; ARF can -> we report ARF recall on the earliest family below",
+  "earliest_family": "ftp",
+  "label_availability": "incremental needs a label per window as it arrives; batch can defer and retrain when a labelled batch exists"
+ }
+}
