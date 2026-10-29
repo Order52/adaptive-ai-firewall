@@ -256,6 +256,12 @@ that happens on `p7-sel`, every candidate is ineligible again, and the result is
 reported as a conflict between the brute-force rule and that archetype. Resolving it
 (the rule, the archetype or the criterion) is a human decision.
 
+**A3 (2026-10-29, owner-authorized, before any A3 data).** Account-aware AUTH evidence
+and endpoint-scoped, graduated login controls replace the window AUTH rule and the
+site-wide rate limit for authentication evidence. New selection sets (`a3-sel`,
+`a3-sel-shift`), friction and attack-resistance criteria. The full protocol is in
+`A3_AUTH_CONTROLS.md`; it governs every later stage of this study.
+
 ## 8. Results
 
 ### 8.1 Phase D selection (2026-10-28, run once)
