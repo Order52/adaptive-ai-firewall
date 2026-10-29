@@ -8,3 +8,8 @@
         frozen NV1 calibration 90a1793b; NOT validated: the NV1 test failed); controller restarted
         /api/health: status ok, mode monitor, telemetry_degraded false, model_error null, nothing enforced
 safety.behavior_only_rate_limit unchanged (True live). No mode change. No promotion.
+~06:00Z live login check under the deployed A3 helper (WAF01 access log, Phase E users .170-.197, read-only):
+        POST /login 200: 99, 401 (mistyped): 22, 429/403: 0, from 25 users. Logins unaffected in monitor mode.
+        (Login-control enforcement itself cannot be exercised live in monitor mode; it is covered by
+        test_waf_helper_login.py and the SYNTHETIC limiter model.)
+Local gates after the NV1 display fix: pytest 368 passed, 14 skipped; ruff, format, mypy (111 files) clean.
