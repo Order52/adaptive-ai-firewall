@@ -1,0 +1,55 @@
+# usage: mkman.py <out_dir> <start> <end> sel|final
+import json, sys
+out, start, end, phase = sys.argv[1:5]
+def src(a, b): return [{"ip": f"10.77.20.{i}", "role": "benign"} for i in range(a, b + 1)]
+gen = "traffic/benign_personas.py AFW_PERSONA_SET=v2 (one thread per user)"
+sets = {
+  "sel": [("p6-sel", "P6 Phase D selection: 16 v2 persona users", 603, src(140, 155), gen),
+          ("p6-sel-shift", "P6 Phase D selection, workload shift: 6 addresses, shared accounts", 604, src(156, 161),
+           "traffic/benign_personas.py AFW_MODE=shared")],
+  "final": [("p6-final", "P6 Phase E final: 16 v2 persona users", 701, src(170, 185), gen + "; A3 generator 3dbf49a4, final evaluation of frozen A3 candidate S"),
+            ("p6-final-shift", "P6 Phase E final, workload shift: 6 addresses, shared accounts", 702, src(186, 191),
+             "traffic/benign_personas.py AFW_MODE=shared; A3 generator 3dbf49a4"),
+            ("p6-final-v1", "P6 Phase E final: 6 v1 persona users", 703, src(192, 197),
+             "traffic/benign_personas.py AFW_PERSONA_SET=v1 (one thread per user); A3 generator 3dbf49a4")],
+  "p7c": [("p7-train", "P7 Phase C' training (A2): 24 v2 persona users + 4 stratified (forgetful, slow, power)", 811,
+           src(100, 123) + src(136, 139), gen + "; A2 generator, reviews off (app v1); seed 815 for .136-.139 (forgetful,slow,power)"),
+          ("p7-val", "P7 Phase C' calibration (A2): 12 v2 persona users", 812, src(124, 135), gen + "; A2 generator")],
+  "p7d": [("p7-sel", "P7 Phase D' selection (A2): 16 v2 persona users", 813, src(140, 155), gen + "; A2 generator"),
+          ("p7-sel-shift", "P7 Phase D' selection, workload shift (A2): 6 addresses, shared accounts", 814, src(156, 161),
+           "traffic/benign_personas.py AFW_MODE=shared; A2 generator")],
+  "n2": [("n2-benign-train", "N2 network calibration: 24 v2 persona users (HTTP only; residual network activity is whatever they cause)", 821,
+          src(100, 123), gen + "; A2 generator"),
+         ("n2-benign-val", "N2 network calibration check: 12 v2 persona users", 822, src(124, 135), gen + "; A2 generator")],
+  "a3": [("a3-sel", "A3 selection: 16 v2 persona users with NV1 network activity (test users for NV1)", 913,
+          src(140, 155), gen + "; NV1 generator (AFW_NET=1), web journeys identical to A2"),
+         ("a3-sel-shift", "A3 selection, workload shift: 6 addresses, shared accounts, NV1 network activity", 914,
+          src(156, 161), "traffic/benign_personas.py AFW_MODE=shared AFW_NET=1; NV1 generator"),
+         ("nv1-train", "NV1 network calibration: 24 v2 persona users with ordinary network use", 921,
+          src(100, 123), gen + "; NV1 generator (AFW_NET=1)"),
+         ("nv1-val", "NV1 network development: 12 v2 persona users with ordinary network use", 922,
+          src(124, 135), gen + "; NV1 generator (AFW_NET=1)")],
+  "nv2": [("nv2-train", "NV2 network calibration: 24 v2 persona users + 8 stratified heavy-habit users", 941,
+           src(100, 123) + src(162, 169), gen + "; NV2 generator (AFW_NET=1); seed 945 AFW_NET_HABITS=heavy for .162-.169"),
+          ("nv2-val", "NV2 network development: 12 v2 persona users", 942, src(124, 135), gen + "; NV2 generator (AFW_NET=1)"),
+          ("nv2-test", "NV2 network test (unseen, once): 16 v2 persona users", 943, src(140, 155), gen + "; NV2 generator (AFW_NET=1)"),
+          ("nv2-test-shift", "NV2 network test (unseen, once): 6 addresses, shared accounts", 944, src(156, 161),
+           "traffic/benign_personas.py AFW_MODE=shared AFW_NET=1; NV2 generator")],
+  "a4": [("a4-sel", "A4 selection: 20 v2 persona users (natural mix)", 811,
+          src(100, 119), gen + "; A4, web only (AFW_NET=0)"),
+         ("a4-sel-hh", "A4 selection: 8 stratified household users (AFW_ARCHETYPES=household)", 812,
+          src(120, 127), "traffic/benign_personas.py AFW_PERSONA_SET=v2 AFW_ARCHETYPES=household; A4"),
+         ("a4-sel-shift", "A4 selection, shared addresses: 6 addresses, shared accounts", 813,
+          src(128, 133), "traffic/benign_personas.py AFW_MODE=shared; A4"),
+         ("a4-final", "A4 final (once): 20 v2 persona users (natural mix)", 814,
+          src(134, 153), gen + "; A4, web only"),
+         ("a4-final-hh", "A4 final (once): 8 stratified household users", 815,
+          src(154, 161), "traffic/benign_personas.py AFW_PERSONA_SET=v2 AFW_ARCHETYPES=household; A4"),
+         ("a4-final-shift", "A4 final (once), shared addresses: 6 addresses, shared accounts", 816,
+          src(162, 167), "traffic/benign_personas.py AFW_MODE=shared; A4")],
+}[phase]
+for name, scen, seed, sources, g in sets:
+    json.dump({"app_id": "rental", "start": start, "end": end, "scenario": scen, "seed": seed,
+               "generator": g, "notes": f"seed {seed}, from {start}", "sources": sources},
+              open(f"{out}/{name}.json", "w"), indent=1)
+    print("wrote", name, len(sources))
