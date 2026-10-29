@@ -22,3 +22,5 @@ attempts each), the same 10 tuples FW01's local filter log held for earlier veri
 every server-originated block was one of these 10 tuples, 8 times each (two verify runs,
 first entries 2026-10-28 19:56Z and 2026-10-29 06:31Z): no other server-originated block. Client blocks (45) were counted only. Policies
 created: none (monitor mode; protected sources are never acted on).
+
+After the deploy: AFW_LAB=1 pytest tests/lab -> 14 passed (2026-10-29 ~10:30Z).
