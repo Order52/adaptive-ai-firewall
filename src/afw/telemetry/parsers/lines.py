@@ -297,7 +297,15 @@ def parse_suricata_net(p: dict[str, Any], sensor_id: str) -> NetworkEvent:
         if not isinstance(d, dict):
             raise ParseError("bad_dns")
         rrname, rrtype, rcode = _dns_fields(d)
-        fields = {"dns_rrname": rrname, "dns_rrtype": rrtype, "dns_rcode": rcode}
+        answer = str(d.get("type", "")).lower() in ("answer", "response") or (
+            _int(p.get("src_port")) == 53 and _int(p.get("dest_port")) != 53
+        )
+        fields = {
+            "dns_rrname": rrname,
+            "dns_rrtype": rrtype,
+            "dns_rcode": rcode if answer else "",
+            "dns_answer": answer,
+        }
     elif kind is NetKind.TLS:
         t = _obj(p, "tls")
         fields = {
@@ -312,6 +320,11 @@ def parse_suricata_net(p: dict[str, Any], sensor_id: str) -> NetworkEvent:
         a = _obj(p, "anomaly")
         fields = {"anomaly": _short(f"{a.get('type', '')}:{a.get('event', '')}", 64)}
     src, dst = _ipv4(p.get("src_ip")), _ipv4(p.get("dest_ip"))
+    sport, dport = _int(p.get("src_port")), _int(p.get("dest_port"))
+    if fields.get("dns_answer"):
+        # Suricata logs a DNS response from the resolver's side; the behaviour (and the
+        # NXDOMAIN) belongs to the client that asked
+        src, dst, sport, dport = dst, src, dport, sport
     flow_id = _int(p.get("flow_id"))
     key = "|".join(
         str(x)
@@ -334,9 +347,9 @@ def parse_suricata_net(p: dict[str, Any], sensor_id: str) -> NetworkEvent:
         sensor_id=sensor_id,
         in_iface=_short(p.get("in_iface"), 16),
         src_ip=src,
-        src_port=_int(p.get("src_port")),
+        src_port=sport,
         dst_ip=dst,
-        dst_port=_int(p.get("dest_port")),
+        dst_port=dport,
         proto=_short(p.get("proto"), 8).upper(),
         app_proto=_short(p.get("app_proto"), 16),
         flow_id=flow_id,

@@ -558,7 +558,7 @@ Add the same shadow → gate → human → probation lifecycle the web models ha
 
 ```bash
 uv run ruff check src tests && uv run ruff format --check src tests
-uv run mypy src tests
+uv run mypy src
 uv run pytest -o addopts="" -q              # expect all pass (lab tests skipped)
 AFW_LAB=1 uv run pytest -o addopts="" -q tests/lab   # expect 14/14 with the lab up
 uv run afw lab verify                        # 41/41

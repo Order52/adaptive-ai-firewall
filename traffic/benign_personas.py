@@ -30,6 +30,17 @@ Persona sets (AFW_PERSONA_SET, personas mode only):
         stale-link, slow reader, city searcher); AFW_ARCHETYPES=a,b restricts the
         draw. Still legitimate only: valid routes and credentials, at most 3
         mistyped passwords before the right one, an occasional outdated car link.
+
+Ordinary network activity besides the app (AFW_NET=1, NV1 protocol): each source
+also gets a separate thread with its own random stream (the web journeys draw
+exactly the same values with or without it) that does what a client on the USERS
+segment legitimately does and the firewall allows: DNS lookups through public
+resolvers (favourite and occasional new sites, plus the local-name lookups that
+real machines leak, which answer NXDOMAIN), a visit to some looked-up sites
+(HEAD / over HTTPS, rarely plain HTTP), NTP to the gateway, an occasional ping of
+the gateway, and now and then an ``http://`` address typed for the app (port 80 is
+closed, so the connection fails). Each user draws a light, normal or heavy habit.
+No scanning, no guessing, nothing towards blocked lab zones.
 """
 
 from __future__ import annotations
@@ -40,6 +51,8 @@ import os
 import random
 import socket
 import ssl
+import struct
+import subprocess
 import time
 from http.cookies import SimpleCookie
 
@@ -52,6 +65,8 @@ SEED = int(os.environ.get("AFW_SEED", "1"))
 MODE = os.environ.get("AFW_MODE", "shared")
 PERSONA_SET = os.environ.get("AFW_PERSONA_SET", "v1")
 ARCHETYPES = [a for a in os.environ.get("AFW_ARCHETYPES", "").split(",") if a]
+NET = os.environ.get("AFW_NET", "0") == "1"
+GATEWAY = os.environ.get("AFW_GATEWAY", "10.77.20.1")
 CITIES = ["Tripoli", "Benghazi", "Misrata", "Sabha"]
 # Review endpoints exist only in app 2.x. "auto" asks the app its version once, so
 # legitimate users never request routes the deployed app does not serve (before
@@ -338,12 +353,158 @@ def _app_has_reviews(source: str) -> bool:
     return version.startswith("2.")
 
 
+# ------------------------------------------------------------- ordinary network use
+RESOLVERS = ["1.1.1.1", "8.8.8.8"]
+SITES = [
+    "www.wikipedia.org", "www.debian.org", "www.python.org", "github.com",
+    "www.mozilla.org", "ubuntu.com", "www.cloudflare.com", "example.com",
+    "www.bbc.co.uk", "www.kernel.org", "pypi.org", "www.gnu.org",
+    "www.openstreetmap.org", "stackoverflow.com", "www.apache.org", "nginx.org",
+    "www.postgresql.org", "www.w3.org", "www.ietf.org", "www.rust-lang.org",
+    "golang.org", "www.libreoffice.org", "www.gimp.org", "archive.org",
+]
+# names real machines ask public resolvers by mistake (search domains, discovery)
+LOCAL_NAMES = ["wpad", "printer.home", "nas.lan", "router.home", "_ldap._tcp.dc.office",
+               "fileserver.local.lan", "isatap", "laptop.home"]
+NET_HABITS = {  # dns lookups/min, visit share, pings/h, typed http:// per h
+    "light": ((0.2, 0.8), (0.3, 0.5), (0.0, 0.5), (0.0, 0.3)),
+    "normal": ((0.8, 2.5), (0.4, 0.6), (0.0, 1.0), (0.0, 0.6)),
+    "heavy": ((2.5, 6.0), (0.5, 0.7), (0.5, 2.0), (0.2, 1.0)),
+}
+
+
+def _dns(source: str, resolver: str, name: str, qtype: int = 1) -> tuple[int, str | None]:
+    """One DNS query over UDP bound to ``source``; (rcode, first A address)."""
+    qid = random.getrandbits(16)
+    q = struct.pack(">HHHHHH", qid, 0x0100, 1, 0, 0, 0)
+    q += b"".join(bytes([len(p)]) + p.encode() for p in name.rstrip(".").split(".")) + b"\0"
+    q += struct.pack(">HH", qtype, 1)
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.bind((source, 0))
+        s.settimeout(3.0)
+        s.sendto(q, (resolver, 53))
+        data = s.recv(2048)
+    rcode = data[3] & 0x0F
+    an = struct.unpack(">H", data[6:8])[0]
+    i = len(q)  # answers follow the echoed question
+    for _ in range(an):
+        if data[i] & 0xC0 == 0xC0:
+            i += 2
+        else:
+            while data[i]:
+                i += data[i] + 1
+            i += 1
+        rtype, _, _, rdlen = struct.unpack(">HHIH", data[i : i + 10])
+        i += 10
+        if rtype == 1 and rdlen == 4:
+            return rcode, socket.inet_ntoa(data[i : i + 4])
+        i += rdlen
+    return rcode, None
+
+
+def _visit(source: str, ip: str, name: str, tls: bool) -> None:
+    sock = socket.create_connection((ip, 443 if tls else 80), timeout=6.0, source_address=(source, 0))
+    try:
+        if tls:
+            sock = ssl.create_default_context().wrap_socket(sock, server_hostname=name)
+        sock.sendall(f"HEAD / HTTP/1.1\r\nHost: {name}\r\nConnection: close\r\n\r\n".encode())
+        sock.recv(512)
+    finally:
+        sock.close()
+
+
+def _ntp(source: str) -> None:
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.bind((source, 0))
+        s.settimeout(3.0)
+        s.sendto(b"\x23" + b"\0" * 47, (GATEWAY, 123))
+        s.recv(128)
+
+
+def _typed_http(source: str) -> None:
+    """A user typing http:// for the app: port 80 is closed at the firewall."""
+    try:
+        socket.create_connection((TARGET_IP, 80), timeout=3.0, source_address=(source, 0)).close()
+    except OSError:
+        pass
+
+
+def _net_user(source: str, end: float, seed: int, counts: dict) -> None:
+    rng = random.Random(seed)
+    habit = rng.choices(list(NET_HABITS), weights=[2, 3, 1])[0]
+    (d0, d1), (v0, v1), (p0, p1), (h0, h1) = NET_HABITS[habit]
+    dns_per_min, visit, pings_h, typed_h = (
+        rng.uniform(d0, d1), rng.uniform(v0, v1), rng.uniform(p0, p1), rng.uniform(h0, h1)
+    )
+    resolver = rng.choice(RESOLVERS)
+    favourites = rng.sample(SITES, rng.randint(4, 12))
+    print(f"net {source}: {habit} dns/min={dns_per_min:.2f} visit={visit:.2f} "
+          f"pings/h={pings_h:.2f} typed/h={typed_h:.2f} resolver={resolver}", flush=True)
+    # one event stream: each activity's next time, exponential gaps
+    rate = {"dns": dns_per_min / 60, "ntp": 1 / rng.uniform(256, 1024),
+            "ping": pings_h / 3600, "typed": typed_h / 3600}
+    nxt = {k: time.time() + (rng.expovariate(r) if r > 0 else 1e12) for k, r in rate.items()}
+    while True:
+        kind = min(nxt, key=nxt.get)
+        if nxt[kind] >= end:
+            return
+        time.sleep(max(0.0, nxt[kind] - time.time()))
+        nxt[kind] += rng.expovariate(rate[kind])
+        try:
+            if kind == "dns":
+                r = rng.random()
+                if r < 0.03:
+                    _dns(source, resolver, rng.choice(LOCAL_NAMES))
+                    continue
+                name = rng.choice(favourites) if r < 0.85 else rng.choice(SITES)
+                _, ip = _dns(source, resolver, name)
+                if rng.random() < 0.3:
+                    _dns(source, resolver, name, qtype=28)  # AAAA, as dual-stack clients do
+                if ip and rng.random() < visit:
+                    _visit(source, ip, name, tls=rng.random() < 0.95)
+            elif kind == "ntp":
+                _ntp(source)
+            elif kind == "ping":
+                subprocess.run(["ping", "-n", "-c", "1", "-W", "2", "-I", source, GATEWAY],
+                               capture_output=True, timeout=5, check=False)
+            else:
+                _typed_http(source)
+            counts[kind] = counts.get(kind, 0) + 1
+        except (OSError, subprocess.SubprocessError, IndexError, struct.error) as exc:
+            counts["error"] = counts.get("error", 0) + 1
+            print(f"net error from {source} ({kind}): {exc}", flush=True)
+
+
+def _start_net(end: float) -> list:
+    import threading
+
+    counts: dict = {}
+    threads = [
+        threading.Thread(target=_net_user, args=(s, end, SEED * 1000 + 500 + i, counts), daemon=True)
+        for i, s in enumerate(SOURCES)
+    ]
+    for th in threads:
+        th.start()
+    return [threads, counts]
+
+
 def main() -> None:
     global REVIEWS
     if REVIEWS_SETTING == "auto":
         REVIEWS = _app_has_reviews(SOURCES[0])
     state = "on" if REVIEWS else "off"
     print(f"app reviews: {state} (AFW_APP_REVIEWS={REVIEWS_SETTING})", flush=True)
+    net = _start_net(time.time() + DURATION) if NET else None
+    try:
+        _web()
+    finally:
+        if net is not None:
+            for th in net[0]:
+                th.join()
+            print(f"network activity: {net[1]}", flush=True)
+
+
+def _web() -> None:
     if MODE == "personas":
         import threading
 

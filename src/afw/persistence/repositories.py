@@ -106,7 +106,7 @@ class SqlEventRepository(_Repo):
                             insert(t.net_events).values(
                                 event_id=e.event_id,
                                 observed_at=utc_naive(e.observed_at),
-                                src_ip=str(e.src_ip),
+                                src_ip=str(e.client_ip),
                                 kind=e.kind.value,
                                 body=e.model_dump_json(),
                             )

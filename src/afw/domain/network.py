@@ -17,7 +17,7 @@ from pydantic import Field
 
 from afw.domain.common import DomainModel
 
-NETWORK_SCHEMA_VERSION = 1
+NETWORK_SCHEMA_VERSION = 2  # 2: DNS answers oriented to the client (dns_answer)
 
 
 class NetKind(StrEnum):
@@ -69,12 +69,28 @@ class NetworkEvent(DomainModel):
     dns_rrname: str = ""
     dns_rrtype: str = ""
     dns_rcode: str = ""
+    dns_answer: bool = False  # a DNS response, oriented so that src is the client
     tls_sni: str = ""
     tls_version: str = ""
     ssh_client: str = ""
     anomaly: str = ""
     schema_version: int = NETWORK_SCHEMA_VERSION
     received_at: datetime | None = None
+
+    @property
+    def is_dns_answer(self) -> bool:
+        """A DNS response. Events stored before schema 2 kept Suricata's orientation
+        (src = the resolver, port 53); those are recognised by the port."""
+        return self.kind is NetKind.DNS and (
+            self.dns_answer or (self.src_port == 53 and self.dst_port != 53)
+        )
+
+    @property
+    def client_ip(self) -> IPv4Address:
+        """The address whose behaviour the event describes (never the resolver)."""
+        if self.is_dns_answer and not self.dns_answer:
+            return self.dst_ip
+        return self.src_ip
 
     @property
     def answered(self) -> bool:

@@ -86,8 +86,32 @@ def test_dns_v3_and_v2_layouts():
     )
     ev = parse_suricata_net(v3, "fw01")
     assert (ev.dns_rrname, ev.dns_rrtype, ev.dns_rcode) == ("evil.example", "A", "NXDOMAIN")
+    assert ev.dns_answer
     v2 = eve("dns", proto="UDP", dns={"type": "query", "rrname": "a.lab", "rrtype": "AAAA"})
-    assert parse_suricata_net(v2, "fw01").dns_rrtype == "AAAA"
+    q = parse_suricata_net(v2, "fw01")
+    assert q.dns_rrtype == "AAAA" and not q.dns_answer and q.dns_rcode == ""
+
+
+def test_dns_response_is_oriented_to_the_client():
+    """Suricata logs a response from the resolver's side (2026-10-29 live: answers were
+    stored under 1.1.1.1 and the client's NXDOMAIN was lost)."""
+    resp = eve(
+        "dns",
+        src="1.1.1.1",
+        proto="UDP",
+        src_port=53,
+        dest_ip="10.77.20.250",
+        dest_port=40890,
+        dns={"type": "answer", "rrname": "printer.home", "rrtype": "A", "rcode": "NXDOMAIN"},
+    )
+    ev = parse_suricata_net(resp, "fw01")
+    assert str(ev.src_ip) == "10.77.20.250" and ev.client_ip == ev.src_ip
+    assert (str(ev.dst_ip), ev.dst_port, ev.dns_rcode, ev.dns_answer) == (
+        "1.1.1.1",
+        53,
+        "NXDOMAIN",
+        True,
+    )
 
 
 def test_tls_ssh_anomaly_keep_metadata_only():

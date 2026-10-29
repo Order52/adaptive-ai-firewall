@@ -74,7 +74,8 @@ def residual(e: NetworkEvent, services: frozenset[tuple[IPv4Address, int]]) -> b
 
 def quantities(events: Sequence[NetworkEvent]) -> dict[str, float]:
     flows = [e for e in events if e.kind is NetKind.FLOW]
-    dns = [e for e in events if e.kind is NetKind.DNS]
+    dns = [e for e in events if e.kind is NetKind.DNS and not e.is_dns_answer]
+    answers = [e for e in events if e.kind is NetKind.DNS and e.is_dns_answer]
     ports_per_host: dict[IPv4Address, set[int]] = defaultdict(set)
     for f in flows:
         ports_per_host[f.dst_ip].add(f.dst_port or 0)
@@ -89,7 +90,7 @@ def quantities(events: Sequence[NetworkEvent]) -> dict[str, float]:
         "icmp_flows": float(sum(f.proto.startswith("ICMP") for f in flows)),
         "ssh_flows": float(sum(f.proto == "TCP" and f.dst_port == 22 for f in flows)),
         "dns_queries": float(len(dns)),
-        "dns_nxdomain": float(sum(d.dns_rcode.upper() == "NXDOMAIN" for d in dns)),
+        "dns_nxdomain": float(sum(a.dns_rcode.upper() == "NXDOMAIN" for a in answers)),
         "dns_names": float(len({d.dns_rrname for d in dns if d.dns_rrname})),
         "bytes_out_log": math.log1p(sum(f.bytes_to_server for f in flows)),
         "median_duration_s": float(median(durations)) if durations else 0.0,
@@ -142,7 +143,7 @@ class NetworkWindows:
         if self._last_emit is not None and _start(e) <= self._last_emit - self.lateness - self.long:
             self.too_late += 1
             return False
-        buf = self._buf[e.src_ip]
+        buf = self._buf[e.client_ip]
         if len(buf) >= self.cap:
             self.dropped += 1
             return False

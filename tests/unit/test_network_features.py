@@ -44,20 +44,42 @@ def fl(src=ATK, dst=WAF, port=443, at=0.0, answered=True, rst=False, proto="TCP"
     )
 
 
-def dns(src=USER, name="x.lab", rcode="NOERROR", at=0.0):
+RESOLVER = IPv4Address("1.1.1.1")
+
+
+def dns(src=USER, name="x.lab", rcode="", at=0.0, answer=False, legacy=False):
+    """A query from ``src``; ``answer`` its response as the parser stores it (oriented
+    to the client); ``legacy`` a response stored before schema 2 (src = resolver)."""
     global _n
     _n += 1
+    client, server, cport = (src, RESOLVER, 40000 + _n)
+    if legacy:
+        return NetworkEvent(
+            event_id=f"net-{_n}",
+            kind=NetKind.DNS,
+            observed_at=T0 + dt.timedelta(seconds=at),
+            sensor_id="fw01",
+            src_ip=server,
+            src_port=53,
+            dst_ip=client,
+            dst_port=cport,
+            proto="UDP",
+            dns_rrname=name,
+            dns_rcode=rcode,
+        )
     return NetworkEvent(
         event_id=f"net-{_n}",
         kind=NetKind.DNS,
         observed_at=T0 + dt.timedelta(seconds=at),
         sensor_id="fw01",
-        src_ip=src,
-        dst_ip=IPv4Address("10.77.20.1"),
+        src_ip=client,
+        src_port=cport,
+        dst_ip=server,
         dst_port=53,
         proto="UDP",
         dns_rrname=name,
         dns_rcode=rcode,
+        dns_answer=answer,
     )
 
 
@@ -97,13 +119,26 @@ def test_two_horizons_see_different_spans():
 
 
 def test_dns_quantities():
-    ev = [dns(name=f"h{i}.evil", rcode="NXDOMAIN", at=i) for i in range(12)] + [dns(name="a.lab")]
+    ev = [dns(name=f"h{i}.evil", at=i) for i in range(12)] + [dns(name="a.lab")]
+    ev += [dns(name=f"h{i}.evil", rcode="NXDOMAIN", at=i + 0.1, answer=True) for i in range(12)]
+    ev += [dns(name="a.lab", rcode="NOERROR", at=0.1, answer=True)]
     v = vector(USER, ev, T0 + dt.timedelta(seconds=40))
+    # queries and names come from the requests, NXDOMAIN from the answers
     assert (v.values["dns_queries_60"], v.values["dns_nxdomain_60"], v.values["dns_names_60"]) == (
         13,
         12,
         13,
     )
+
+
+def test_dns_answers_belong_to_the_client_never_the_resolver():
+    w = NetworkWindows(SERVICES)
+    w.add(dns(at=1))
+    w.add(dns(name="printer.home", rcode="NXDOMAIN", at=1.1, answer=True))
+    w.add(dns(name="nas.lan", rcode="NXDOMAIN", at=2.1, legacy=True))  # stored before schema 2
+    vs = w.emit(T0 + dt.timedelta(seconds=120))
+    assert [v.source_ip for v in vs] == [USER]
+    assert vs[0].values["dns_nxdomain_60"] == 2 and vs[0].values["dns_queries_60"] == 1
 
 
 def test_emission_waits_for_lateness_and_respects_period():

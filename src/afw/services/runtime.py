@@ -317,7 +317,7 @@ class Controller:
         obs = self.correlator.flush()
         protected = [p.network for p in self.cfg.safety.protected]
         for e in self._flush_net():
-            if any(e.src_ip in n for n in protected):
+            if any(e.client_ip in n for n in protected):
                 # stored as evidence, but never assessed: a protected (management)
                 # source can never be acted on, and its admin traffic is not behaviour
                 self.stats.inc("net_protected_source")
