@@ -135,6 +135,10 @@ anything is enabled:
 Server sources are management-protected and never enforced against, so they would be
 assessed in shadow only. The decision and its measurement are recorded in ADR-042.
 
+*Correction, 2026-10-29 03:55Z (factual, before any NV1 data was read; no criterion
+changes):* FW01 has **2 vCPUs** and 1.5 GB RAM, not 1 vCPU. A baseline was measured
+during the capture: `artifacts/evidence/nv1-2026-10-29/fw01-load-during-a3-capture.txt`.
+
 ## 7. Results
 
 (Empty until the test has run.)
