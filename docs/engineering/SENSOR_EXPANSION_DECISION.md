@@ -75,10 +75,31 @@ zones. Its log (`filterlog`) records them:
 The controller recognises the `filterlog` syslog tag but does not parse it. Parsing pf
 blocks of *server-originated* connections into network events, as evidence on
 protected sources only and in shadow, would give the lateral-movement signal without
-touching Suricata. This is recommended as the next step for this gap. It still needs:
-- pf logging enabled on the relevant block rules (an FW01 change, made outside any
-  capture);
-- a team lateral-movement scenario to show it works.
+touching Suricata.
+
+**Implemented 2026-10-29 (commit `f16798a`, shadow).**
+
+What changed:
+- pf already logged these blocks: OPNsense's "block … log" rules for each server zone.
+- FW01's existing mTLS feed now forwards `suricata,filterlog`.
+- The controller keeps inbound IPv4 blocks whose source is protected, together with the
+  reason the source is protected. They are shown under `protected_blocked` in
+  `/api/network`. Client blocks are counted only.
+- Nothing enters the client network features, datasets or decisions.
+
+Baseline. In FW01's logs of 2026-10-28/29, every server-originated block came from the
+isolation suite's deliberate checks. There were 10 tuples, each seen once per run.
+
+End to end (`pf-blocks-live-verify.txt`):
+- `afw lab verify` passed 41/41.
+- All 10 server-originated deny checks appeared, with the right zone, and no policy
+  was created.
+
+Still open:
+- Recall against a real compromise needs a team lateral-movement scenario.
+- Nothing is stored beyond the bounded in-memory list and the controller's journal
+  (`protected_source_blocked` warnings).
+- Verification runs are not marked, so their blocks look like any other.
 
 ## 4. What would change the decision
 

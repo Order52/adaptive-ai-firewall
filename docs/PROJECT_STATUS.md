@@ -123,8 +123,10 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
      DMZ/APP/DB/MGMT and intra-segment traffic are invisible, and TLS is opaque beyond
      SNI/version. Expanding the sensors was assessed and **not enabled**
      (`engineering/SENSOR_EXPANSION_DECISION.md`): server sources are never assessed,
-     and FW01's flow tracking would capture client→WAF01 traffic twice. Recommended
-     next step for lateral movement: pf `filterlog` evidence on server sources.
+     and FW01's flow tracking would capture client→WAF01 traffic twice. Instead, pf
+     blocks of protected server/management sources are now forwarded and shown in shadow
+     (lateral-movement evidence; verified end to end with `afw lab verify`). Recall
+     against a real compromise needs a team lateral-movement scenario.
    - *NV1 failed; NV2 passed* on fresh unseen users (0.6 %, no strong verdict). Limits:
      a single lab population with modelled habits. A validation heavy user just above
      the trained DNS range gave 14 % unfamiliar windows. The host-sweep change was not

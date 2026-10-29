@@ -1,0 +1,24 @@
+Live end-to-end check, 2026-10-29. Controller f16798a deployed to CTRL01 ~10:15Z; FW01 feed
+'suricata,filterlog' applied (afw lab provision-ids --feed-only); then `afw lab verify`
+10:19:28-10:21:06Z: 41/41 checks passed. /api/network read right after.
+
+Counters: {'pf_other': 134, 'net_ssh': 16, 'net_protected_source': 27, 'pf_block_client': 45, 'net_flow': 24, 'pf_block_protected': 40, 'net_unfamiliar': 2}
+
+protected_blocked (count, src, dst, proto, dport, iface, why protected):
+  4 10.77.30.10 10.77.20.10 TCP 22 vtnet4 WAF/DMZ infrastructure
+  4 10.77.30.10 10.77.50.10 TCP 22 vtnet4 WAF/DMZ infrastructure
+  4 10.77.30.10 10.77.50.10 TCP 5515 vtnet4 WAF/DMZ infrastructure
+  4 10.77.30.10 10.77.60.10 TCP 5432 vtnet4 WAF/DMZ infrastructure
+  4 10.77.40.10 10.77.30.10 TCP 443 vtnet5 application backend
+  4 10.77.40.10 10.77.50.10 TCP 22 vtnet5 application backend
+  4 10.77.40.10 10.77.50.10 TCP 5515 vtnet5 application backend
+  4 10.77.60.10 10.77.40.10 TCP 8000 vtnet6 database tier
+  4 10.77.60.10 10.77.50.10 TCP 5514 vtnet6 database tier
+  4 10.77.60.10 10.77.50.10 TCP 5516 vtnet6 database tier
+
+These are exactly the 10 server-originated 'want=deny' checks of afw lab verify (4 SYN
+attempts each), the same 10 tuples FW01's local filter log held for earlier verify runs
+(fw_srvblocks.py, 10:10Z). In FW01's filter logs of 2026-10-28 and 2026-10-29 up to then,
+every server-originated block was one of these 10 tuples, 8 times each (two verify runs,
+first entries 2026-10-28 19:56Z and 2026-10-29 06:31Z): no other server-originated block. Client blocks (45) were counted only. Policies
+created: none (monitor mode; protected sources are never acted on).
