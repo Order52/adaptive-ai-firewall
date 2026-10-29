@@ -42,3 +42,22 @@
   run `service cron start` if the heartbeat is stale.
 - Mitigation still open: tune Suricata memcaps only if an even larger population is
   needed; current 2560 MB + 1 GB swap covers the lab's 66-user captures with margin.
+
+## P4 — persistence hardened (2026-10-29 ~21:25Z), verified across reboots
+A host reboot (unattended, ~21:00Z — the known needrestart/gns3server issue) took the lab
+down; `afw lab start` recovered it. On the clean FW01 boot: **RAM 2560 MB persisted**,
+**cron auto-started** (so the earlier cron gap was specific to the GNS3 stop/start, not a
+real boot), **Suricata up**. But the **fstab `late` swap did not auto-mount** (OPNsense
+does not run `swaplate`).
+
+**Fix (supported, persistent):** an OPNsense boot hook
+`/usr/local/etc/rc.syshook.d/start/99-afw-resources` (runs late every boot, idempotent):
+```sh
+#!/bin/sh
+swapon -aL 2>/dev/null
+pgrep -q cron || service cron onestart 2>/dev/null
+```
+**Verified by a controlled FW01 reboot:** RAM 2517 MB, **swap `/dev/md99` 1.0 G present**,
+Suricata up, cron running, IDS heartbeat fresh, isolation 41/41. Caveat: rc.syshook.d
+survives reboots but not an OPNsense firmware upgrade — re-add after a major OPNsense
+update (or fold into `provision_fw`).
