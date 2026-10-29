@@ -1,0 +1,23 @@
+Recovery backup — 2026-10-29T17:15:03Z, branch engineering-directive at HEAD 0775957 (49 commits ahead of origin, unpushed).
+
+Git bundle (full history, all refs):
+  /home/gns3/afw-backups/afw-engineering-directive-20261029T171447Z.bundle
+  sha256: f0b3f286d7ad69d2fca7419edce0a8ddf5e2bca20a184c3bdd1fe96178964e47
+  verified: 'git bundle verify' = complete history; test clone restored HEAD correctly.
+  Restore: git clone <bundle> <dir>
+
+Model artifacts (frozen candidates, gitignored in repo):
+  8700931 /home/gns3/.local/share/afw-frozen/a3-cand-S-8994dfe8.pkl
+  8701033 /home/gns3/.local/share/afw-frozen/a4-cand-S-a4f6e061.pkl
+  sha256:
+  8994dfe863df7d3ddc3e885a7b463f74b7d6cf24a2b8ec462e7a28ad3128ec70  /home/gns3/.local/share/afw-frozen/a3-cand-S-8994dfe8.pkl
+  a4f6e06113c29bdb19ad637e0e9e0629d8254368742f80f363d9329fda82ef0f  /home/gns3/.local/share/afw-frozen/a4-cand-S-a4f6e061.pkl
+
+Datasets (host archive, hashes in Git under artifacts/evidence/n7-2026-10-28/):
+  23162621 /home/gns3/afw-datasets-archive/datasets-20261028T200252Z.tar.gz
+  68819858 /home/gns3/afw-datasets-archive/datasets-20261029T130209Z.tar.gz
+  hashes: /home/gns3/afw-datasets-archive/SHA256SUMS-20261028T200252Z
+  hashes: /home/gns3/afw-datasets-archive/SHA256SUMS-20261029T130209Z
+
+Lab config: in Git (config/lab.yaml, lab/ansible/, config/scenarios.yaml). Secrets live
+only in ~/.config/afw (never in Git); no tracked secrets found (git grep scan).
