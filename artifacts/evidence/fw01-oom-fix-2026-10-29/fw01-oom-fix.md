@@ -61,3 +61,13 @@ pgrep -q cron || service cron onestart 2>/dev/null
 Suricata up, cron running, IDS heartbeat fresh, isolation 41/41. Caveat: rc.syshook.d
 survives reboots but not an OPNsense firmware upgrade — re-add after a major OPNsense
 update (or fold into `provision_fw`).
+
+## Host-reboot resilience (2026-10-29 ~22:35Z)
+The lab host rebooted unattended **twice** this day (uptime 1 min both times; same kernel,
+not an upgrade; `Unattended-Upgrade::Automatic-Reboot` is already "false"). The host carries
+a `52team-unattended-upgrades` policy file — it is a **centrally-managed institutional
+host**, so the reboots are external and not ours to prevent. Each time, `afw lab start`
+recovered the lab and the FW01 persistence hook restored swap/cron.
+**Hardening:** enabled GNS3 project **`auto_start: True`** (`auto_open` was already true),
+so after a host reboot gns3server auto-opens the project and **auto-starts the 8 VMs** —
+the lab now self-recovers without manual intervention. Reversible (set `auto_start: False`).
