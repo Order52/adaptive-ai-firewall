@@ -1,0 +1,35 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-29T05:42:35+00:00",
+ "end": "2026-10-29T06:29:00+00:00",
+ "scenario": "P6 Phase E final: 6 v1 persona users",
+ "seed": 703,
+ "generator": "traffic/benign_personas.py AFW_PERSONA_SET=v1 (one thread per user); A3 generator 3dbf49a4",
+ "notes": "seed 703, from 2026-10-29T05:42:35+00:00",
+ "sources": [
+  {
+   "ip": "10.77.20.192",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.193",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.194",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.195",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.196",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.197",
+   "role": "benign"
+  }
+ ]
+}
