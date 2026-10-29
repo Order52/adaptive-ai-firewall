@@ -36,3 +36,15 @@ Protected/management refusal verified live:
 Demonstrates gate D (Enforcement) guards live: protected addresses can never be blocked,
 and a well-formed block still requires corroboration to auto-apply. No policy was created
 (simulate is read-only); controller stayed in monitor mode, trusted profile v2 unchanged.
+
+--- Live network-detector spot-check (2026-10-29 ~14:26-14:31Z) ---
+Drove benign AFW_NET=1 traffic from 4 unused sources (.194-.197) through the live shadow
+network detector. Result INCONCLUSIVE: the generator hit a TLS read timeout to the WAF
+and produced only sparse traffic (net_flow 54->66 over ~4 min, no emitted .19x windows),
+so no meaningful live unfamiliar rate could be measured. The live detector PATH is
+operational (net_flow/net_ssh/net_tls events flowed to the controller in shadow mode,
+/api/network), but the rigorous benign-novelty measurement remains the offline NV2
+evaluation (0.0059 [0.0016,0.0115], PASS) against a validated snapshot -- the correct,
+reproducible, leak-controlled method. Note: net_dns read 0 after the 13:25Z FW01 reboot
+during this low-traffic window; not re-tested under load (would need a fuller capture).
+Controller stayed healthy (ok, monitor, telemetry ok) throughout.
