@@ -1,0 +1,7 @@
+capinfos: An error occurred after reading 7120551 packets from "/home/gns3/afw-external-datasets/cic-ids2017/Friday-WorkingHours.pcap".
+capinfos: The file "/home/gns3/afw-external-datasets/cic-ids2017/Friday-WorkingHours.pcap" appears to have been cut short in the middle of a packet.
+  (will continue anyway, checksums might be incorrect)
+File name:           /home/gns3/afw-external-datasets/cic-ids2017/Friday-WorkingHours.pcap
+Number of packets:   7,120 k
+First packet time:   2017-07-07 11:59:39.599128
+Last packet time:    2017-07-07 17:53:12.908468

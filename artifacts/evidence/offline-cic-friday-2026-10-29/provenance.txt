@@ -1,0 +1,7 @@
+CIC-IDS2017 Friday-WorkingHours — external-dataset provenance (independent capture)
+Source: HF mirror bvsam/cic-ids-2017 (pcap/Friday-WorkingHours.pcap); CIC-IDS2017 (UNB).
+File: Friday-WorkingHours.pcap, 8,839,309,056 bytes. sha256: 5d48ef77a32e2251bf8d8b5782f498638b84d511a4994fc989bf4acf984e07fb
+Families: Botnet ARES (morning), PortScan NMAP (afternoon), DDoS LOIT (afternoon).
+Attacker 172.16.0.1 (post-NAT Kali) -> victim 192.168.10.50 ONLY, 997 distinct ports
+(portscan) + brute-force/C2 ports; attack-only (no benign traffic from the attacker IP).
+Suricata offline: 252,488 flows. Labelled by attacker IP. Separate gate from live GNS3.
