@@ -206,11 +206,13 @@ log-rotation outage. **This session also found and recovered a live FW01 Suricat
   account spray is caught by the live `credential_spraying` rule, not that quantity.
 
 **Infrastructure (operational)**
-- **FW01 Suricata can be OOM-killed under heavy capture load** — OPNsense Nano, 1.5 GB RAM,
-  **no swap**. The 66-user A4 capture OOM-killed it (~11:59Z); it stayed down until found
-  via the live lab suite and recovered by a reboot (~13:25Z). Mitigation (not yet applied):
-  fewer concurrent capture users, or a lower Suricata memcap. Evidence:
-  `artifacts/evidence/fw01-ids-oom-2026-10-29/`.
+- **FW01 Suricata OOM under heavy capture load — FIXED 2026-10-29.** The 66-user A4
+  capture OOM-killed Suricata on FW01's 1.5 GB / no-swap guest. Resolved by raising FW01
+  to **2560 MB RAM + 1 GB guest swap** (memcaps unchanged, detection preserved) and
+  restoring the cron watchdog. Verified: 54-user/10-min stress → Suricata stable at
+  ~481 MB RSS, swap unused, lab 41/41 + 14/14. Evidence:
+  `artifacts/evidence/fw01-oom-fix-2026-10-29/`. Residual: cron may not auto-start on a
+  FW01 reboot (watch the IDS heartbeat; `service cron start` if stale).
 - FW01's feed cannot use RELP (OPNsense) → ~100 s loss window; RELP acks on queue (sub-
   second crash loss possible); the IDS heartbeat proves the loop runs, not full inspection.
 
