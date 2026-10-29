@@ -65,6 +65,19 @@ Last updated: 2026-10-29 ~13:00Z (directive of 2026-10-29: A3, NV1, NV2, item 3 
 | 1b | A4: AUTH household correction (amendment to A3) | DONE, **positive**. distinct_usernames ceiling-only (`9904021`, before data; diagnosis a4-diagnosis.txt). Fresh unseen capture with household + shared coverage, disjoint from training (leakage caught and corrected at validation, `e16e9f9`). S passed selection (security FPR 0.0 / 0.0152 households / 0.0 shared) and one-shot **final PASS** (F1 0.0112 [0,0.034], 0.0 households/shared; 0/2791 logins refused; SYNTHETIC sensitivity 1.0). Not promoted; monitor | `9904021`, `1ad4daa`, `c27fd91`, `dab0ef9`, `b31c8a4` | `A4_AUTH_HOUSEHOLD_REVALIDATION.md` §8, `a4-2026-10-29/` |
 | 7 | Dashboard completeness | Three real-data panels added and verified live (headless Chromium, 0 console errors): network novelty (shadow), pf server-block evidence (shadow), login controls + shared-address guard. Misleading candidate "gate passed" relabelled to "validation-FPR gate passed" with a caveat pointing to the P6/P7/A3 selection results | `07df779` | `dashboard-2026-10-29/` |
 
+### Live governance and enforcement demonstration (2026-10-29 ~13:40Z)
+
+Exercised live on CTRL01 (monitor mode, nothing changed):
+- **Promotion gate**: POST `/api/learning/challenger/evaluate` on fresh unseen A4 benign
+  sets -> `passed=False`; `benign_fpr_not_worse` passes but `attack_recall_regression`
+  (no team data) and `sensitive_invariance` fail. `promote()` refuses a failed evaluation
+  (code `challenger.py` + M3 tests). The lifecycle runs live and correctly blocks an
+  unqualified challenger; a successful promotion needs attack-recall data (team) + human
+  approval. Evidence: `live-governance-2026-10-29/`.
+- **Enforcement guards**: `/api/policies/simulate` refuses blocks of protected MGMT
+  (10.77.50.10) and DB (10.77.60.10) addresses; an attack-zone block is valid but does
+  not auto-apply without >=2 independent evidence categories.
+
 ### Autonomous attack-execution boundary (directive of 2026-10-29, §2/§11)
 
 The owner directed me to run the team's attack scenarios myself inside the authorized

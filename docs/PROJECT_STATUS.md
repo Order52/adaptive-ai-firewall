@@ -63,8 +63,8 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 |---|---|---|
 | A Infrastructure | **MET** | — |
 | B Detection | **NOT MET** | No labelled attack runs (BLOCKED-EXT); FN unmeasurable |
-| C Genuine adaptation | **PARTIAL** | Live learning, pivots, restart restore and drift reports observed on CTRL01; no promotion: gate refuses (no attack recall data; sensitive invariance fails) |
-| D Enforcement | **MET** | — |
+| C Genuine adaptation | **PARTIAL** | Live learning, pivots, restart restore and drift reports observed on CTRL01; **promotion gate exercised live 2026-10-29 on fresh A4 benign data -> correctly refuses** (attack_recall_regression has no data, sensitive_invariance fails); `promote()` refuses a failed evaluation (code + M3 tests). No promotion; monitor mode. `live-governance-2026-10-29/` |
+| D Enforcement | **MET** | Live 2026-10-29: protected MGMT/DB addresses refused by the validator, attack-zone block valid but needs >=2 evidence categories to auto-apply (`live-governance-2026-10-29/`) |
 | E Independent value | **NOT MET** | Benign-only comparison; value under attack BLOCKED-EXT |
 | F Security and operations | **MET** | API HTTPS-only with lab CA (ADR-023 revised); all telemetry mTLS (ADR-035) |
 | G Academic defensibility | **PARTIAL** | Team demonstration only the team can do; attack-side methodology unexercised |
