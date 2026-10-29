@@ -141,4 +141,68 @@ during the capture: `artifacts/evidence/nv1-2026-10-29/fw01-load-during-a3-captu
 
 ## 7. Results
 
-(Empty until the test has run.)
+*Recorded 2026-10-29 ~05:40Z. Capture 03:11:16–04:13:00Z (commit `a7d10e7`): all four
+datasets validated, observation counts equal to the WAF01 access-log lines for the same
+sources. Evidence: `artifacts/evidence/nv1-2026-10-29/`.*
+
+### 7.1 Development (`nv1-val`)
+
+Calibration on `nv1-train` (24 users, 109 615 network events, 2 736 emissions, 2 615
+non-zero). Flows, UDP, DNS, bytes and durations are non-zero in 64 % of 60 s and 96 %
+of 300 s emissions; SSH never occurs in benign training, so any SSH flow from a user is
+unfamiliar by construction.
+
+On `nv1-val` (12 users, 1 368 emissions): unfamiliar **0.0102** [0.0037, 0.0168], strong
+0, no user with a strong verdict. No development change was needed and none was made.
+Frozen calibration: `dev/nv1-dev1.calibration.json`, sha256 `90a1793b…a877`, commit
+`abd0366`.
+
+### 7.2 Test (unseen users `a3-sel` + `a3-sel-shift`, run once): **FAIL**
+
+| Measure | Result | Criterion |
+|---|---|---|
+| Unfamiliar window FPR (22 users, 2 508 emissions) | **0.0678**, CI [0.0088, 0.1575] | ≤ 0.02, upper CI ≤ 0.05 — **fail** |
+| Strong window FPR | 0.0008 [0, 0.0024] | — |
+| Users with a strong verdict | **1** (10.77.20.156) | 0 — **fail** |
+| Mean unfamiliar share by habit | light 0.006, normal 0.001, heavy **0.240** | — |
+
+Main drivers: `bytes_out_log_300`, `flows_300`, `udp_flows_300`, `dns_queries_300`,
+`failed_300`.
+
+The claim of §6.1 is therefore **not** allowed. The detector stays in shadow (§6.2).
+
+### 7.3 Why (post-hoc diagnosis; no re-test)
+
+From `nv1_posthoc_diag.py` / `nv1-posthoc-diag.txt`:
+
+- **Habit coverage.** The unfamiliar verdicts are almost all from heavy users:
+  - .156: 85 % of emissions;
+  - .154: 27 %;
+  - .153: 23 %;
+  - .152: 8 %.
+
+  Training had 3 heavy users, with 3.3–4.7 DNS lookups/min. The test had 6, up to
+  5.7/min. Light and normal users generalise well, at ≤ 1 % each. A population
+  quantile from 24 users does not cover the tail of a habit that only 3 of them showed.
+  Per user, the result is correct ("not seen at that level"), but as a rate it is too
+  high.
+- **Strong verdict.** Heavy user .156 contacted 11, then 10, distinct hosts in 60 s
+  (DNS resolver plus visited sites). That meets the fixed host-sweep ceiling of
+  `dst_hosts_60` = 10 (ADR-042). The ceiling is too low for legitimate heavy browsing
+  in this lab. Under §4, ceilings are never raised within NV1.
+- **Display defect found.** The reason text prints the effective level, not the ceiling
+  ("ceiling at 7" where the ceiling is 10). The verdict is unaffected; it is fixed
+  separately.
+
+### 7.4 What a further attempt needs (not done here)
+
+A new predeclared protocol (NV2), with fresh unseen-user data and none of these sets
+reused for testing. It would have to choose, before seeing the data:
+
+- either per-habit or per-user calibration, or a larger and stratified training
+  population;
+- and a reasoned `dst_hosts_60` ceiling, e.g. one that excludes resolver and NTP
+  destinations from the sweep count, with its scan-detection cost stated.
+
+Attack recall is still unmeasured: it needs the team's `net-portscan`, `net-slow-scan`
+and `net-ssh-guessing` runs.

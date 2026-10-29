@@ -86,7 +86,9 @@ class NetworkNovelty:
         # activity in benign data) does not turn one event into a ratio of 1e9
         ratio = x / np.maximum(eff, 1.0)
         reasons = tuple(
-            f"{n}={x[i]:g} ({'ceiling' if strong[i] else 'unfamiliar'} at {eff[i]:g})"
+            f"{n}={x[i]:g} (ceiling at {self.ceilings[i]:g})"
+            if strong[i]
+            else f"{n}={x[i]:g} (unfamiliar at {eff[i]:g})"
             for i, n in enumerate(FEATURE_NAMES)
             if over[i] or strong[i]
         )

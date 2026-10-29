@@ -51,6 +51,14 @@ def test_poisoned_calibration_cannot_raise_a_threshold_above_its_ceiling():
     assert d.assess(v(dst_ports_60=20)).strong  # a scan is still a scan
 
 
+def test_strong_reason_names_the_ceiling_not_the_calibrated_level():
+    # NV1 §7.3: a calibrated level of 7 was printed as "ceiling at 7" (ceiling 10)
+    d = NetworkNovelty()
+    d.calibrate([*benign(), *[v(dst_hosts_60=7) for _ in range(20)]])
+    r = d.assess(v(dst_hosts_60=11))
+    assert r.strong and r.reasons == ("dst_hosts_60=11 (ceiling at 10)",)
+
+
 def test_calibration_needs_enough_windows():
     with pytest.raises(ValueError):
         NetworkNovelty().calibrate(benign(10))
