@@ -26,3 +26,13 @@ Conclusion: the champion/challenger promotion lifecycle runs live and correctly 
 an unqualified challenger. No model is promoted; monitor mode and trusted profile v2 are
 unchanged. A successful live promotion is not possible until a candidate qualifies, which
 requires attack-recall data from team runs plus human approval.
+--- Live enforcement safety guards (POST /api/policies/simulate, read-only) ---
+Protected/management refusal verified live:
+  source_block 10.77.50.10 (MGMT)  -> valid=False: "is protected (management network and recovery path)"
+  source_block 10.77.60.10 (DB)    -> valid=False: "is protected (database tier)"
+  source_block 10.77.10.99 (ATTACK), duration 300s -> valid=True, would_auto_apply=False
+    (a block proposed by an operator is valid but never auto-applies without >=2
+     independent evidence categories; in monitor mode nothing enforces anyway).
+Demonstrates gate D (Enforcement) guards live: protected addresses can never be blocked,
+and a well-formed block still requires corroboration to auto-apply. No policy was created
+(simulate is read-only); controller stayed in monitor mode, trusted profile v2 unchanged.
