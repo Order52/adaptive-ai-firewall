@@ -274,6 +274,13 @@ def benign_eval(
                 "requests_impacted": arm.benign_requests_impacted,
                 "requests": arm.benign_requests,
                 "legit_request_success": arm.legit_request_success,
+                # A3 (ADR-044): site-wide versus login-route-only restrictions
+                "users_site_restricted": arm.benign_sources_site_restricted,
+                "users_site_restricted_ips": arm.benign_sources_site_restricted_ips,
+                "users_login_controlled": arm.benign_sources_login_controlled,
+                "users_login_controlled_ips": arm.benign_sources_login_controlled_ips,
+                "login_requests": arm.benign_login_requests,
+                "login_refused": arm.benign_login_refused,
             }
             for arm in (m1, m2)
         },
