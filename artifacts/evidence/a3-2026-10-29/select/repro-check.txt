@@ -1,0 +1,7 @@
+R2 | RobustStatsDetector: arrays equal True, max score diff 0.0; IsolationForestDetector: arrays equal True, max score diff 0.0; HalfSpaceTreesDetector: arrays equal True, max score diff 0.0
+R3 | RobustStatsDetector: arrays equal True, max score diff 0.0; IsolationForestDetector: arrays equal True, max score diff 0.0; HalfSpaceTreesDetector: arrays equal True, max score diff 0.0
+D | RobustStatsDetector: arrays equal True, max score diff 0.0; IsolationForestDetector: arrays equal True, max score diff 0.0; HalfSpaceTreesDetector: arrays equal True, max score diff 0.0
+F | RobustStatsDetector: arrays equal True, max score diff 0.0; IsolationForestDetector: arrays equal True, max score diff 0.0; HalfSpaceTreesDetector: arrays equal True, max score diff 0.0
+C | RobustStatsDetector: arrays equal True, max score diff 0.0; IsolationForestDetector: arrays equal True, max score diff 0.0; HalfSpaceTreesDetector: arrays equal True, max score diff 0.0
+S | RobustStatsDetector: arrays equal True, max score diff 0.0; IsolationForestDetector: arrays equal True, max score diff 0.0; HalfSpaceTreesDetector: arrays equal True, max score diff 0.0
+FS | RobustStatsDetector: arrays equal True, max score diff 0.0; IsolationForestDetector: arrays equal True, max score diff 0.0; HalfSpaceTreesDetector: arrays equal True, max score diff 0.0

@@ -1,0 +1,23 @@
+{
+ "name": "C",
+ "sha256": "d03acc7f042f99430455e3178345fdc850587c9adf0ea7266f552fccb64c512e",
+ "notes": {
+  "cohort_windows": {
+   "login": 4170,
+   "no_login": 945
+  },
+  "train": [
+   "p7-train"
+  ],
+  "val": [
+   "p7-val"
+  ],
+  "train_windows": 11670,
+  "val_windows": 5115,
+  "thresholds": {
+   "robust_stats": 7.98,
+   "isolation_forest": 0.66546,
+   "half_space_trees": 0.78107
+  }
+ }
+}

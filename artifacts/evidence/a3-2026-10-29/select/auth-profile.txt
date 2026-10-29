@@ -1,0 +1,4 @@
+a3-sel: 1242 login outcomes, 210 failures from 13 sources; longest per-account failure run histogram {1: 12, 3: 1}; max accounts per source 1
+a3-sel-shift: 595 login outcomes, 61 failures from 6 sources; longest per-account failure run histogram {1: 57}; max accounts per source 44
+a3-sel: peak open streaks on one source (accounts, failures) = (1, 3); spraying needs >= (3, 5), guessing a streak >= 5
+a3-sel-shift: peak open streaks on one source (accounts, failures) = (1, 1); spraying needs >= (3, 5), guessing a streak >= 5

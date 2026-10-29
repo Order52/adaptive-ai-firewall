@@ -235,4 +235,73 @@ predeclared in P6 §2) is then collected and the final evaluation runs **once**:
 
 ## 8. Results
 
-(Empty until the selection has run.)
+### 8.1 Selection (2026-10-29, run once ~05:30Z)
+
+*Data.* Capture 03:11:16–04:13:00Z (commit `a7d10e7`):
+- `a3-sel`: 16 users, 17 503 requests, 1 242 legitimate logins;
+- `a3-sel-shift`: 6 shared addresses, 4 179 requests, 595 logins.
+
+All validation checks passed, and observation counts equal the WAF01 access-log lines.
+Driver: `artifacts/evidence/a3-2026-10-29/a3_run.py`. Report: `select/a3-select.json`
+(470 s).
+
+*Reproducibility.* The retrained candidates' byte sha256 differ from the P7 pickles. The
+causes are:
+- random model and profile ids;
+- artifact paths in the snapshot;
+- measured latency in the validation metrics;
+- sklearn pickles, which are not byte-deterministic.
+
+Functionally they are identical: every fitted array is equal, and the score difference
+on 3 000 random inputs is 0.0 for every detector of every candidate
+(`repro_check.py`, `select/repro-check.txt`).
+
+*Eligibility (§5).*
+
+| Candidate | B1 FPR (`a3-sel`) | B2 | B3 refused logins / controlled users | B4 | Must-detect min (nominal / stressed) | Eligible |
+|---|---|---|---|---|---|---|
+| R2 | robust 0.330, IF 0.931 | 0 | 0 / 0 | 1.0 | 1.0 / 0.82 | no (B1) |
+| R3 | robust 0.033, IF 0.561 | 0 | 0 / 0 | 1.0 | 1.0 / 0.70 | no (B1) |
+| D | ≤ 0.0031 (CI ≤ 0.0069) | 0 | 0 / 0 | 1.0 | 0.75 / 0.43 | yes |
+| F | ≤ 0.0008 | 0 | 0 / 0 | 1.0 | 0.94 / 0.71 | yes |
+| C | ≤ 0.0039 (CI ≤ 0.0084) | 0 | 0 / 0 | 1.0 | 0.83 / 0.46 | yes |
+| **S** | ≤ 0.0031 (CI ≤ 0.0069); security 0 | 0 | 0 / 0 | 1.0 | **1.0 / 1.0** | yes, **selected** |
+| FS | ≤ 0.0008; security 0 | 0 | 0 / 0 | 1.0 | 1.0 / 1.0 | yes |
+
+B2–B4 hold on both sets for every candidate: no site-wide restriction, 0 of 1 837
+legitimate logins refused, no legitimate user with a login control. S and FS tie at
+1.0, and step 3 prefers the simpler S.
+
+*Criterion 5 (SYNTHETIC, rule-based, no traffic sent): pass.*
+
+| Family | Raw | A3 accepted (share) | A3 first control | A2 baseline accepted | A2 first control |
+|---|---|---|---|---|---|
+| AR1 1/s, one account | 3 600 | 25 (0.007) | 5 s | 3 600 | 5 s (limit never binds at 1 r/s) |
+| AR2 1/20 s, one account | 180 | 25 (0.139) | 85 s | 180 | none |
+| AR3 1/s spraying | 3 600 | 25 (0.007) | 5 s | 3 600 | 5 s |
+| AR4 1/min spraying | 60 | 20 (0.333) | 245 s | 60 | none |
+
+Friction (a user mistyping k = 4, 6 or 8 times, then entering the right password): 0
+refused attempts under A3. The user logs in at the same moment as without controls (6.7,
+15.1 and 18.7 s).
+
+*How strong the benign result is (§7, as predicted).* Neither set came near the AUTH
+thresholds (`auth_profile.py`, `select/auth-profile.txt`):
+- The longest legitimate per-account failure run was 3.
+- The most open streaks on one source at any time was 1 account with 3 failures.
+- On the shared addresses (up to 44 accounts each), every mistyped account succeeded
+  before another failed. The most there was 1 open account with 1 failure.
+
+So B3 shows that the generated population is untouched. It is not evidence about real
+users who fail 5 or more times; the friction runs above are the evidence for that case.
+
+*Decision.* Candidate **S** is frozen with:
+- `select/cand-S.pkl`, sha256 `8994dfe8…ec70`, recorded in `select/cand-S.json`;
+- a backup outside the repository;
+- the A3 code at this commit;
+- the final stage of `a3_run.py`, whose criteria F1–F5 are written in its docstring
+  before any Phase E data exists.
+
+Next steps under §5: collect Phase E (`p6-final*`, .170–.197, seeds 701–703), then run
+the final evaluation once. Nothing is promoted by this result; the controller stays in
+monitor mode.
