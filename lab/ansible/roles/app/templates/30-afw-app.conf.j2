@@ -1,6 +1,6 @@
 # Managed by Ansible (AFW): application events -> CTRL01 telemetry receiver
 module(load="imfile")
-input(type="imfile" File="/var/log/afw/app-events.log" Tag="afw-app:" Ruleset="afw_fwd")
+input(type="imfile" File="/var/log/afw/app-events.log" Tag="afw-app:" Ruleset="afw_fwd" reopenOnTruncate="on")
 ruleset(name="afw_fwd") {
   # RELP over mutually authenticated TLS to CTRL01 (server identity pinned by name,
   # ADR-038): CTRL01 acknowledges each line once queued; unacknowledged lines are

@@ -1,7 +1,7 @@
 # Managed by Ansible (AFW): WAF access + ModSecurity audit -> CTRL01 telemetry receiver
 module(load="imfile")
-input(type="imfile" File="/var/log/afw/waf-access.log" Tag="afw-waf-access:" Ruleset="afw_fwd")
-input(type="imfile" File="/var/log/afw/waf-audit.log" Tag="afw-waf-audit:" Ruleset="afw_fwd")
+input(type="imfile" File="/var/log/afw/waf-access.log" Tag="afw-waf-access:" Ruleset="afw_fwd" reopenOnTruncate="on")
+input(type="imfile" File="/var/log/afw/waf-audit.log" Tag="afw-waf-audit:" Ruleset="afw_fwd" reopenOnTruncate="on")
 ruleset(name="afw_fwd") {
   # RELP over mutually authenticated TLS to CTRL01 (server identity pinned by name,
   # ADR-038): CTRL01 acknowledges each line once queued; unacknowledged lines are

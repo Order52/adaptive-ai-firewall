@@ -25,3 +25,23 @@
   notify: restart rsyslog
 - name: App running
   ansible.builtin.systemd: {name: afw-rental, enabled: true, state: started, daemon_reload: true}
+- name: Rotate the telemetry source logs
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/afw-app
+    mode: "0644"
+    content: |
+      # Managed by Ansible (AFW): copytruncate keeps the file rsyslog's imfile follows
+      # (reopenOnTruncate). Rotated files keep the run-completeness evidence:
+      # dataset checks read the rotated files too (zcat).
+      /var/log/afw/app-events.log {
+        daily
+        maxsize 200M
+        rotate 30
+        dateext
+        dateformat -%Y%m%d-%s
+        missingok
+        notifempty
+        copytruncate
+        compress
+        delaycompress
+      }
