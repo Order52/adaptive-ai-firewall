@@ -17,13 +17,20 @@ safety-validated and read-back-verified enforcement, a governed online-learning
 lifecycle, an operator dashboard and an MCP interface. The **engineering is proven**
 (infrastructure, enforcement, security/ops, recovery, governance). The **central AI claim
 — that it detects real attacks better than static rules and safely learns new ones — is
-not yet proven**, because that requires labelled **attack traffic**, and generating
-attack traffic is a safety-enforced boundary this agent cannot cross. Model selection has,
-honestly, produced mostly negative results (no over-fit-free champion yet), with two
-**positive** benign-side results this session (A4 AUTH households, NV2 network novelty).
-**Readiness: ~75% of a top-grade FYP is done and verifiable now; the remaining ~25% is
-one external dependency — the team running the attack scenarios — plus the evaluations
-that unlock from it.**
+not yet proven **on the live lab**, because that requires in-lab attack traffic and
+generating it is a safety-enforced boundary this agent cannot cross. **On real recorded
+attack traffic (CIC-IDS2017), evaluated offline, the pipeline does work:** a RandomForest
+detects FTP/SSH brute force at **0.846 recall and 0 false positives**, the incremental
+ARF at 0.775, and a model trained on FTP detects **withheld SSH** brute force at 0.99 —
+strong evidence for the design, kept on a **separate** gate from the live lab (it cannot
+substitute for in-lab validation; domain adaptation is required). Model selection produced
+mostly negative results (no over-fit-free champion yet), with two **positive** benign-side
+results this session (A4 AUTH households, NV2 network novelty) and the offline attack
+result above. The FW01 Suricata **OOM is fixed** (RAM+swap, verified under load).
+**Readiness: ~78% of a top-grade FYP is done and verifiable now; the remaining ~22% is
+one external dependency — the team running the in-lab attack scenarios — plus the
+evaluations that unlock from it (the offline results show those evaluations will work).**
+Separate gate states: `docs/engineering/GATE_STATES.md`.
 
 ---
 
@@ -227,18 +234,21 @@ log-rotation outage. **This session also found and recovered a live FW01 Suricat
 
 ## 7. How much is left — readiness breakdown
 
-Think of it as **done now (~75%)** + **one external dependency unlocks the rest (~25%)**.
+Think of it as **done now (~78%)** + **one external dependency unlocks the rest (~22%)**.
 
 | Area | State | Left to do | Who |
 |---|---|---|---|
 | Infrastructure, isolation, deploy, recovery | ✅ done | — | — |
+| FW01 Suricata OOM | ✅ **fixed + load-tested** | — | — |
 | Telemetry + enforcement + safety | ✅ done | — | — |
 | Governed learning lifecycle (mechanics) | ✅ done | — | — |
 | Benign generalisation (AUTH A4, network NV2) | ✅ **proven** | — | — |
+| **Offline recorded-attack detection (CIC-IDS2017)** | ✅ **done (RF 0.85 @ 0 FPR; held-out FTP→SSH 0.99)** | — (external gate) | — |
+| Supervised RF-vs-ARF on real recorded traffic | ✅ **done offline** | lab-domain version needs team data | agent/team |
 | Dashboard, docs, reproducibility, automation | ✅ done | — | — |
-| **Attack runs (web + network families)** | ❌ **blocked** | 3 test + 1 validation run per family from ATK01 | **team** |
-| Five-way comparison (static/supervised/novelty/frozen-hybrid/adaptive-hybrid) | ❌ blocked | run after attack data exists | agent (after team) |
-| Supervised RF-vs-ARF real-attack eval | ❌ blocked | run after attack data | agent (after team) |
+| **In-lab attack runs (web + network families)** | ❌ **blocked** | 3 test + 1 validation run per family from ATK01 | **team** |
+| Five-way comparison (static/supervised/novelty/frozen-hybrid/adaptive-hybrid) | ❌ blocked | run after in-lab attack data exists | agent (after team) |
+| Supervised RF-vs-ARF **in-lab** eval | ❌ blocked | run after in-lab attack data | agent (after team) |
 | Withheld-family (§8) new-threat experiment | ❌ blocked | run after attack data | agent (after team) |
 | Network-attack recall | ❌ blocked | measure detector on scan/SSH runs | agent (after team) |
 | One governed promotion (if a candidate qualifies) | ❌ blocked | needs attack-recall data + human approval | team + agent |
@@ -280,7 +290,7 @@ that it safely learns new ones — those are measured, not asserted, and the mea
 needs the team's attack runs. A negative result there would still be a valid FYP outcome;
 what matters is that it is measured honestly.
 
-**Bottom line:** ~75% complete and defensible today; the remaining ~25% is one afternoon of
+**Bottom line:** ~78% complete and defensible today (incl. offline attack-detection evidence and the FW01 OOM fix); the remaining ~22% is one afternoon of
 authorized team attack runs plus the agent's downstream evaluations. After that, every gate
 is either MET or has a real, reported measurement.
 
