@@ -112,22 +112,37 @@ def quantities(fv: FeatureVector) -> np.ndarray:
     )
 
 
+# Quantities assessed by their fixed ceiling only, never a calibrated benign quantile.
+# ``distinct_usernames``: a legitimate shared address (household, NAT) has 2-4 active
+# accounts in a window, so a benign quantile calibrated without that coverage sat at 1
+# and flagged every household (A3 §8.2 F1 failure; `a4-2026-10-29/a4-diagnosis.txt`:
+# 287 of 293 Phase E flags were this quantity alone). The ceiling (>= 5 accounts) still
+# fires on spraying, and the account-aware AUTH rule (ADR-044 credential_spraying)
+# remains the live detector of multi-account guessing (A4, predeclared).
+CEILING_ONLY: frozenset[str] = frozenset({"distinct_usernames"})
+
+
 class SecurityPath:
     """Flag when any quantity exceeds its calibrated benign quantile, or reaches its
     ceiling. The calibrated part bounds the window FPR at about ``alpha`` on the
-    calibration data (``alpha / k`` per quantity); the ceilings never move."""
+    calibration data (``alpha / k`` per quantity); the ceilings never move. Quantities
+    in ``CEILING_ONLY`` are assessed by their ceiling alone (their calibrated threshold
+    is pinned to the ceiling)."""
 
     def __init__(self, alpha: float = 0.01, ceilings: Mapping[str, float] = CEILINGS) -> None:
         self.alpha = alpha
         self.ceilings = np.array([ceilings[q] for q in QUANTITIES], dtype=float)
+        self._ceiling_only = np.array([q in CEILING_ONLY for q in QUANTITIES])
         self.thresholds = self.ceilings.copy()
 
     def calibrate(self, windows: Sequence[FeatureVector]) -> None:
         if not windows:
             raise ValueError("no calibration windows")
         x = np.array([quantities(w) for w in windows])
-        level = 1 - self.alpha / len(QUANTITIES)
+        level = 1 - self.alpha / (len(QUANTITIES) - int(self._ceiling_only.sum()))
         self.thresholds = np.quantile(x, level, axis=0, method="higher")
+        # ceiling-only quantities never flag below their ceiling, whatever benign showed
+        self.thresholds[self._ceiling_only] = self.ceilings[self._ceiling_only]
 
     def _matrix(self, windows: Sequence[FeatureVector]) -> np.ndarray:
         return np.array([quantities(w) for w in windows]).reshape(-1, len(QUANTITIES))

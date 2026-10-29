@@ -180,3 +180,33 @@ def test_effective_limits_never_exceed_ceilings():
     sp = SecurityPath()
     sp.thresholds = np.array([1e9] * len(QUANTITIES))
     assert all(sp.effective()[q] == CEILINGS[q] for q in QUANTITIES)
+
+
+def _household(n_accounts: int):
+    """A legitimate shared address: n people each with a successful login in the window."""
+    ok = AuthOutcome.SUCCESS
+    logins = [
+        obs(100 + i, "/login", "POST", 200, auth_outcome=ok, username_hash=f"person{i}")
+        for i in range(n_accounts)
+    ]
+    return fv([*benign_base().observations, *logins])
+
+
+def test_distinct_usernames_is_ceiling_only_so_households_are_not_flagged():
+    """A4: distinct_usernames is assessed by its ceiling alone. Calibration data that
+    contains households (2-4 accounts from one address) no longer lowers the threshold to
+    1 and flags them (the A3 F1 failure), yet >= 5 accounts still reaches the ceiling."""
+    i = QUANTITIES.index("distinct_usernames")
+    base = fv(list(benign_base().observations))
+    households = [_household(n) for n in (2, 3, 4)]
+    sp = SecurityPath(alpha=0.01)
+    sp.calibrate([base] * 500 + households * 100)
+    # the calibrated quantile of a household-rich set would be ~4; A4 pins it to the ceiling
+    assert sp.thresholds[i] == CEILINGS["distinct_usernames"] == 5
+    assert sp.effective()["distinct_usernames"] == 5
+    # 2-4 account households are not flagged on distinct_usernames (auth_failures == 0)
+    assert sp.flags(households).tolist() == [False, False, False]
+    # 5 distinct accounts reaches the ceiling
+    spray = _household(5)
+    assert sp.flags([spray]).tolist() == [True]
+    assert "distinct_usernames_ceiling" in sp.reasons(spray)
