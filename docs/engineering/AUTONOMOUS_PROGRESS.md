@@ -6,7 +6,7 @@ Status words: **DONE** (implemented, tested, evidence exists), **PARTIAL** (some
 acceptance criteria open, listed), **BLOCKED-EXT** (needs something only the team can
 supply), **TODO**.
 
-Last updated: 2026-10-29 ~06:50Z (directive of 2026-10-29: A3, NV1, item 3 table below).
+Last updated: 2026-10-29 ~09:00Z (directive of 2026-10-29: A3, NV1, NV2, item 3 table below).
 
 ## Milestones
 
@@ -57,7 +57,7 @@ Last updated: 2026-10-29 ~06:50Z (directive of 2026-10-29: A3, NV1, item 3 table
 | Item | Scope | Status | Commits | Evidence |
 |---|---|---|---|---|
 | 1 | A3: account-aware AUTH evidence, login-scoped graduated controls, predeclared B1–B4 + SYNTHETIC attack resistance | Protocol and code `7eaa8d4`, `aa7ef1c`, `ecf2ec8` (before data). Selection run once: **S eligible and selected** (0/1 837 legitimate logins refused; AR1–AR4 pass). Frozen `39b0c3b`. **Final on Phase E (once): FAIL F1**: S security path 0.0475 on household users, absent from selection. F2–F5 pass; 0/2 418 logins refused. Not promoted. Deployed live in monitor mode 05:33Z; live lab 14/14, isolation 41/41 | `a7d10e7`, `39b0c3b`, `b56286d`, `58d7ad1` | `A3_AUTH_CONTROLS.md` §8, `a3-2026-10-29/` |
-| 2 | NV1: varied benign non-web traffic, calibration, unseen-user FP | DONE, **negative**: dev 0.0102. One-shot test 0.0678 [0.0088, 0.1575]; heavy user .156 hits the `dst_hosts_60` ceiling. Shadow only. Display defect fixed. Sensor expansion costed, not enabled | `abd0366`, `ea584fd` | `NV1_NETWORK_NOVELTY_VALIDATION.md` §7, `nv1-2026-10-29/` |
+| 2 | NV1: varied benign non-web traffic, calibration, unseen-user FP | DONE, **negative**: dev 0.0102. One-shot test 0.0678 [0.0088, 0.1575]; heavy user .156 hits the `dst_hosts_60` ceiling. Shadow only. Display defect fixed. Sensor expansion costed, not enabled. **NV2** (new protocol before data, fresh unseen users): dev 0.0145; frozen `c311aeeb`; one-shot test **PASS** 0.0059 [0.0016, 0.0115], 0 strong. Benign FP only; recall BLOCKED-EXT. NV2 calibration live in shadow | `abd0366`, `ea584fd`, `e9ca05f`, `bfe8ce9`, `c7aee42`, `e304425` | `NV1_…` §7, `NV2_NETWORK_NOVELTY_REVALIDATION.md` §7, `nv1-2026-10-29/`, `nv2-2026-10-29/` |
 | 3 | Incremental supervised classifier (river ARF/HAT) + lifecycle | Code + 13 tests; SYNTHETIC benchmark only; not wired live | `e16ca31` | `item3-2026-10-29/` |
 | 4 | New-threat experiment (withheld `content_discovery`) | Protocol updated; run BLOCKED-EXT | `5a17521` | `NEW_THREAT_EXPERIMENT.md` |
 | 5 | Team procedure incl. network scenarios; five-way evaluation | Procedure DONE; runs BLOCKED-EXT | `5a17521` | `TEAM_ATTACK_QUICKSTART.md` |

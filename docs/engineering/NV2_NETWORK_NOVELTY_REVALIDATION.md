@@ -94,4 +94,82 @@ requires. Its validation status is recorded in §7.
 
 ## 7. Results
 
-(Empty until the test has run.)
+*Recorded 2026-10-29 ~08:55Z. Evidence: `artifacts/evidence/nv2-2026-10-29/`.*
+
+### 7.1 Data
+
+Capture 07:32:58–08:35:00Z (commit `bfe8ce9`). All four datasets validated (every check
+PASS, including `benign_users_unseen` on both test sets). Observation counts equal the
+WAF01 access-log lines for the same sources:
+
+| Dataset | Users | Observations | Network events |
+|---|---|---|---|
+| `nv2-train` | 32 (13 heavy: 5 natural + 8 stratified) | 86 034 (74 722 + 11 312) | 187 773 |
+| `nv2-val` | 12 (1 heavy) | 12 527 | 29 840 |
+| `nv2-test` | 16 | 30 904 | 68 630 |
+| `nv2-test-shift` | 6 | 4 075 | 11 691 |
+
+The training heavy users drew 2.68–5.23 DNS lookups/min.
+
+### 7.2 Development (`nv2-val`) and freeze
+
+- Calibration: 3 680 emissions, of which 3 638 are non-zero.
+- On `nv2-val` (1 380 emissions): unfamiliar **0.0145** [0, 0.0406], strong 0, no user
+  with a strong verdict.
+  - Most of it comes from the one heavy user, .132, at 13.9 % of emissions. That user
+    drew 5.30 lookups/min, above the training heavy maximum of 5.23.
+  - The criteria would be met, so §3 gives no cause for a change, and none was made.
+- Frozen: `dev/nv2-dev1.calibration.json`, sha256 `c311aeeb…5710`, commit `c7aee42`.
+- **Disclosure.** While checking .132, a command also printed the generator's habit-draw
+  parameters for the test users. These are parameters only, with no detector output on
+  test data. Nothing was changed after that point.
+
+### 7.3 Test (unseen users `nv2-test` + `nv2-test-shift`, run once): **PASS**
+
+Commit `e304425`; `test/nv2-test.json`.
+
+| Measure | Result | Criterion |
+|---|---|---|
+| Unfamiliar window FPR (22 users, 2 530 emissions) | **0.0059**, CI [0.0016, 0.0115] | ≤ 0.02, upper CI ≤ 0.05 — **pass** |
+| Strong window FPR | 0 [0, 0] | — |
+| Users with a strong verdict | **0** | 0 — **pass** |
+| Mean unfamiliar share by habit | light 0.010 (5 users), normal 0.004 (10), heavy 0.005 (7) | — |
+| Highest per-user share | 0.0435 (.151, normal) | — |
+| Windows strong under the NV1 `dst_hosts_60` ceiling (reported only) | 0 | — |
+
+- Drivers: `median_duration_s_60` (8), `median_duration_s_300` (5), and one each for
+  `dns_nxdomain_60`, `flows_60` and `bytes_out_log_60`.
+- No DNS-rate quantity drives a test verdict. That is unlike NV1, where heavy users
+  dominated.
+
+### 7.4 What this allows, and what it does not
+
+The claim of §5 is allowed: **for this lab population, the network detector has learned
+normal network use, with a measured false-unfamiliar rate of 0.6 % [0.2, 1.2] on 22
+unseen users.** Limits:
+
+- **Change 1 did not decide this result.** The old ceiling would have fired on 0 test
+  windows. The pass comes from calibration coverage, from change 2 and from this draw of
+  users.
+  - NV1's strong verdict came from one user's fan-out. A comparable fan-out did not
+    occur here.
+  - So the cost of change 1 stated in §1 is real, and its benefit on this data is
+    unmeasured.
+- **One population, one generator.** The habits are modelled ranges, with 22 test users
+  and 7 heavy. Validation shows that a heavy user just above the trained range still
+  gives about 14 % unfamiliar windows. Real users outside the modelled habits are untested.
+- **No attack recall.** Nothing here measures detection. That needs the team's
+  `net-portscan`, `net-slow-scan` and `net-ssh-guessing` runs.
+- **Coverage.** Visibility is still only the ATTACK and USERS segments (NV1 §2).
+
+### 7.5 Mode (as §6)
+
+- The live shadow calibration was replaced at ~08:50Z: `network-calibrate --datasets
+  nv2-train --write`, then a controller restart.
+- The live file is field-for-field identical to the frozen calibration (its canonical
+  JSON is byte-identical to `c311aeeb…`).
+- Live state: `calibrated_on` 3 680, no calibration error, detector `shadow (not used
+  for decisions)`, controller mode `monitor`.
+- Its status is **validated for benign false-unfamiliar rate (NV2)**; it is **not
+  validated for detection**. It stays in shadow (NV1 §6.2: attack recall and a human
+  decision are still needed).

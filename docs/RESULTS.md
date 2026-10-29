@@ -293,6 +293,34 @@ fresh data. Network attack recall is still unmeasured.
 - Evidence: `artifacts/evidence/nv1-2026-10-29/`;
   `engineering/NV1_NETWORK_NOVELTY_VALIDATION.md` §7.
 
+## 3f. NV2: network novelty revalidated on fresh unseen users (2026-10-29)
+
+A new protocol was predeclared before any new data. It made two changes:
+- calibration includes a stratified group of 8 heavy-habit users (13 heavy users in
+  training, 32 users in all);
+- the host-sweep ceiling counts only internal or unanswered destinations, not answered
+  internet hosts.
+
+The test users had new seeds and addresses unseen in training.
+
+| | Unfamiliar window rate | Users with a strong verdict |
+|---|---|---|
+| Development (12 users) | 0.0145 [0, 0.0406] | 0 |
+| **Test, run once (22 users, 2 530 emissions)** | **0.0059 [0.0016, 0.0115]** | **0** |
+
+The test passes both criteria (≤ 0.02 with upper CI ≤ 0.05; no strong verdict). Light,
+normal and heavy users all stay at ≤ 1 % on average.
+
+Limits:
+- The old host-sweep ceiling would also have fired on 0 test windows, so the ceiling
+  change was not exercised.
+- One lab population with generator-modelled habits. A heavy validation user just
+  above the trained range gave 14 % unfamiliar windows.
+- No attack recall: that needs team runs. The detector stays in shadow.
+
+- Evidence: `artifacts/evidence/nv2-2026-10-29/`;
+  `engineering/NV2_NETWORK_NOVELTY_REVALIDATION.md` §7.
+
 ## 4. The cost of ML over statistics
 
 At the *same* 1.30% validation FPR, the three detectors differ by three orders of
@@ -492,5 +520,6 @@ is blocked on team-run attack scenarios. The harness for it (M6) is complete.
 | Isolation, live-lab suite | `afw lab verify`; `AFW_LAB=1 pytest tests/lab` | live | 2026-10-27 20:59–21:00 | `m9-2026-10-27/` |
 | A3 selection (run once) | `a3_run.py <snap> select …` | `a3-sel`, `a3-sel-shift` (+ `p7-train`/`p7-val` for training) | capture 2026-10-29 03:11–04:13; run ~05:30 | `a3-2026-10-29/select/` |
 | NV1 calibration and test (once) | `nv1_eval.py <snap> dev …`, then `test …` | `nv1-train`, `nv1-val`; test `a3-sel`, `a3-sel-shift` | same capture; test ~05:40 | `nv1-2026-10-29/` |
+| NV2 calibration and test (once) | `nv2_eval.py <snap> dev …`, then `test … nv2-dev1.calibration.json c311aeeb…` | `nv2-train`, `nv2-val`; test `nv2-test`, `nv2-test-shift` | capture 2026-10-29 07:32–08:35; test ~08:45 | `nv2-2026-10-29/` |
 | A3 final evaluation (once) | `a3_run.py <snap> final … cand-S.pkl` | `p6-final`, `p6-final-shift`, `p6-final-v1` (+ preserved P1 sets) | capture 2026-10-29 05:42–06:29; run ~06:35 | `a3-2026-10-29/final/a3-final.json` |
 | Telemetry latency | `a3-2026-10-29/tools/latency.sh` | live, marked benign requests | 2026-10-29 ~05:35 | `a3-2026-10-29/telemetry-latency.txt` |

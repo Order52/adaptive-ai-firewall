@@ -1,6 +1,6 @@
 # Project status
 
-**As of 2026-10-29 ~06:50Z, branch `engineering-directive`.** This is the single status page.
+**As of 2026-10-29 ~09:00Z, branch `engineering-directive`.** This is the single status page.
 Milestone detail is in `engineering/AUTONOMOUS_PROGRESS.md`; per-criterion evidence is
 in `VALIDATION_MATRIX.md`. Older status files are in `docs/archive/` and are superseded.
 
@@ -36,9 +36,13 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
   - But S's security path flagged 4.75 % of windows from legitimate multi-account
     ("household") users, who were absent from the selection set.
   - S is not promoted.
-- *NV1: network novelty on varied non-web benign traffic.* **Failed** its one-shot test
-  on 22 unseen users: unfamiliar 6.8 %, and one legitimate heavy user hit the host-sweep
-  ceiling. The detector stays in shadow.
+- *Network novelty on varied non-web benign traffic.* NV1 **failed** its one-shot test
+  (unfamiliar 6.8 %, one heavy user hit the host-sweep ceiling). NV2, a new predeclared
+  protocol with stratified heavy-habit calibration, a host-sweep ceiling on internal or
+  unanswered destinations, and fresh unseen users, **passed** its one-shot test:
+  unfamiliar 0.6 % [0.2, 1.2] on 22 users, no strong verdict. This covers the benign
+  false-unfamiliar rate for this lab population only. Attack recall is unmeasured, and
+  the detector stays in shadow.
 - *Incremental supervised learning (river ARF/HAT).* Built with a full governance
   lifecycle; benchmarked on SYNTHETIC data only.
 
@@ -74,11 +78,12 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | P4 | Real online adaptation | DONE for the governed loop; no promotion |
 | P5 | Hardening | DONE: IDS mTLS, API HTTPS by default, directional real-country enforcement, node count reconciled |
 | P6/P7 | Generalization without sensitivity loss (predeclared, `engineering/P6_GENERALIZATION_AND_SENSITIVITY.md`) | DONE, negative: no eligible candidate in P6 or P7 (A2); Phase E never collected. P7 on clean data: FPR ≤ 0.016, ≤ 1/16 users restricted, only by the AUTH rule on one forgetful user (predicted). Human decision needed (`RESULTS.md` §3c) |
-| N1–N2 | Network visibility: Suricata flow/DNS/TLS/SSH metadata; residual network features; novelty detector | Live in **shadow** on ATTACK/USERS segments (ADR-042); calibration degenerate (web-only lab users) |
+| N1–N2 | Network visibility: Suricata flow/DNS/TLS/SSH metadata; residual network features; novelty detector | Live in **shadow** on ATTACK/USERS segments (ADR-042); calibration from varied benign users (NV2, validated for benign FP only) |
 | N3–N4 | Supervised known-threat classifier; withheld-family novelty | Code + tests (synthetic); evaluation BLOCKED-EXT |
 | N6 | Response states, shared-address guard | Deployed (ADR-043) |
 | A3 | AUTH conflict: account-aware evidence, login-scoped graduated controls (ADR-044, `engineering/A3_AUTH_CONTROLS.md`) | DONE, **negative at the final stage**: selection passed (S); final evaluation on Phase E failed F1 (security path 0.0475 on household users); F2–F5 and attack resistance passed; 0/4 255 legitimate logins refused across 5 unseen sets. Not promoted. Controls deployed live in monitor mode |
-| NV1 | Network novelty on varied benign non-web traffic (`engineering/NV1_NETWORK_NOVELTY_VALIDATION.md`) | DONE, **negative**: dev 1.0 %, one-shot test on 22 unseen users 6.8 % [0.9, 15.8] and 1 strong verdict (heavy user, `dst_hosts_60` ceiling). Shadow; calibration installed live (shadow, not validated) |
+| NV1 | Network novelty on varied benign non-web traffic (`engineering/NV1_NETWORK_NOVELTY_VALIDATION.md`) | DONE, **negative**: dev 1.0 %, one-shot test on 22 unseen users 6.8 % [0.9, 15.8] and 1 strong verdict (heavy user, `dst_hosts_60` ceiling) |
+| NV2 | Network novelty revalidation (`engineering/NV2_NETWORK_NOVELTY_REVALIDATION.md`) | DONE, **positive (benign FP only)**: dev 1.45 %; one-shot test on 22 fresh unseen users 0.59 % [0.16, 1.15], 0 strong. The host-sweep change was not exercised (old ceiling: 0 windows). NV2 calibration live in shadow, identical to the frozen one; not validated for detection |
 | Item 3 | Incremental supervised classifier (river ARF/HAT), verified delayed labels, poisoning/forgetting guards, lifecycle (`ml/incremental.py`) | Code + tests; SYNTHETIC benchmark only: not clearly better than periodic RF refit. Not wired live; never enforcing. Real labelled data BLOCKED-EXT |
 | Team procedure | All GNS3 scenarios incl. network (`TEAM_ATTACK_QUICKSTART.md`), withheld-family experiment (`NEW_THREAT_EXPERIMENT.md`) | Written; runs BLOCKED-EXT |
 | N7 | §8 new-threat experiment; cold restart; dataset archive | Protocol + offline core (run BLOCKED-EXT); restart recovered with no manual step; archive hashed |
@@ -113,16 +118,15 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
    Left: FW01's IDS feed cannot use RELP (OPNsense), so it keeps a ~100 s loss window.
    Real-country inbound enforcement can only be verified by read-back in this lab.
 6. **Residual poisoning risk** from 4 or more colluding similar sources.
-7. **Network-wide visibility is partial, and network novelty is not yet validated.**
+7. **Network-wide visibility is partial; network novelty is validated for benign FP only.**
    - *Visibility.* Only the ATTACK and USERS segments cross FW01's Suricata.
      DMZ/APP/DB/MGMT and intra-segment traffic are invisible, and TLS is opaque beyond
      SNI/version. Expanding the sensors is costed (`nv1-2026-10-29/fw01-load-*`) but not
      enabled.
-   - *NV1 test failed.* Legitimate heavy users with up to 5.7 DNS lookups/min were not
-     covered by the 3 heavy users in training. One heavy user reached the
-     10-hosts-per-minute host-sweep ceiling.
-   - *A further attempt* needs a new predeclared protocol, with per-habit or stratified
-     calibration and a reasoned host-sweep ceiling, plus fresh data.
+   - *NV1 failed; NV2 passed* on fresh unseen users (0.6 %, no strong verdict). Limits:
+     a single lab population with modelled habits. A validation heavy user just above
+     the trained DNS range gave 14 % unfamiliar windows. The host-sweep change was not
+     exercised by the test data.
    - *Network attack recall* needs the team's runs. The incremental classifier is not
      wired live.
 
