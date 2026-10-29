@@ -1,0 +1,30 @@
+{
+ "provenance": "EXTERNAL CIC-IDS2017 offline; within-run temporal holdout; behaviour-only features",
+ "counts": {
+  "benign": 13499,
+  "ftp_learn": 95,
+  "ftp_test(withheld,untouched)": 64,
+  "ssh_learn": 75,
+  "ssh_test": 51
+ },
+ "before_learning_ftp": {
+  "withheld_FTP_recall(untouched)": 0.0,
+  "known_SSH_recall": 0.9412
+ },
+ "during_learning": {
+  "ftp_learn_windows": 95,
+  "predicted_attack_before_learning_each (zero-day recall on the learn stream)": 0.8737
+ },
+ "after_learning_ftp": {
+  "withheld_FTP_recall(untouched)": 0.4531,
+  "known_SSH_recall(forgetting_check)": 0.9804,
+  "benign_fpr(sample)": 0.0
+ },
+ "verdict": {
+  "ftp_recall_before": 0.0,
+  "ftp_recall_after": 0.4531,
+  "improved": true,
+  "ssh_retained": 0.9804,
+  "note": "mechanisms for poisoning-resistant admission, delayed labels, checkpoints and rollback are in ml/incremental.py (ClassifierLifecycle), unit-tested on SYNTHETIC data; this demo exercises before/after + forgetting on real data."
+ }
+}
