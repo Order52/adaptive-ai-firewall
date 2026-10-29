@@ -1,0 +1,126 @@
+{
+ "stage": "dev",
+ "calibration": {
+  "path": "nv1-dev1.calibration.json",
+  "sha256": "90a1793b19f60ec837b324c30be5405e497cae14937263534a9ab0feadf9a877",
+  "data": {
+   "nv1-train": {
+    "net_events": 109615,
+    "windows": 2736,
+    "nonzero": 2615
+   }
+  },
+  "effective": {
+   "flows_60": 18.000000000000004,
+   "failed_60": 2.0000000000000004,
+   "dst_hosts_60": 7.000000000000001,
+   "dst_ports_60": 4.000000000000001,
+   "max_ports_per_host_60": 2.0000000000000004,
+   "udp_flows_60": 13.000000000000002,
+   "icmp_flows_60": 1.0000000000000002,
+   "ssh_flows_60": 5e-324,
+   "dns_queries_60": 13.000000000000002,
+   "dns_nxdomain_60": 2.0000000000000004,
+   "dns_names_60": 8.000000000000002,
+   "bytes_out_log_60": 9.194617411510949,
+   "median_duration_s_60": 2.0726830000000005,
+   "flows_300": 59.00000000000001,
+   "failed_300": 3.0000000000000004,
+   "dst_hosts_300": 14.000000000000002,
+   "dst_ports_300": 5.000000000000001,
+   "max_ports_per_host_300": 2.0000000000000004,
+   "udp_flows_300": 43.00000000000001,
+   "icmp_flows_300": 1.0000000000000002,
+   "ssh_flows_300": 5e-324,
+   "dns_queries_300": 42.00000000000001,
+   "dns_nxdomain_300": 4.000000000000001,
+   "dns_names_300": 15.000000000000002,
+   "bytes_out_log_300": 10.314967866299082,
+   "median_duration_s_300": 0.42842100000000005
+  },
+  "nonzero_share_per_quantity": {
+   "flows_60": 0.6436,
+   "failed_60": 0.0216,
+   "dst_hosts_60": 0.6436,
+   "dst_ports_60": 0.6436,
+   "max_ports_per_host_60": 0.6436,
+   "udp_flows_60": 0.6411,
+   "icmp_flows_60": 0.0073,
+   "ssh_flows_60": 0.0,
+   "dns_queries_60": 0.6078,
+   "dns_nxdomain_60": 0.0333,
+   "dns_names_60": 0.6078,
+   "bytes_out_log_60": 0.6436,
+   "median_duration_s_60": 0.6436,
+   "flows_300": 0.9558,
+   "failed_300": 0.0958,
+   "dst_hosts_300": 0.9558,
+   "dst_ports_300": 0.9558,
+   "max_ports_per_host_300": 0.9558,
+   "udp_flows_300": 0.9558,
+   "icmp_flows_300": 0.0398,
+   "ssh_flows_300": 0.0,
+   "dns_queries_300": 0.9357,
+   "dns_nxdomain_300": 0.1491,
+   "dns_names_300": 0.9357,
+   "bytes_out_log_300": 0.9558,
+   "median_duration_s_300": 0.9558
+  }
+ },
+ "val": {
+  "data": {
+   "nv1-val": {
+    "net_events": 50103,
+    "windows": 1368,
+    "nonzero": 1366
+   }
+  },
+  "unfamiliar": {
+   "rate": 0.0102,
+   "ci95": [
+    0.0037,
+    0.0168
+   ],
+   "n_sources": 12,
+   "n_windows": 1368
+  },
+  "strong": {
+   "rate": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "n_sources": 12,
+   "n_windows": 1368
+  },
+  "users_with_strong": [],
+  "per_user_unfamiliar_share": {
+   "10.77.20.124": 0.0,
+   "10.77.20.125": 0.0,
+   "10.77.20.126": 0.0175,
+   "10.77.20.127": 0.0,
+   "10.77.20.128": 0.0,
+   "10.77.20.129": 0.0263,
+   "10.77.20.130": 0.0088,
+   "10.77.20.131": 0.0351,
+   "10.77.20.132": 0.0175,
+   "10.77.20.133": 0.0,
+   "10.77.20.134": 0.0175,
+   "10.77.20.135": 0.0
+  },
+  "by_habit_mean_share": {
+   "normal": 0.0132,
+   "light": 0.0,
+   "heavy": 0.0175
+  },
+  "drivers": {
+   "median_duration_s_60": 12,
+   "bytes_out_log_60": 2,
+   "dst_hosts_60": 1
+  },
+  "criteria_if_this_were_the_test": {
+   "pass": true,
+   "why": []
+  }
+ }
+}
