@@ -21,6 +21,7 @@ from pathlib import Path
 import structlog
 
 from afw.config import LabConfig
+from afw.correlation.auth import AuthTracker
 from afw.correlation.engine import CorrelationEngine
 from afw.domain.common import utcnow
 from afw.domain.detection import DetectionResult, DetectorKind
@@ -39,7 +40,7 @@ from afw.persistence.repositories import (
     SqlAnalysisRepository,
     SqlEventRepository,
 )
-from afw.policy.decision import DecisionEngine
+from afw.policy.decision import DecisionEngine, LoginContext
 from afw.policy.response import accounts_behind
 from afw.policy.service import PolicyService
 from afw.profiling.adaptation import DriftMonitor, PersistentReputation, SourceReputation
@@ -118,7 +119,9 @@ class Controller:
             join_wait_s=cfg.telemetry.join_wait_s,
         )
         self.inference = InferenceEngine()
-        self.correlation = CorrelationEngine(cfg.risk)
+        # A3: account-aware login evidence over the observation stream
+        self.auth = AuthTracker(cfg.application(self.app_id).login_routes())
+        self.correlation = CorrelationEngine(cfg.risk, auth=self.auth)
         self.decisions = DecisionEngine(cfg)
         self.reputation = reputation or SourceReputation()
         self.shadow = shadow
@@ -268,7 +271,12 @@ class Controller:
     def ingest_observations(self, obs: list[HttpObservation]) -> None:
         """Feed already-normalized observations (offline replay of recorded runs)."""
         for o in self.events.add_observations(obs):
-            self.windows.add(o)
+            self._accept(o)
+
+    def _accept(self, o: HttpObservation) -> None:
+        """Every stored observation reaches the windows and the login tracker."""
+        self.windows.add(o)
+        self.auth.add(o)
 
     def degraded(self) -> bool:
         """Evidence is degraded if lines were dropped in the last 60 s, the WAF sensor
@@ -341,7 +349,7 @@ class Controller:
             if len(accepted) < len(obs):
                 self.stats.inc("duplicate_request_id", len(obs) - len(accepted))
             for o in accepted:
-                self.windows.add(o)
+                self._accept(o)
         out: list[RiskAssessment] = []
         if (
             self.last_tick is None
@@ -353,7 +361,10 @@ class Controller:
             for fv in vectors:
                 out.append(self._process_window(fv, now, degraded))
             self._record_timeline(now, vectors, out)
-            out += self._ids_only(now, {fv.source_ip for fv in vectors}, degraded)
+            http_sources = {fv.source_ip for fv in vectors}
+            out += self._ids_only(now, http_sources, degraded)
+            out += self._auth_only(now, http_sources, degraded)
+            self.auth.prune(now)
             if self.lifecycle is not None and self.lifecycle.check(self.app_id, now):
                 self.reload()  # probation breached: the parent champion is active again
         self.tick_ms.append((time.perf_counter() - t0) * 1000)
@@ -418,12 +429,34 @@ class Controller:
             out.append(ra)
         return out
 
+    def _auth_only(
+        self, now: datetime, http_sources: set[IPv4Address], degraded: bool
+    ) -> list[RiskAssessment]:
+        """AUTH-only view (A3): login activity from a source with no HTTP window now
+        (a slow guesser sends too few requests for one)."""
+        out = []
+        protected = [p.network for p in self.cfg.safety.protected]
+        for src in self.auth.active_sources(now) - http_sources:
+            if any(src in n for n in protected):
+                continue
+            ra = self.correlation.assess_auth_only(self.app_id, src, now)
+            if ra is None:
+                continue
+            self.stats.inc("auth_only_assessment")
+            self.analysis.add_assessment(ra)
+            self._decide(ra, now, degraded)
+            out.append(ra)
+        return out
+
     def _routes_of(self, fv: FeatureVector) -> set[str]:
         recent = self.events.recent_observations(limit=60, source_ip=fv.source_ip)
         return {o.route for o in recent if o.observed_at >= fv.window_start}
 
     def _decide(self, ra: RiskAssessment, now: datetime, degraded: bool) -> None:
-        if ra.band is RiskBand.NONE or self.inference.strategy is Strategy.STATIC:
+        if self.inference.strategy is Strategy.STATIC:
+            return
+        # account-aware login evidence acts below the score bands (A3 §2.2)
+        if ra.band is RiskBand.NONE and EvidenceCategory.AUTH not in ra.corroborating_categories:
             return
         if self.policies.has_active(ra.source_ip, {PolicyKind.SOURCE_BLOCK}):
             return  # already maximally contained for this service
@@ -435,12 +468,25 @@ class Controller:
                 now,
                 timedelta(seconds=self.cfg.safety.shared_address_window_s),
             )
-        intent = self.decisions.decide(ra, prior, now, accounts)
+        active, since, repeats = self.policies.login_controls_of(ra.source_ip, now)
+        login = LoginContext(
+            active=active,
+            failures_since=self.auth.failures_since(ra.source_ip, since, now) if since else 0,
+            recent_repeats=repeats,
+        )
+        if EvidenceCategory.AUTH in ra.corroborating_categories and not accounts:
+            accounts = accounts_behind(  # shared addresses never get an automatic login deny
+                self.events.recent_observations(limit=5000, source_ip=ra.source_ip),
+                now,
+                timedelta(seconds=self.cfg.safety.shared_address_window_s),
+            )
+        intent = self.decisions.decide(ra, prior, now, accounts, login)
         if intent is None:
             return
-        if intent.kind is not PolicyKind.SOURCE_BLOCK and self.policies.has_active(
-            ra.source_ip, {intent.kind}
-        ):
+        if intent.kind not in (
+            PolicyKind.SOURCE_BLOCK,
+            PolicyKind.LOGIN_CONTROL,  # the ladder itself decides about active controls
+        ) and self.policies.has_active(ra.source_ip, {intent.kind}):
             return
         if intent.kind is not PolicyKind.WATCH:  # observe-only is not suspicion
             self.reputation.taint(ra.source_ip, now, f"policy:{intent.kind.value}")

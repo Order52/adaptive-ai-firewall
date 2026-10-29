@@ -32,22 +32,23 @@ from ipaddress import IPv4Address
 from typing import Any
 
 from afw.config import LabConfig
+from afw.correlation.auth import AuthTracker
 from afw.correlation.engine import CorrelationEngine
 from afw.domain.detection import DetectionResult
 from afw.domain.events import HttpObservation, IdsAlert
 from afw.domain.features import FeatureVector
-from afw.domain.policy import PolicyKind
+from afw.domain.policy import PolicyIntent, PolicyKind, RateProfile
 from afw.domain.profiles import BehaviorProfile
-from afw.domain.risk import RiskAssessment, RiskBand
+from afw.domain.risk import EvidenceCategory, RiskAssessment, RiskBand
 from afw.features.extract import EndpointCatalog
 from afw.features.windows import replay_windows
 from afw.ml.datasets import DatasetManifest, LabelIndex, Role
 from afw.ml.inference import InferenceEngine, LoadedModel, Strategy
-from afw.policy.decision import DecisionEngine
+from afw.policy.decision import DecisionEngine, LoginContext
 
 # A source is "contained" by the adaptive controller when it proposes a policy
 # that actually changes the source's traffic. WATCH is observation only.
-_TRAFFIC_AFFECTING = {PolicyKind.SOURCE_BLOCK, PolicyKind.RATE_LIMIT}
+_TRAFFIC_AFFECTING = {PolicyKind.SOURCE_BLOCK, PolicyKind.RATE_LIMIT, PolicyKind.LOGIN_CONTROL}
 
 # (window, strategy) -> detections; see run_experiment
 Scorer = Callable[[FeatureVector, Strategy], list[DetectionResult]]
@@ -90,6 +91,23 @@ class _SourceTrack:
     first_contained_at: datetime | None = None
     # [start, end) of every traffic-affecting action, for per-request impact
     contained: list[tuple[datetime, datetime]] = field(default_factory=list)
+    # A3 login controls, [start, end, profile); never counted as containment
+    login: list[tuple[datetime, datetime, RateProfile]] = field(default_factory=list)
+
+    def login_context(self, now: datetime, auth: AuthTracker, ip: IPv4Address) -> LoginContext:
+        live = [c for c in self.login if c[0] <= now < c[1]]
+        active = None
+        since = None
+        if live:
+            deny = [c for c in live if c[2] is RateProfile.LOGIN_DENY]
+            cur = deny[-1] if deny else live[-1]
+            active, since = cur[2], cur[0]
+        ended = sum(1 for c in self.login if c[1] <= now and now - c[1] <= timedelta(hours=1))
+        return LoginContext(
+            active=active,
+            failures_since=auth.failures_since(ip, since, now) if since else 0,
+            recent_repeats=ended,
+        )
 
 
 @dataclass
@@ -117,11 +135,21 @@ class ArmReport:
     benign_sources: int = 0
     benign_sources_flagged: int = 0
     benign_sources_flagged_ips: list[str] = field(default_factory=list)
+    # of which a site-wide restriction (block or rate limit), A3 criterion B2
+    benign_sources_site_restricted: int = 0
+    benign_sources_site_restricted_ips: list[str] = field(default_factory=list)
     # Legitimate-traffic impact, per request (each benign observation counted once;
     # impacted if its source was rate limited or blocked at the request's own time)
     benign_requests: int = 0
     benign_requests_impacted: int = 0
     legit_request_success: float | None = None
+    # A3 friction: legitimate login requests a login control would have refused
+    # (nginx limit_req semantics on the recorded request times), and the users with
+    # any login control
+    benign_login_requests: int = 0
+    benign_login_refused: int = 0
+    benign_sources_login_controlled: int = 0
+    benign_sources_login_controlled_ips: list[str] = field(default_factory=list)
     # Detection latency: first attack observation -> first traffic-affecting action
     detection_latency_s: dict[str, float] = field(default_factory=dict)
     mean_detection_latency_s: float | None = None
@@ -228,6 +256,7 @@ def _run_arm(
     labels: LabelIndex,
     scorer: Scorer | None = None,
     extra: ExtraArm | None = None,
+    a3: bool = True,
 ) -> ArmReport:
     engine = InferenceEngine()
     engine.load(profile, list(models))
@@ -249,12 +278,56 @@ def _run_arm(
         score = hooks.score
     after = None if hooks is None else hooks.after
 
-    correlation = CorrelationEngine(cfg.risk)
+    login_routes = cfg.application(profile.app_id).login_routes()
+    auth = AuthTracker(login_routes) if a3 else None
+    correlation = CorrelationEngine(cfg.risk, auth=auth)
     for m in models:
         correlation.set_score_span(m.record.detector, m.record.benign_score_quantiles)
     for a in sorted(ids_alerts, key=lambda x: x.observed_at):
         correlation.add_ids(a)
     decisions = DecisionEngine(cfg)
+    logins = [o for o in observations if o.route in login_routes and o.method == "POST"]
+    fed = [0]
+
+    def feed(until: datetime) -> None:
+        if auth is None:
+            return
+        while fed[0] < len(logins) and logins[fed[0]].observed_at <= until:
+            auth.add(logins[fed[0]])
+            fed[0] += 1
+
+    def act(ra: RiskAssessment, now: datetime, track: _SourceTrack) -> PolicyIntent | None:
+        """The decision for one assessment, applied to the arm's bookkeeping."""
+        block_active = track.block_until is not None and now < track.block_until
+        rl_active = track.ratelimit_until is not None and now < track.ratelimit_until
+        auth_ev = EvidenceCategory.AUTH in ra.corroborating_categories
+        if strategy is Strategy.STATIC or block_active:
+            return None
+        if ra.band is RiskBand.NONE and not (auth is not None and auth_ev):
+            return None
+        prior = correlation.prior_enforcements(ra.source_ip, timedelta(hours=6), now)
+        login = track.login_context(now, auth, ra.source_ip) if auth is not None else None
+        candidate = decisions.decide(ra, prior, now, login=login)
+        if candidate is None or (
+            rl_active and candidate.kind in (PolicyKind.RATE_LIMIT, PolicyKind.WATCH)
+        ):
+            return None
+        decision_counts[candidate.kind.value] = decision_counts.get(candidate.kind.value, 0) + 1
+        if candidate.kind in _TRAFFIC_AFFECTING and track.first_contained_at is None:
+            track.first_contained_at = now  # also for decisions from the AUTH-only view
+        until = now + timedelta(seconds=candidate.duration_s or 0)
+        if candidate.kind is PolicyKind.SOURCE_BLOCK:
+            track.block_until = until
+            track.contained.append((now, until))
+            correlation.note_enforcement(ra.source_ip, now)
+        elif candidate.kind is PolicyKind.RATE_LIMIT:
+            track.ratelimit_until = until
+            track.contained.append((now, until))
+        elif candidate.kind is PolicyKind.LOGIN_CONTROL and candidate.rate_profile is not None:
+            if candidate.rate_profile is RateProfile.LOGIN_DENY:  # replaces a throttle
+                track.login = [(a, min(b, now), p) for a, b, p in track.login]
+            track.login.append((now, until, candidate.rate_profile))
+        return candidate
 
     first_attack_obs: dict[IPv4Address, datetime] = {}
     for o in observations:
@@ -264,9 +337,26 @@ def _run_arm(
     report = ArmReport(arm=arm, strategy=strategy.value if extra is None else extra.label)
     decision_counts: dict[str, int] = {}
     score_latencies_us: list[float] = []
+    tick: list[datetime | None] = [None]
+    at_tick: set[IPv4Address] = set()
+
+    def auth_only(t: datetime) -> None:
+        """A3 AUTH-only view at tick ``t`` for login activity without a window."""
+        if auth is None:
+            return
+        for src in sorted(auth.active_sources(t) - at_tick):
+            ra = correlation.assess_auth_only(profile.app_id, src, t)
+            if ra is not None:
+                act(ra, t, tracks.setdefault(src, _SourceTrack()))
 
     for fv in replay_windows(observations, cfg.window, _catalog(cfg, profile)):
         now = fv.window_end
+        if tick[0] is not None and now != tick[0]:
+            auth_only(tick[0])
+            at_tick.clear()
+        tick[0] = now
+        at_tick.add(fv.source_ip)
+        feed(now)
         clock[0] = now
         role = labels.label(fv)
         track = tracks.setdefault(fv.source_ip, _SourceTrack())
@@ -281,28 +371,15 @@ def _run_arm(
 
         block_active = track.block_until is not None and now < track.block_until
         rl_active = track.ratelimit_until is not None and now < track.ratelimit_until
-
-        intent = None
-        if strategy is not Strategy.STATIC and ra.band is not RiskBand.NONE and not block_active:
-            prior = correlation.prior_enforcements(fv.source_ip, timedelta(hours=6), now)
-            candidate = decisions.decide(ra, prior, now)
-            if candidate is not None and not (
-                candidate.kind is not PolicyKind.SOURCE_BLOCK and rl_active
-            ):
-                intent = candidate
-
-        if intent is not None:
-            decision_counts[intent.kind.value] = decision_counts.get(intent.kind.value, 0) + 1
-            if intent.kind is PolicyKind.SOURCE_BLOCK:
-                track.block_until = now + timedelta(seconds=intent.duration_s or 0)
-                track.contained.append((now, track.block_until))
-                correlation.note_enforcement(fv.source_ip, now)
-            elif intent.kind is PolicyKind.RATE_LIMIT:
-                track.ratelimit_until = now + timedelta(seconds=intent.duration_s or 0)
-                track.contained.append((now, track.ratelimit_until))
-
+        login_active = any(a <= now < b for a, b, _ in track.login)
+        intent = act(ra, now, track)
+        # login controls are traffic-affecting (on the login routes); B2 counts the
+        # site-wide restrictions separately (benign_sources_site_restricted)
         contained_now = (
-            block_active or rl_active or (intent is not None and intent.kind in _TRAFFIC_AFFECTING)
+            block_active
+            or rl_active
+            or login_active
+            or (intent is not None and intent.kind in _TRAFFIC_AFFECTING)
         )
         if contained_now and track.first_contained_at is None:
             track.first_contained_at = now
@@ -327,7 +404,10 @@ def _run_arm(
             report.n_unlabeled_windows += 1
         # Role.PROBE windows are deliberately ignored.
 
+    if tick[0] is not None:
+        auth_only(tick[0])
     _finalize_sources(report, tracks, labels, first_attack_obs)
+    _login_friction(report, logins, tracks, labels)
     report.attack_requests_exposed = _exposed_attack_requests(observations, tracks, labels)
     report.benign_requests, report.benign_requests_impacted = _benign_request_impact(
         observations, tracks, labels
@@ -366,6 +446,9 @@ def _finalize_sources(
             if contained:
                 report.benign_sources_flagged += 1
                 report.benign_sources_flagged_ips.append(str(ip))
+            if track.contained:
+                report.benign_sources_site_restricted += 1
+                report.benign_sources_site_restricted_ips.append(str(ip))
     if latencies:
         report.mean_detection_latency_s = round(sum(latencies) / len(latencies), 1)
         report.median_detection_latency_s = round(_percentile(latencies, 50), 1)
@@ -416,6 +499,68 @@ def _benign_request_impact(
     return total, hit
 
 
+LOGIN_RATE_PER_S = 3 / 60  # A3: 3 per minute
+LOGIN_BURST = 4
+
+
+def refused_logins(
+    times: Sequence[datetime], controls: Sequence[tuple[datetime, datetime, RateProfile]]
+) -> list[bool]:
+    """Which of one source's login requests a login control would refuse: a deny
+    refuses everything; a throttle applies nginx ``limit_req`` (rate 3/min, burst 4,
+    nodelay): ``excess = max(excess - rate*dt, 0) + 1``, refused if above the burst
+    (a refused request does not change the state). The limiter starts empty at each
+    control's start, as the WAF's key only exists while the source is throttled."""
+    out = []
+    excess: float | None = None
+    last: datetime | None = None
+    current: tuple[datetime, datetime, RateProfile] | None = None
+    for t in times:
+        live = [c for c in controls if c[0] <= t < c[1]]
+        if not live:
+            out.append(False)
+            current, excess, last = None, None, None
+            continue
+        if any(c[2] is RateProfile.LOGIN_DENY for c in live):
+            out.append(True)
+            continue
+        c = live[-1]
+        if c is not current:
+            current, excess, last = c, None, None
+        if excess is None or last is None:
+            excess, last = 0.0, t  # the first request creates the key
+            out.append(False)
+            continue
+        new = max(excess - LOGIN_RATE_PER_S * (t - last).total_seconds(), 0.0) + 1.0
+        if new > LOGIN_BURST:
+            out.append(True)
+            continue
+        excess, last = new, t
+        out.append(False)
+    return out
+
+
+def _login_friction(
+    report: ArmReport,
+    logins: Sequence[HttpObservation],
+    tracks: dict[IPv4Address, _SourceTrack],
+    labels: LabelIndex,
+) -> None:
+    by_src: dict[IPv4Address, list[datetime]] = {}
+    for o in logins:
+        if labels.role_at(o.client_ip, o.observed_at) is Role.BENIGN:
+            by_src.setdefault(o.client_ip, []).append(o.observed_at)
+    for ip, times in by_src.items():
+        report.benign_login_requests += len(times)
+        t = tracks.get(ip)
+        if t is not None and t.login:
+            report.benign_login_refused += sum(refused_logins(times, t.login))
+    for ip, t in tracks.items():
+        if t.login and labels.label_ip(ip) is Role.BENIGN:
+            report.benign_sources_login_controlled += 1
+            report.benign_sources_login_controlled_ips.append(str(ip))
+
+
 def _finalize_rates(report: ArmReport) -> None:
     tp, fp, fn = report.tp, report.fp, report.fn
     if tp + fp > 0:
@@ -455,6 +600,7 @@ def run_experiment(
     ids_alerts: Sequence[IdsAlert] = (),
     scorer: Scorer | None = None,
     extra_arms: Sequence[ExtraArm] = (),
+    a3: bool = True,
 ) -> ExperimentReport:
     """Replay one labeled dataset through M0/M1/M2 and return a comparison.
 
@@ -481,6 +627,7 @@ def run_experiment(
             ids_alerts=ids_alerts,
             labels=labels,
             scorer=scorer,
+            a3=a3,
         )
         for arm, strategy in _ARMS
     ] + [
@@ -494,6 +641,7 @@ def run_experiment(
             ids_alerts=ids_alerts,
             labels=labels,
             extra=x,
+            a3=a3,
         )
         for x in extra_arms
     ]

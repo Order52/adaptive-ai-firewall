@@ -19,6 +19,7 @@ import structlog
 
 from afw.domain.common import new_id, stable_hash, utcnow
 from afw.domain.policy import (
+    TERMINAL_STATES,
     ContractTarget,
     CountryTarget,
     OperatingMode,
@@ -120,6 +121,35 @@ class PolicyService:
             and p.intent.target.source_ip == source
             for p in self.repo.in_states(OWNING_STATES | {S.PENDING_APPROVAL, S.VALIDATED})
         )
+
+    def login_controls_of(
+        self, source: IPv4Address, now: datetime, within: timedelta = timedelta(hours=1)
+    ) -> tuple[RateProfile | None, datetime | None, int]:
+        """(profile in force or pending, when it started, login controls on the source
+        that ended within ``within``): the inputs of the A3 login ladder."""
+        live = OWNING_STATES | {S.PENDING_APPROVAL, S.VALIDATED}
+        active: RateProfile | None = None
+        since: datetime | None = None
+        for p in self.repo.in_states(live):
+            t = p.intent.target
+            if p.kind is not PolicyKind.LOGIN_CONTROL or not isinstance(t, SourceTarget):
+                continue
+            if t.source_ip != source or p.is_expired(now):
+                continue
+            if active is not RateProfile.LOGIN_DENY:
+                active = p.intent.rate_profile
+                since = p.effective_at or p.created_at
+        ended = sum(
+            1
+            for p in self.repo.recent(500)
+            if p.kind is PolicyKind.LOGIN_CONTROL
+            and isinstance(p.intent.target, SourceTarget)
+            and p.intent.target.source_ip == source
+            and p.state in TERMINAL_STATES | {S.EXPIRING, S.SUPERSEDED}
+            and p.state is not S.REJECTED
+            and now - p.updated_at <= within
+        )
+        return active, since, ended
 
     # -------------------------------------------------------------- mutations
     def simulate(self, intent: PolicyIntent, degraded: bool = False) -> Verdict:
@@ -226,6 +256,7 @@ class PolicyService:
         blocked: set[IPv4Address] = set()
         denied: set[IPv4Address] = set()
         rates: dict[IPv4Address, RateProfile] = {}
+        logins: dict[IPv4Address, RateProfile] = {}
         contracts: dict[str, ContractTarget] = {}
         geo: dict[Direction, set[str]] = {d: set() for d in DIRECTIONS}
         for p in self.repo.in_states(OWNING_STATES):
@@ -240,6 +271,10 @@ class PolicyService:
                 prof = p.intent.rate_profile or RateProfile.MODERATE
                 if rates.get(t.source_ip) is not RateProfile.STRICT:
                     rates[t.source_ip] = prof
+            elif p.kind is PolicyKind.LOGIN_CONTROL and isinstance(t, SourceTarget):
+                prof = p.intent.rate_profile or RateProfile.LOGIN_THROTTLE
+                if logins.get(t.source_ip) is not RateProfile.LOGIN_DENY:
+                    logins[t.source_ip] = prof
             elif p.kind is PolicyKind.GEO_BLOCK and isinstance(t, CountryTarget):
                 if t.simulated:
                     blocked |= self.validator.geo_members(t)
@@ -254,6 +289,7 @@ class PolicyService:
             blocked_sources=frozenset(blocked),
             waf_denied_sources=frozenset(denied),
             rate_limited=rates,
+            login_controls=logins,
             contracts=tuple(sorted(contracts.values(), key=lambda c: c.route)),
             geo_inbound=frozenset(geo["inbound"]),
             geo_outbound=frozenset(geo["outbound"]),
@@ -349,6 +385,12 @@ class PolicyService:
                     if obs.rate_limited is None
                     else (isinstance(t, SourceTarget) and t.source_ip in obs.rate_limited)
                 )
+            case PolicyKind.LOGIN_CONTROL:
+                if obs.login_controls is None or not isinstance(t, SourceTarget):
+                    return None
+                served = obs.login_controls.get(t.source_ip)
+                # a deny also covers a throttle on the same source
+                return served is p.intent.rate_profile or served is RateProfile.LOGIN_DENY
             case PolicyKind.HTTP_CONTRACT:
                 return (
                     None
@@ -365,6 +407,7 @@ class PolicyService:
                 PolicyKind.SOURCE_BLOCK: t.source_ip in d.blocked_sources,
                 PolicyKind.WAF_DENY: t.source_ip in d.waf_denied_sources,
                 PolicyKind.RATE_LIMIT: t.source_ip in d.rate_limited,
+                PolicyKind.LOGIN_CONTROL: t.source_ip in d.login_controls,
             }.get(p.kind, False)
         if isinstance(t, ContractTarget):
             return t in d.contracts
@@ -523,7 +566,12 @@ class PolicyService:
             if legit is False:
                 traffic = None  # cannot distinguish a block from an outage
                 verification["note"] = "legitimate probe failed: service problem, not proof"
-        if p.kind in (PolicyKind.RATE_LIMIT, PolicyKind.WAF_DENY, PolicyKind.HTTP_CONTRACT):
+        if p.kind in (
+            PolicyKind.RATE_LIMIT,
+            PolicyKind.WAF_DENY,
+            PolicyKind.HTTP_CONTRACT,
+            PolicyKind.LOGIN_CONTROL,
+        ):
             traffic = True  # WAF helper runs positive/negative self-tests before reporting
             verification["traffic"] = "waf_helper_selftest"
         if traffic is None:

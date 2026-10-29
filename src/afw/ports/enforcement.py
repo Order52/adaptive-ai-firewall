@@ -20,6 +20,8 @@ class DesiredState(DomainModel):
     blocked_sources: frozenset[IPv4Address] = frozenset()
     waf_denied_sources: frozenset[IPv4Address] = frozenset()
     rate_limited: dict[IPv4Address, RateProfile] = Field(default_factory=dict)
+    # A3: login routes only; LOGIN_THROTTLE or LOGIN_DENY per source
+    login_controls: dict[IPv4Address, RateProfile] = Field(default_factory=dict)
     contracts: tuple[ContractTarget, ...] = ()
     # real-country policies (ADR-036): ISO codes per direction
     geo_inbound: frozenset[str] = frozenset()
@@ -34,6 +36,7 @@ class ObservedState(DomainModel):
     blocked_sources: frozenset[IPv4Address] | None = None
     waf_denied_sources: frozenset[IPv4Address] | None = None
     rate_limited: dict[IPv4Address, RateProfile] | None = None
+    login_controls: dict[IPv4Address, RateProfile] | None = None
     contracts: tuple[ContractTarget, ...] | None = None
     revision: str | None = None
     # countries whose every network is in the live pf table (read back)

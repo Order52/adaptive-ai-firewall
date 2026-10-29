@@ -22,6 +22,7 @@ class MemoryBackend:
             PolicyKind.WAF_DENY,
             PolicyKind.RATE_LIMIT,
             PolicyKind.HTTP_CONTRACT,
+            PolicyKind.LOGIN_CONTROL,
         }
     )
     state: DesiredState = field(default_factory=DesiredState)
@@ -42,6 +43,7 @@ class MemoryBackend:
             blocked_sources=self.state.blocked_sources,
             waf_denied_sources=self.state.waf_denied_sources,
             rate_limited=dict(self.state.rate_limited),
+            login_controls=dict(self.state.login_controls),
             contracts=self.state.contracts,
             geo_inbound=self.state.geo_inbound,
             geo_outbound=self.state.geo_outbound,

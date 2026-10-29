@@ -9,12 +9,15 @@ from ipaddress import IPv4Address, IPv4Network
 
 from afw.config import LabConfig
 from afw.domain.policy import (
+    LOGIN_PROFILES,
+    SITE_PROFILES,
     ContractTarget,
     CountryTarget,
     OperatingMode,
     PolicyIntent,
     PolicyKind,
     PolicyOrigin,
+    RateProfile,
     SourceTarget,
 )
 from afw.policy.geo import GeoTables
@@ -62,14 +65,23 @@ class PolicyValidator:
                 PolicyKind.WATCH
                 | PolicyKind.RATE_LIMIT
                 | PolicyKind.SOURCE_BLOCK
-                | (PolicyKind.WAF_DENY)
+                | PolicyKind.WAF_DENY
+                | PolicyKind.LOGIN_CONTROL
             ):
                 if not isinstance(target, SourceTarget):
                     errors.append(f"{intent.kind} requires a single source target")
                 else:
                     errors += self._check_source(target)
-                if intent.kind is PolicyKind.RATE_LIMIT and intent.rate_profile is None:
+                if (
+                    intent.kind is PolicyKind.RATE_LIMIT
+                    and intent.rate_profile not in SITE_PROFILES
+                ):
                     errors.append("rate_limit requires an approved rate_profile")
+                if intent.kind is PolicyKind.LOGIN_CONTROL:
+                    if intent.rate_profile not in LOGIN_PROFILES:
+                        errors.append("login_control requires login_throttle or login_deny")
+                    if not app.login_routes():
+                        errors.append(f"{intent.app_id!r} has no login route to control")
                 if intent.kind is not PolicyKind.WATCH:
                     errors += self._check_duration(intent.duration_s)
             case PolicyKind.HTTP_CONTRACT:
@@ -94,16 +106,28 @@ class PolicyValidator:
         if active_count >= s.max_active_policies:
             errors.append(f"active policy limit {s.max_active_policies} reached")
 
+        # A3: login controls touch only the login routes, so their own (longer) bound
+        # applies; denying logins for a shared address always needs a human
+        shared_deny = (
+            intent.rate_profile is RateProfile.LOGIN_DENY
+            and "shared_address" in intent.reason_codes
+        )
+        max_auto = (
+            s.max_auto_login_control_s.get(intent.rate_profile.value, 0)
+            if intent.kind is PolicyKind.LOGIN_CONTROL and intent.rate_profile is not None
+            else s.max_auto_duration_s
+        )
         auto = (
             mode is OperatingMode.AUTO
             and intent.origin is PolicyOrigin.AI
             and intent.kind in s.auto_kinds
-            and (intent.duration_s or 0) <= s.max_auto_duration_s
+            and (intent.duration_s or 0) <= max_auto
             and not degraded_telemetry
             and SHARED_ADDRESS_GUARD not in intent.reason_codes
+            and not shared_deny
         )
         if mode is OperatingMode.AUTO and intent.origin is PolicyOrigin.AI and not auto:
-            if SHARED_ADDRESS_GUARD in intent.reason_codes:
+            if SHARED_ADDRESS_GUARD in intent.reason_codes or shared_deny:
                 notes.append("shared address: requires human approval")
             elif degraded_telemetry:
                 notes.append("telemetry degraded: automatic enforcement suspended")

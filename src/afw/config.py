@@ -70,7 +70,18 @@ class SafetyConfig(_Cfg):
     max_active_policies: int = 100
     max_auto_actions_per_minute: int = 10
     auto_kinds: frozenset[PolicyKind] = frozenset(
-        {PolicyKind.WATCH, PolicyKind.RATE_LIMIT, PolicyKind.SOURCE_BLOCK, PolicyKind.WAF_DENY}
+        {
+            PolicyKind.WATCH,
+            PolicyKind.RATE_LIMIT,
+            PolicyKind.SOURCE_BLOCK,
+            PolicyKind.WAF_DENY,
+            PolicyKind.LOGIN_CONTROL,
+        }
+    )
+    max_auto_login_control_s: dict[str, int] = Field(
+        default_factory=lambda: {"login_throttle": 900, "login_deny": 3600},
+        description="automatic bound per login-control profile (A3): they touch only the "
+        "login routes; a login deny on a shared address always needs approval",
     )
     require_corroboration_for_block: int = Field(
         default=2, description="independent evidence categories required for any block"

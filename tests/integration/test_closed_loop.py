@@ -10,7 +10,7 @@ from conftest import T0, FakeClock
 from fixtures.synthetic import traffic
 
 from afw.container import build_container
-from afw.domain.policy import OperatingMode, PolicyKind, PolicyState
+from afw.domain.policy import OperatingMode, PolicyKind, PolicyState, RateProfile
 from afw.domain.profiles import ProfileStatus
 from afw.ml.datasets import DatasetManifest, Purpose, Role, SourceLabel
 
@@ -90,20 +90,21 @@ def _auto(c, result):
     c.policy_service.reconcile()
 
 
-def test_bruteforce_alone_is_rate_limited_not_blocked(trained):
+def test_bruteforce_alone_gets_login_controls_not_a_block(trained):
     """Every attacker request is a failed login: once those requests are removed nothing
     is left, so the behaviour anomaly is the AUTH evidence again, not corroboration
-    (ADR-027, SV-1). One category never authorizes a block."""
+    (ADR-027, SV-1). One category never authorizes a block. Authentication evidence
+    alone is answered on the login routes (A3, ADR-044): a throttle, then a deny when
+    the guessing goes on; nothing site-wide."""
     c, clock, result = trained
     _auto(c, result)
     policies = _run_live(c, clock, "bruteforce")
     assert not [p for p in policies if p.kind is PolicyKind.SOURCE_BLOCK]
-    limits = [
-        p
-        for p in policies
-        if p.kind is PolicyKind.RATE_LIMIT and str(p.intent.target.source_ip) == ATTACKER
-    ]
-    assert limits
+    mine = [p for p in policies if str(p.intent.target.source_ip) == ATTACKER]
+    assert not [p for p in mine if p.kind is PolicyKind.RATE_LIMIT]
+    profiles = [p.intent.rate_profile for p in mine if p.kind is PolicyKind.LOGIN_CONTROL]
+    assert profiles[-1] is RateProfile.LOGIN_THROTTLE  # recent() is newest first
+    assert RateProfile.LOGIN_DENY in profiles
     for p in policies:
         if str(p.intent.target.source_ip) in BENIGN:
             assert p.kind is PolicyKind.WATCH

@@ -90,7 +90,8 @@ class RiskAssessment(DomainModel):
     view: str = Field(
         default="http",
         description="'http': a per-source HTTP window; 'ids_only': IDS alerts from a "
-        "source with no HTTP traffic in the window (observe-only, M5)",
+        "source with no HTTP traffic in the window (observe-only, M5); 'auth_only': "
+        "account-aware login evidence from a source with no HTTP window (A3)",
     )
 
     @property

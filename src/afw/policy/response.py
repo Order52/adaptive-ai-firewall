@@ -49,8 +49,10 @@ class ResponseState(StrEnum):
 def response_state(ra: RiskAssessment, cfg: LabConfig) -> ResponseState:
     r = cfg.risk
     cats = set(ra.corroborating_categories)
-    if ra.score < r.watch:
+    if ra.score < r.watch and cats <= {EvidenceCategory.BEHAVIOR_ML}:
         return ResponseState.NORMAL
+    if ra.score < r.watch:
+        return ResponseState.SUSPICIOUS  # a rule fired (e.g. account guessing), weakly
     if cats <= {EvidenceCategory.BEHAVIOR_ML} or ra.view == "ids_only":
         return ResponseState.UNFAMILIAR
     corroborated = len(cats) >= cfg.safety.require_corroboration_for_block
