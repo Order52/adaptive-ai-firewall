@@ -204,10 +204,12 @@ async function renderAdaptation() {
 async function renderModels() {
   let ms, ps;
   try { [ms, ps] = await Promise.all([api("/api/models"), api("/api/profiles")]); } catch (_) { return; }
-  const prof = ps.map((p) => `<tr><td>v${p.version}</td><td>${badge(p.status === "trusted" ? "var(--good)" : "var(--neutral)", p.status)}</td><td class="num">${p.provenance.n_windows}</td><td class="num">${p.provenance.n_sources}</td><td>${esc(p.provenance.dataset_ids.join(", "))}</td></tr>`).join("");
+  const qual = { trusted: "in use (enforcing in enforce mode)", candidate: "registered — NOT qualified for promotion", retired: "superseded" };
+  const prof = ps.map((p) => `<tr><td>v${p.version}</td><td>${badge(p.status === "trusted" ? "var(--good)" : p.status === "candidate" ? "var(--warning)" : "var(--neutral)", p.status)}</td><td class="sub">${esc(qual[p.status] || "")}</td><td class="num">${p.provenance.n_windows}</td><td class="num">${p.provenance.n_sources}</td><td>${esc(p.provenance.dataset_ids.join(", "))}</td></tr>`).join("");
   const mods = ms.slice(0, 12).map((m) => { const v = m.validation_metrics; return `<tr><td>${esc(m.detector)}</td><td>p${m.profile_version}</td><td>${esc(m.status)}</td><td class="num">${fmt(v.fpr, 4)}</td><td class="num">${fmt(v.recall, 3)}</td><td class="num">${fmt(v.roc_auc, 3)}</td><td class="num">${fmt(v.mean_latency_us, 0)}</td><td class="num">${v.model_bytes ? fmt(v.model_bytes / 1024, 0) : "–"}</td></tr>`; }).join("");
-  $("#models").innerHTML = `<div class="table-wrap short"><table><thead><tr><th>Profile</th><th>Status</th><th class="num">Windows</th><th class="num">Sources</th><th>Datasets</th></tr></thead><tbody>${prof || `<tr><td colspan="5" class="empty">No profiles.</td></tr>`}</tbody></table></div>
-    <div class="table-wrap short" style="margin-top:10px"><table><thead><tr><th>Detector</th><th>Profile</th><th>Status</th><th class="num">Val FPR</th><th class="num">Val recall</th><th class="num">AUC</th><th class="num">µs/score</th><th class="num">KiB</th></tr></thead><tbody>${mods || `<tr><td colspan="8" class="empty">No models.</td></tr>`}</tbody></table></div>`;
+  $("#models").innerHTML = `<div class="table-wrap short"><table><thead><tr><th>Profile</th><th>Status</th><th>Qualification</th><th class="num">Windows</th><th class="num">Sources</th><th>Datasets</th></tr></thead><tbody>${prof || `<tr><td colspan="6" class="empty">No profiles.</td></tr>`}</tbody></table></div>
+    <p class="sub">“Candidate” means registered, <b>not</b> that it passed promotion. Qualification is the predeclared generalization + sensitivity evaluation (P1/P6/P7/A3→A4, <code>RESULTS.md</code>): no candidate has qualified, so <b>v2 stays trusted and nothing is promoted</b>. Val FPR below is the bootstrap gate only.</p>
+    <div class="table-wrap short" style="margin-top:6px"><table><thead><tr><th>Detector</th><th>Profile</th><th>Status</th><th class="num">Val FPR</th><th class="num">Val recall</th><th class="num">AUC</th><th class="num">µs/score</th><th class="num">KiB</th></tr></thead><tbody>${mods || `<tr><td colspan="8" class="empty">No models.</td></tr>`}</tbody></table></div>`;
 }
 
 async function renderExperiments() {
@@ -259,7 +261,9 @@ async function renderChallenger() {
   const prob = p ? kvList({ status: p.status, model: p.model_id, parent: p.parent_model_id, until: p.until, windows: p.windows, anomalous: p.anomalous, "baseline rate": fmt(p.baseline_rate, 3) }) : `<div class="empty">No active probation (champion unchanged by online learning).</div>`;
   const evals = c.evaluations.map((e) => `<div class="ev"><b>${tShort(e.evaluated_at)}</b> ${badge(e.passed ? "var(--good)" : "var(--critical)", e.passed ? "gate passed — candidate frozen, awaiting admin" : "gate failed — not promotable")} · learned ${e.n_learned}<br>${checks(e.checks)}</div>`).join("");
   const hist = c.history.map((h) => `<div class="ev">${badge(h.status === "active" ? "var(--warning)" : h.status === "rolled_back" ? "var(--critical)" : "var(--good)", h.status)} ${esc(h.model_id)} ${h.reason ? `— ${esc(h.reason)}` : ""}</div>`).join("");
-  $("#challenger").innerHTML = `<h3>Probation</h3>${prob}<h3>Gate evaluations</h3>${evals || `<div class="empty">No evaluations yet.</div>`}<h3>Promotion history</h3>${hist || `<div class="empty">No promotions.</div>`}`;
+  const lastFail = (c.evaluations[0]?.checks || []).filter((x) => !x.passed).map((x) => x.name);
+  const summary = `<div class="sub" style="margin-bottom:8px">Lifecycle state: <b>no model promoted</b> (champion unchanged by online learning). The gate is exercised live and ${c.evaluations.length && !c.evaluations[0].passed ? `<b>refuses</b> the challenger${lastFail.length ? ` (${esc(lastFail.join(", "))})` : ""}` : "has no passing candidate"}; a pass needs attack-recall data (team runs) and a human promotion. Promote/probation/rollback mechanics are covered by the M3 lifecycle tests.</div>`;
+  $("#challenger").innerHTML = `${summary}<h3>Probation</h3>${prob}<h3>Gate evaluations</h3>${evals || `<div class="empty">No evaluations yet.</div>`}<h3>Promotion history</h3>${hist || `<div class="empty">No promotions (nothing has qualified).</div>`}`;
 }
 
 async function renderIdsOnly() {
