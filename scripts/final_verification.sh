@@ -50,8 +50,18 @@ note "A3: candidate S failed final F1 on households (RESULTS.md §3d)"
 note "A4: distinct_usernames ceiling-only; S passed selection + final, households/shared 0.0 FPR (RESULTS.md §3g)"
 note "NV1: network novelty failed (RESULTS.md §3e); NV2: passed benign FP, 0.0059 (RESULTS.md §3f)"
 note "Item 3: incremental classifier benchmarked SYNTHETIC only"
+R=artifacts/evidence/offline-cic-2026-10-29/cic-offline-results.json
+if [ -f "$R" ]; then
+  ok "OFFLINE CIC-IDS2017 (separate gate): RF recall $(python3 -c "import json;print(round(json.load(open('$R'))['random_forest']['recall'],3))") @ FPR $(python3 -c "import json;print(json.load(open('$R'))['random_forest']['fpr'])"); held-out FTP->SSH $(python3 -c "import json;print(json.load(open('$R'))['held_out_family']['train_ftp_test_ssh']['withheld_family_recall'])") (RESULTS.md §3h)"
+else
+  note "OFFLINE CIC-IDS2017: not run here; reproduce via README.md (RESULTS.md §3h, GATE_STATES.md)"
+fi
 
-echo; echo "-- 4. Acceptance-gate matrix --"
+echo; echo "-- 3b. Separated gate states (docs/engineering/GATE_STATES.md) --"
+note "LIVE GNS3 attack: BLOCKED | OFFLINE recorded-attack: MET | supervised: MET(offline)"
+note "novelty: PARTIAL | safe adaptation/promotion: PARTIAL | network enforcement: MET"
+
+echo; echo "-- 4. Acceptance-gate matrix (LIVE GNS3) --"
 printf "  %-26s %-12s %s\n" "GATE" "STATUS" "WHY"
 printf "  %-26s %-12s %s\n" "A Infrastructure" "MET" "lab, isolation, deploy, recovery"
 printf "  %-26s %-12s %s\n" "B Detection"       "BLOCKED" "needs team attack runs (recall/FN unmeasurable)"
