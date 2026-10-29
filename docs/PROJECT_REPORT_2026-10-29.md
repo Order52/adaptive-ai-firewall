@@ -1,7 +1,6 @@
 # AI-Adaptive-Firewall: complete project report
 
-**As of 2026-10-29 ~10:40Z, branch `engineering-directive` (HEAD `f83c472` plus this
-report).** This is the one document that covers everything. It replaces the earlier
+**As of 2026-10-29 ~13:05Z, branch `engineering-directive`.** This is the one document that covers everything. It replaces the earlier
 version of this file (~02:15Z) and `PROJECT_REPORT_2026-10-28.md`.
 
 It covers:
@@ -109,7 +108,7 @@ lab with 8 VMs, 6 zone switches and 2 host connectors (`GNS3_TOPOLOGY.md`).
 
 | # | Item | Status |
 |---|---|---|
-| 1 | Resolve the AUTH conflict under amendment A3 | **Done, negative at the final stage.** The controls work (0 of 4 255 legitimate logins refused across 5 unseen sets). Candidate S passed selection but **failed the one-shot final (F1)**: its security path flags legitimate multi-account households. Not promoted. The next amendment is the owner's decision |
+| 1 | Resolve the AUTH conflict (A3, then A4) | **Done, positive under A4.** A3's candidate S failed its final (F1) on legitimate households. **A4** (predeclared) makes `distinct_usernames` ceiling-only and measures FPR on household/shared sets; on fresh unseen data with household coverage, S **passed** selection and the one-shot final (security FPR 0.0112 [0,0.034], 0.0 on households/shared, 0/2 791 logins refused, SYNTHETIC sensitivity 1.0). Not promoted; monitor mode. No real attack-detection claim |
 | 2 | Make network novelty meaningful | **Benign side done.** NV1 failed; NV2 (new protocol, fresh unseen users) **passed**: 0.59 % [0.16, 1.15] unfamiliar, 0 strong. Segment visibility documented. Sensor expansion assessed (Suricata on DMZ/APP/DB **not enabled**, reasons recorded). pf lateral-movement evidence added in shadow. **Attack recall unmeasured (team)** |
 | 3 | Supervised learning (RF baseline + incremental ARF/HAT, governed) | **Code + tests**; SYNTHETIC benchmark only (incremental not clearly better than periodic RF refit). Never enforcing; not wired live. Real labelled data needed (team) |
 | 4 | New-threat experiment (withheld family) | Protocol predeclared (`content_discovery` withheld); **run blocked on the team** |
@@ -275,7 +274,7 @@ There was still no eligible candidate. The only restriction for D, F, S and FS w
 rate limit on one "forgetful" persona, caused by the AUTH brute-force rule and not by
 ML. This conflict led to A3.
 
-### 4.2 A3: AUTH conflict, account-aware evidence and login-only controls
+### 4.2 A3 → A4: AUTH conflict, account-aware evidence, household-robust security path
 
 **Design (ADR-044, `engineering/A3_AUTH_CONTROLS.md`).**
 - AUTH evidence is counted per account and per source.
@@ -304,8 +303,24 @@ ML. This conflict led to A3.
 | F3–F5, A3c5 | Pass |
 | Shift sets (reported, not criteria) | S security path 0.176 and 0.135 |
 
-S is **not promoted**. Phase E is consumed. A new amendment is the owner's decision
-(§10, step 3).
+S is **not promoted**. Phase E is consumed.
+
+**A4 (predeclared, run this session).** Diagnosis on the consumed Phase E data showed
+287 of 293 household flags were the `distinct_usernames` quantity, calibrated at 1. A4
+makes that quantity **ceiling-only** (fires at ≥ 5 accounts) and makes benign FPR a
+criterion on household and shared sets. On fresh unseen data (disjoint from training;
+an initial address/seed collision with the training sets was caught at validation and
+re-captured), candidate S **passed** selection and the one-shot final:
+
+| A4 final set | S security-path FPR |
+|---|---|
+| `a4-final` (natural) | 0.0112 [0, 0.0343] |
+| `a4-final-hh` (households) | 0.0 |
+| `a4-final-shift` (shared) | 0.0 |
+
+0 of 2 791 legitimate logins refused; SYNTHETIC must-detect sensitivity 1.0 (nominal and
+stressed). The A3 household failure is resolved. Still SYNTHETIC on the attack side, and
+not promoted (monitor mode). Details: `engineering/A4_AUTH_HOUSEHOLD_REVALIDATION.md` §8.
 
 ### 4.3 NV1 and NV2: network novelty on ordinary (non-web) network use
 
