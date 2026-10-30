@@ -1,0 +1,223 @@
+{
+ "provenance": "CIC-IDS2017 Tuesday+Friday offline; behaviour-only; attack oversampled; shuffled base",
+ "family_counts": {
+  "tue_ssh": 126,
+  "benign": 23299,
+  "tue_ftp": 159,
+  "fri_attack": 79
+ },
+ "withheld_experiments": {
+  "tue_ftp": {
+   "learn_windows": 95,
+   "test_windows(untouched)": 64,
+   "withheld_recall_before": {
+    "recall": 0.8281,
+    "k": 53,
+    "n": 64,
+    "ci95": [
+     0.7179,
+     0.9012
+    ]
+   },
+   "withheld_recall_after": {
+    "recall": 0.7344,
+    "k": 47,
+    "n": 64,
+    "ci95": [
+     0.6152,
+     0.827
+    ]
+   },
+   "improved": false,
+   "known_families_recall_before": {
+    "tue_ssh": {
+     "recall": 1.0,
+     "k": 126,
+     "n": 126,
+     "ci95": [
+      0.9704,
+      1.0
+     ]
+    },
+    "fri_attack": {
+     "recall": 0.9747,
+     "k": 77,
+     "n": 79,
+     "ci95": [
+      0.9123,
+      0.993
+     ]
+    }
+   },
+   "known_families_recall_after": {
+    "tue_ssh": {
+     "recall": 1.0,
+     "k": 126,
+     "n": 126,
+     "ci95": [
+      0.9704,
+      1.0
+     ]
+    },
+    "fri_attack": {
+     "recall": 0.9241,
+     "k": 73,
+     "n": 79,
+     "ci95": [
+      0.844,
+      0.9647
+     ]
+    }
+   },
+   "benign_fpr_after(sample)": 0.00067,
+   "zero_day_on_learn_stream(predict-before-learn)": 1.0
+  },
+  "tue_ssh": {
+   "learn_windows": 75,
+   "test_windows(untouched)": 51,
+   "withheld_recall_before": {
+    "recall": 1.0,
+    "k": 51,
+    "n": 51,
+    "ci95": [
+     0.93,
+     1.0
+    ]
+   },
+   "withheld_recall_after": {
+    "recall": 1.0,
+    "k": 51,
+    "n": 51,
+    "ci95": [
+     0.93,
+     1.0
+    ]
+   },
+   "improved": false,
+   "known_families_recall_before": {
+    "tue_ftp": {
+     "recall": 1.0,
+     "k": 159,
+     "n": 159,
+     "ci95": [
+      0.9764,
+      1.0
+     ]
+    },
+    "fri_attack": {
+     "recall": 0.9873,
+     "k": 78,
+     "n": 79,
+     "ci95": [
+      0.9317,
+      0.9978
+     ]
+    }
+   },
+   "known_families_recall_after": {
+    "tue_ftp": {
+     "recall": 0.9874,
+     "k": 157,
+     "n": 159,
+     "ci95": [
+      0.9553,
+      0.9965
+     ]
+    },
+    "fri_attack": {
+     "recall": 0.9494,
+     "k": 75,
+     "n": 79,
+     "ci95": [
+      0.8769,
+      0.9801
+     ]
+    }
+   },
+   "benign_fpr_after(sample)": 0.0,
+   "zero_day_on_learn_stream(predict-before-learn)": 1.0
+  },
+  "fri_attack": {
+   "learn_windows": 47,
+   "test_windows(untouched)": 32,
+   "withheld_recall_before": {
+    "recall": 0.0,
+    "k": 0,
+    "n": 32,
+    "ci95": [
+     0.0,
+     0.1072
+    ]
+   },
+   "withheld_recall_after": {
+    "recall": 0.7188,
+    "k": 23,
+    "n": 32,
+    "ci95": [
+     0.5463,
+     0.8444
+    ]
+   },
+   "improved": true,
+   "known_families_recall_before": {
+    "tue_ftp": {
+     "recall": 1.0,
+     "k": 159,
+     "n": 159,
+     "ci95": [
+      0.9764,
+      1.0
+     ]
+    },
+    "tue_ssh": {
+     "recall": 1.0,
+     "k": 126,
+     "n": 126,
+     "ci95": [
+      0.9704,
+      1.0
+     ]
+    }
+   },
+   "known_families_recall_after": {
+    "tue_ftp": {
+     "recall": 1.0,
+     "k": 159,
+     "n": 159,
+     "ci95": [
+      0.9764,
+      1.0
+     ]
+    },
+    "tue_ssh": {
+     "recall": 1.0,
+     "k": 126,
+     "n": 126,
+     "ci95": [
+      0.9704,
+      1.0
+     ]
+    }
+   },
+   "benign_fpr_after(sample)": 0.00633,
+   "zero_day_on_learn_stream(predict-before-learn)": 0.766
+  }
+ },
+ "summary": {
+  "tue_ftp": {
+   "before": 0.8281,
+   "after": 0.7344,
+   "n_test": 64
+  },
+  "tue_ssh": {
+   "before": 1.0,
+   "after": 1.0,
+   "n_test": 51
+  },
+  "fri_attack": {
+   "before": 0.0,
+   "after": 0.7188,
+   "n_test": 32
+  }
+ }
+}
