@@ -126,7 +126,7 @@ Botnet / DDoS (independent day, families and tool). Provenance + sha256 recorded
 | Supervised ML vs static | ML catches **128** attack windows static misses; static catches **0** ML misses |
 | Hybrid (ML ∪ novelty) | recall 0.93 but precision 0.44 — **novelty false-strongs hurt** |
 | Incremental ARF vs periodic batch RF | ARF recall 0.94 / precision 0.77; batch recall 0.89 / precision 0.90, slightly cheaper — **no winner** |
-| Self-learning, Friday (novel family) | **0.0 → 0.72** (23/32, CI [0.55, 0.84]), no forgetting |
+| Self-learning, Friday (novel family) | **0.0 → 0.72** (23/32, CI [0.55, 0.84]; ≈0.68 over 10 seeds); old family retained only **with rehearsal** (erratum) |
 | Self-learning, Tuesday SSH / FTP | SSH 1.0 → 1.0 (no change); FTP 0.83 → 0.73 (**slightly worse**) |
 | Scan ceiling 15 ports/60 s vs real NMAP scan | catches the 997-port burst, but 13–57 % benign-source FPR over long horizons; **50–100 ports → detected at 0 benign FP** |
 
@@ -139,7 +139,8 @@ governed-lifecycle refusal; benign generalisation (A4, NV2).
 
 **Proven offline on real recorded traffic (separate gate, audited):** brute-force behaviour
 is learned (not leakage); the AI clearly beats static Suricata on brute force; self-learning
-works on a genuinely novel family without forgetting.
+works on a genuinely novel family — with rehearsal; without it forgetting can be
+catastrophic (`engineering/ERRATUM_FORGETTING.md`).
 
 **Not proven (needs in-lab attack traffic):** live attack recall / false negatives;
 independent value over static rules on the lab; live adaptation benefit; any live promotion;

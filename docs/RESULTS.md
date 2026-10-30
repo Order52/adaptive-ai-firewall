@@ -383,8 +383,8 @@ Domain adaptation is required before any of this transfers to the lab. Evidence:
 different day/families/tool): the model is **family-specific** (Tuesday brute force → Friday
 attacks recall **0.11**; within-Friday only 0.27 — port-scan/botnet/DDoS are hard for window
 features); the **fixed scan ceiling misses the real slow NMAP scan** (1/79 windows,
-0.9 % benign false-strong); **self-learning works on the independent family** (0.0 → 0.625,
-no forgetting); batch vs incremental **comparable** (no superiority claim).
+0.9 % benign false-strong); **self-learning works on the independent family** (0.0 → 0.625 in one run; ≈0.68 over 10 seeds;
+old-family retention needs rehearsal — see `engineering/ERRATUM_FORGETTING.md`); batch vs incremental **comparable** (no superiority claim).
 
 ## 4. The cost of ML over statistics
 

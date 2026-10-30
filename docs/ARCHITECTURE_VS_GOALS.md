@@ -31,7 +31,10 @@ Evidence: `engineering/OFFLINE_CIC_AUDIT.md`, `OFFLINE_INDEPENDENCE.md`,
 
 - **Demonstrated offline, on genuinely independent data, but conditional.** On CIC Friday
   (different day/family/tool), a challenger learns the withheld family **0.0 → 0.72**
-  (23/32, 95 % CI [0.55, 0.84]) with **no forgetting** of the earlier family.
+  (23/32, 95 % CI [0.55, 0.84]). **Correction (`engineering/ERRATUM_FORGETTING.md`):** that run did not show
+  retention. Over 10 seeds on held-out data the learner *without* rehearsal is unstable
+  (old-family recall 0.78 ± 0.36, down to 0.08); *with* rehearsal, as the production learner
+  does, it is 0.999.
 - **Crucial honest limit (new):** the improvement appears **only when the withheld family is
   genuinely novel** (base model at 0.0). For families the model already detects, learning
   adds nothing (SSH 1.0 → 1.0) or slightly **hurts** (FTP 0.83 → 0.73). So "self-learning
@@ -118,7 +121,8 @@ declared complete.**
 - **Learns useful behavioural patterns:** **yes** for benign (lab) and brute force (offline,
   audited); **family-specific**, not general.
 - **Improves from independently-verified new evidence:** **yes, offline, on independent
-  data** (0 → 0.72, no forgetting) — but **only for genuinely novel families**.
+  data** (0 → ≈0.68 over 10 seeds, old family retained at 0.999 *only with rehearsal*) — but
+  **only for genuinely novel families**.
 - **Measurable value beyond static rules:** **yes, decisively, on brute force** (ML 0.90 vs
   static 0.0); **marginal on harder families**.
 - **Reliable network protection + governance:** **yes, fully** (verified enforcement, guards,

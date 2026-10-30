@@ -34,8 +34,11 @@ gate (`engineering/GATE_STATES.md`).
   survives a 300 s anti-overlap gap).
 - **Self-learning on a genuinely independent capture** (CIC Friday — different day, family
   and tool): a challenger learns the withheld family (recall **0.0 → 0.625** on untouched
-  held-out) with **no catastrophic forgetting** of the earlier family (1.0). This is the
-  strongest adaptation evidence in the project.
+  held-out; one seed). **That run did not show retention** — see
+  `engineering/ERRATUM_FORGETTING.md`: over 10 seeds on held-out data the incremental learner
+  is unstable without rehearsal (old-family recall 0.78 ± 0.36, down to 0.08) and stable with
+  it (0.999). Still the strongest adaptation evidence in the project, but conditional on
+  rehearsal.
 - Cross-protocol generalisation **within** brute force (FTP → withheld SSH 0.99).
 
 ## 2. What failed / the honest limits
@@ -77,7 +80,7 @@ in-lab evaluation, in-lab novelty recall, a governed promotion if a candidate qu
 | Learns legitimate behaviour (benign) | **Yes, proven on the lab** (A4, NV2) |
 | Learns known malicious behaviour | **Yes for brute force, offline & audited; family-specific; not on the lab** |
 | Recognises previously unfamiliar malicious behaviour | **Partial** — cross-protocol within brute force; **fixed scan detection misses slow scans**; live recall blocked |
-| Improves future detection through adaptation | **Yes, offline, on independent data (0 → 0.625, no forgetting); modest**; not better than batch; not shown live |
+| Improves future detection through adaptation | **Yes, offline, on independent data (0 → ≈0.68 over 10 seeds; retention needs rehearsal); modest**; not better than batch; not shown live |
 | Safe model governance | **Yes** — gate refuses unqualified promotion live; nothing promoted; gates intact |
 | Real network enforcement | **Yes** — verified, read-back, guards, 41/41 |
 | Independent value beyond static rules | **Not demonstrated** — needs the in-lab five-way comparison |
@@ -85,7 +88,8 @@ in-lab evaluation, in-lab novelty recall, a governed promotion if a candidate qu
 **Summary.** The project is a genuinely engineered, safety-first adaptive firewall with a
 rigorous, **self-audited** methodology. It **demonstrates real — if modest and
 domain-limited — self-learning**: on a completely independent capture it learns a new
-attack family without forgetting the old one. It does **not** yet demonstrate effective,
+attack family, and keeps the old one only when rehearsal is used (without it, forgetting
+can be catastrophic). It does **not** yet demonstrate effective,
 general, live attack detection, and it does **not** show that adaptation beats static
 approaches. Those claims are deliberately withheld until in-lab evidence exists. By the
 project's own honest standard — *meaningful, independently measurable adaptation and

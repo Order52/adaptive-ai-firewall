@@ -158,7 +158,9 @@ labelled by attacker IP. **Separate gate from live GNS3.**
   **port-feature artifact** (behaviour-only → 0.66). FTP→SSH 0.99 is cross-protocol *within
   brute force*, **not universal zero-day**.
 - **Self-learning:** a challenger that knows SSH (0.94) learns withheld FTP → recall 0.0 →
-  0.453 on untouched held-out, SSH retained (0.98, **no catastrophic forgetting**), 0 FP.
+  0.453 on untouched held-out, 0 FP. **Retention was not actually demonstrated by that run**
+  (see `engineering/ERRATUM_FORGETTING.md`: without rehearsal forgetting can be catastrophic;
+  with rehearsal old-family recall is 0.999 over 10 seeds).
 
 ---
 
@@ -207,7 +209,7 @@ governed-lifecycle refusal, benign generalisation (A4, NV2).
 **Proven offline on real recorded attack traffic (separate gate, audited):** the pipeline +
 supervised models learn brute-force **behaviour** (not leakage) at 0 FP on the sample;
 cross-protocol generalisation within brute force; a modest but real self-learning improvement
-without forgetting.
+(forgetting is controlled only with rehearsal; see `engineering/ERRATUM_FORGETTING.md`).
 **NOT proven (needs in-lab attack traffic — team only):** live attack recall / FN (B),
 independent value over static rules (E), live adaptation benefit, any live promotion, universal
 zero-day, cross-domain transfer.

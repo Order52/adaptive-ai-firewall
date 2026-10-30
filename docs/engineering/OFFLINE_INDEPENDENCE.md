@@ -62,14 +62,16 @@ Challenger trained on Tuesday brute force (knows it: recall 1.0), **withhold Fri
 attacks** (different day, families, tool), learn them incrementally, test on **untouched
 held-out Friday windows**:
 
-| | Withheld Friday recall | Tuesday brute-force recall (forgetting) |
+| | Withheld Friday recall | Tuesday brute-force recall (on TRAINING windows — **not a retention test**) |
 |---|---|---|
 | Before learning | 0.000 | 1.0 |
-| After learning | **0.625** | 1.0 (no forgetting) |
+| After learning | **0.625** | 1.0 (training windows; see `ERRATUM_FORGETTING.md`) |
 
 This is the **strongest adaptation evidence** so far: on a **genuinely independent** capture
 (different day, attack family and tool), the challenger learns the new pattern (0 → 0.625)
-and does **not** forget the old one. It is **modest** (0.625, and the test holdout is within
+but the old-family retention shown here was measured on training windows and is NOT a
+retention test — see `ERRATUM_FORGETTING.md` (without rehearsal forgetting can be catastrophic).
+The new-family gain is **modest** (0.625, and the test holdout is within
 one Friday run, not a second independent Friday run), but it is real and cross-dataset.
 
 ## 5. Batch vs incremental — comparable, no winner
