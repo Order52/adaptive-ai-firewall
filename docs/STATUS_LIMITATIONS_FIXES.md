@@ -20,7 +20,7 @@ Earlier overclaims were audited and corrected; the corrected versions are used h
 | Benign generalisation (login controls A4, network novelty NV2) | **Proven on the lab** |
 | Brute-force detection on real recorded traffic (CIC-IDS2017, offline) | **Demonstrated, audited** — recall 0.846, 0 FP on 13,499 benign windows |
 | Self-learning on independent recorded data | **Demonstrated, conditional** — works for genuinely novel families only |
-| AI value over static rules (offline) | **Measured** — decisive on brute force, marginal on harder families |
+| AI value over static rules (offline) | **Measured, with a fair baseline** — about 2× static Suricata's recall on brute-force-style activity (0.90 vs 0.43; 0.88 vs 0.28) at near-zero false positives; complementary to static; marginal on harder families (`ERRATUM_STATIC_BASELINE.md`) |
 | FW01 Suricata OOM | **Fixed**, persistent across 3 reboots |
 | **Live attack detection in the GNS3 lab** | **BLOCKED** — needs in-lab attack traffic (safety boundary) |
 | Independent value beyond static rules *on the live lab* | **BLOCKED** (same reason) |
