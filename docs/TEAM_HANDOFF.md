@@ -412,51 +412,43 @@ have a login on the lab host, read `~/.config/afw/LAB_ACCESS.md`. The kinds of l
 | Database | 10.77.60.10:5432 from DB01/APP01 | user `rental` — password from the owner |
 | Web app test accounts | https://10.77.30.10/ | synthetic users `user1`…`user50` (password pattern `pw-N`) |
 
-### 11.1 Opening every website from your own computer (Tailscale)
+### 11.1 ONE command to open every website (Tailscale)
 
-The lab lives on the host, which has the Tailscale address **100.103.204.8**. The web interfaces
-are only reachable from the host, so you forward them through SSH. Install Tailscale, join the
-network, then run **one** command on your own computer and leave it running:
+The lab lives on the host (Tailscale address **100.103.204.8**). Install Tailscale, join the
+network, then paste **this one command** into a terminal on your own computer and leave it running:
 
 ```bash
-ssh -N \
+ssh -tt \
     -L 18080:10.77.50.10:8080 \
     -L 18443:10.77.50.1:443 \
     -L 13080:127.0.0.1:3080 \
-    gns3@100.103.204.8
+    -L 18444:127.0.0.1:18444 \
+    gns3@100.103.204.8 \
+    'ssh -F ~/.config/afw/ssh_config -N -L 127.0.0.1:18444:10.77.30.10:443 usr01'
 ```
 
-Then open these in your browser (accept the certificate warning, or trust `lab-ca.pem`):
+It asks for the host login once, then everything below works. **Ctrl+C closes all of it.**
 
-| Site | Open this on your computer | What it is | Login |
+| Site | Open this in your browser | What it is | Login |
 |---|---|---|---|
-| **Dashboard / controller API** | https://localhost:18080/ | Live view: detections, risk scores, models, challenger lifecycle, mode | Paste a token when asked (viewer is enough to look; do not use admin to browse) |
+| **Dashboard / controller** | https://localhost:18080/ | Live detections, risk, models, learning lifecycle, mode | Paste a token (viewer is enough to look) |
 | **FW01 OPNsense** | https://localhost:18443/ | The firewall: rules, aliases, Suricata alerts | user `root` + the FW01 password |
 | **GNS3 web interface** | http://localhost:13080/ | The lab canvas, start/stop VMs, consoles | the GNS3 user and password |
+| **Rental web app** (the protected site) | https://localhost:18444/ | The site as a customer sees it (reached through USR01) | `user1`…`user50`, password `pw-1`…`pw-50` |
 
-The **rental web app** (the protected website the attacks target) is in the DMZ and the host cannot
-reach it directly, by design. Reach it through USR01, a normal user machine, with a second command
-(a second terminal, also left running):
-
-```bash
-ssh -N -J gns3@100.103.204.8 -L 18444:10.77.30.10:443 afw@10.77.20.10
-```
-
-Open https://localhost:18444/ — the rental app, exactly as a customer sees it. Log in as `user1` …
-`user50`, password `pw-1` … `pw-50` (user N has password `pw-N`). SSH asks for the `afw` account's
-password (see §11).
+Accept the browser's certificate warning (the lab has its own certificate authority).
 
 **Warnings**
 - **Do not browse the rental app during an attack run or a dataset capture.** Your clicks arrive from
-  USR01 and become part of the recorded "normal" traffic, which contaminates the evidence. Looking
-  at the dashboard, OPNsense or GNS3 is fine (they are management traffic).
-- If a port is already in use on your computer, change the number before the colon (`-L 28080:…`)
-  and use the same number in the browser.
+  USR01 and are recorded as normal traffic, which contaminates the evidence. The other three sites are
+  management traffic and are safe at any time.
 - Do not use the `admin` token to browse the dashboard: it can switch the controller to enforce mode.
-- A command-line shell on any VM: `ssh -J gns3@100.103.204.8 afw@<VM address>` (addresses in §2);
-  the account has passwordless `sudo`.
-- Not web pages, so not in this table: the FW01 and VM consoles (telnet ports in §11), and the
-  database (port 5432, only from DB01/APP01).
+- If a port is already used on your computer, change the number before the first colon
+  (`-L 28080:...`) and use that number in the browser.
+- A shell on any VM: `ssh -J gns3@100.103.204.8 afw@<VM address>` (addresses in section 2); the account
+  has passwordless `sudo`.
+- Not web pages, so not above: the FW01/VM consoles (telnet ports in section 11) and the database
+  (port 5432, only from DB01/APP01).
 
 ---
 
