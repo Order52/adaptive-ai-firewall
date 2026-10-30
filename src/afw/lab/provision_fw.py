@@ -25,6 +25,10 @@ from afw.lab.pki import ensure_leaf
 SECRETS = Path("~/.config/afw/opnsense").expanduser()
 ASSETS = Path(__file__).resolve().parents[3] / "lab" / "opnsense"
 PROMPT = r"AFWSH# $"
+# Guest swap + boot hook (FW01 is a no-swap nano image; Suricata was OOM-killed under load).
+RESOURCE_HOOK = "/usr/local/etc/rc.syshook.d/start/99-afw-resources"
+SWAP_FILE = "/swap0"
+SWAP_FSTAB = "md99 none swap sw,file=/swap0,late 0 0"
 
 
 def _secret(name: str, nbytes: int) -> str:
@@ -95,6 +99,20 @@ class FwShell:
                 return
         raise RuntimeError("could not reach a root shell on FW01")
 
+    def logout(self) -> None:
+        """Leave the console at a login prompt rather than an open root shell. Best effort:
+        a failure here must never fail provisioning. Exiting the shell usually goes straight
+        to 'login:'; if the console menu is shown first, option 0 logs out."""
+        try:
+            self.c.sendline("exit")
+            for _ in range(3):
+                i, _out = self.c.expect([r"login: $", r"Enter an option: $"], 15)
+                if i == 0:
+                    return
+                self.c.sendline("0")
+        except Exception as exc:
+            self.log(f"FW01: console logout skipped ({exc})")
+
     def run(self, cmd: str, timeout: float = 120, check: bool = True) -> str:
         self.c.sendline(f"{cmd}; echo __RC''=$?")
         _, out = self.c.expect([r"__RC=(\d+)\r?\n"], timeout)
@@ -128,6 +146,18 @@ class FwShell:
         if digest not in out:
             raise RuntimeError(f"upload checksum mismatch for {path}")
         self.run(f"chmod {mode} {tmp} && mv {tmp} {path} && rm -f {tmp}.b64")
+
+
+def ensure_resources(sh: FwShell, log: Callable[[str], None]) -> None:
+    """Persistent guest swap + the boot hook that mounts it and keeps cron (the heartbeat
+    watchdog) running. Idempotent. Short commands only: the serial console drops long lines."""
+    sh.run("mkdir -p /usr/local/etc/rc.syshook.d/start")
+    sh.write_file(RESOURCE_HOOK, (ASSETS / "afw-resources.syshook").read_bytes(), "0755")
+    sh.run(f"[ -f {SWAP_FILE} ] || dd if=/dev/zero of={SWAP_FILE} bs=1m count=1024")
+    sh.run(f"chmod 600 {SWAP_FILE}")
+    sh.run(f"grep -q '^md99 ' /etc/fstab || echo '{SWAP_FSTAB}' >> /etc/fstab")
+    sh.run(RESOURCE_HOOK)
+    log("FW01: guest swap + boot hook installed")
 
 
 def _suricata_healthy(sh: FwShell, old_pid: str, wait_s: int = 180) -> bool:
@@ -178,6 +208,7 @@ def provision(
             "0644",
         )
         log("FW01: watchdog installed")
+        ensure_resources(sh, log)
         changed = []
         for asset, name in SURICATA_CONF_D:
             body = (ASSETS / asset).read_bytes()
@@ -206,5 +237,7 @@ def provision(
             log("FW01: rebooting")
             con.expect([r"login: $"], 900)
             log("FW01: back at login prompt")
+        else:
+            sh.logout()
     finally:
         con.close()

@@ -16,7 +16,9 @@ switches:            # one L2 segment per zone
 nodes:
   FW01:
     kind: opnsense
-    ram: 1536
+    ram: 2560        # was 1536: Suricata was OOM-killed under capture load (no swap in the
+                     # guest). 2560 MB + a 1 GB guest swap (provision_fw.ensure_resources).
+                     # See artifacts/evidence/fw01-oom-fix-2026-10-29/
     cpus: 2
     adapters: 7      # vtnet0 MGMT(lan) | vtnet1 WAN(maint) | vtnet2 ATTACK | vtnet3 USERS | vtnet4 DMZ | vtnet5 APP | vtnet6 DB
     x: 0

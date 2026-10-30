@@ -1,0 +1,6 @@
+#!/bin/sh
+# AFW: every boot, enable the guest swap file and make sure cron (the heartbeat watchdog)
+# is running. OPNsense does not run swaplate, so an fstab 'late' swap entry alone is not
+# mounted at boot. Installed by src/afw/lab/provision_fw.py (ensure_resources). Idempotent.
+swapon -aL 2>/dev/null
+pgrep -q cron || service cron onestart 2>/dev/null
