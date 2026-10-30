@@ -1,0 +1,4 @@
+File name:           /home/gns3/afw-external-datasets/cic-ids2017/Thursday-WorkingHours.pcap
+Number of packets:   9,322 k
+First packet time:   2017-07-06 11:58:58.492265
+Last packet time:    2017-07-06 20:04:44.364012

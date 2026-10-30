@@ -1,0 +1,77 @@
+{
+ "provenance": "CIC-IDS2017 offline; behaviour-only ML; time-split test; separate gate",
+ "windows": 9879,
+ "attack_windows": 79,
+ "suricata_alert_noise": {
+  "distinct_sources_alerted": 695,
+  "distinct_sources_attack_category": 125,
+  "total_benign_sources": 24,
+  "attacker_in_attack_category": true
+ },
+ "window_level_test_split": {
+  "static_suricata_all_alerts": {
+   "recall": 0.1333,
+   "recall_ci95": [
+    0.0691,
+    0.2417
+   ],
+   "precision": 0.0194,
+   "fpr": 0.10406,
+   "tp": 8,
+   "fp": 405,
+   "fn": 52
+  },
+  "static_suricata_attack_category_only": {
+   "recall": 0.1333,
+   "recall_ci95": [
+    0.0691,
+    0.2417
+   ],
+   "precision": 0.0714,
+   "fpr": 0.026721,
+   "tp": 8,
+   "fp": 104,
+   "fn": 52
+  },
+  "supervised_ml": {
+   "recall": 0.2667,
+   "recall_ci95": [
+    0.1713,
+    0.3901
+   ],
+   "precision": 0.8889,
+   "fpr": 0.000514,
+   "tp": 16,
+   "fp": 2,
+   "fn": 44
+  },
+  "novelty_ceilings": {
+   "recall": 0.05,
+   "recall_ci95": [
+    0.0171,
+    0.137
+   ],
+   "precision": 0.1667,
+   "fpr": 0.003854,
+   "tp": 3,
+   "fp": 15,
+   "fn": 57
+  },
+  "hybrid_ml_or_novelty": {
+   "recall": 0.3167,
+   "recall_ci95": [
+    0.2131,
+    0.4423
+   ],
+   "precision": 0.5278,
+   "fpr": 0.004368,
+   "tp": 19,
+   "fp": 17,
+   "fn": 41
+  }
+ },
+ "what_ai_adds": {
+  "attacks_ml_catches_that_suricata_attackcat_misses": 16,
+  "attacks_suricata_attackcat_catches_that_ml_misses": 8
+ }
+}
