@@ -1,0 +1,15 @@
+PLAY [desktop] *****************************************************************
+skipping: no hosts matched
+
+PLAY RECAP *********************************************************************
+ctrl01                     : ok=21   changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+# deployed HEAD 1e5c644 (src identical to 37ab2e4) at 2026-10-28T16:04:45Z, after Phase D generators ended 16:03:05Z and capture
+ml/inference.py repo 03f8094d74efd42d ctrl01 03f8094d74efd42d MATCH
+services/runtime.py repo d5e9aba2866d7a9f ctrl01 d5e9aba2866d7a9f MATCH
+services/learning.py repo 2d39cdeb7fa9683c ctrl01 2d39cdeb7fa9683c MATCH
+api/app.py repo f0379e7e04f15f29 ctrl01 f0379e7e04f15f29 MATCH
+NRestarts=0
+ActiveState=active
+ActiveEnterTimestamp=Wed 2026-10-28 16:04:36 UTC
+health ok monitor model_error None degraded False

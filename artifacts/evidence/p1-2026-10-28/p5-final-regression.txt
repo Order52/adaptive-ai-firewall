@@ -1,0 +1,9 @@
+Wed Oct 28 08:41:49 AM UTC 2026
+PASS  ctrl01  -> 10.77.40.10:22    want=allow got=open      CTRL01 to APP SSH
+PASS  ctrl01  -> 10.77.20.10:22    want=allow got=open      CTRL01 to USERS (probe agent path)
+PASS  ctrl01  -> 10.77.60.10:22    want=allow got=open      CTRL01 to DB SSH (management)
+PASS  ctrl01  -> 10.77.50.1:443   want=allow got=open      CTRL01 to FW API
+37/37 checks passed
+---
+.........                                                                [100%]
+9 passed in 27.57s

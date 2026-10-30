@@ -1,0 +1,56 @@
+Context impl SQLiteImpl.
+Will assume non-transactional DDL.
+wrote 28157 observations to /var/lib/afw/datasets/p1-train
+Context impl SQLiteImpl.
+Will assume non-transactional DDL.
+wrote 7908 observations to /var/lib/afw/datasets/p1-val
+Context impl SQLiteImpl.
+Will assume non-transactional DDL.
+wrote 16989 observations to /var/lib/afw/datasets/p1-train-6u
+---
+Context impl SQLiteImpl.
+Will assume non-transactional DDL.
+candidate profile v3 (5a0d97c31d8a)
+  robust_stats       thr=3.8490 fpr=0.01188707280832095 recall=None auc=None latency_us=7.4 bytes=514
+  isolation_forest   thr=0.6086 fpr=0.010401188707280832 recall=None auc=None latency_us=5902.6 bytes=718234
+  half_space_trees   thr=0.7471 fpr=0.01188707280832095 recall=None auc=None latency_us=27.5 bytes=391294
+  [PASS] train_windows 4865.0 
+  [PASS] train_sources 22.0 
+  [PASS] validation_benign_windows 2019.0 
+  [PASS] robust_stats_validation_fpr 0.01188707280832095 recall=None (reported, not tuned)
+  [PASS] isolation_forest_validation_fpr 0.010401188707280832 recall=None (reported, not tuned)
+  [PASS] half_space_trees_validation_fpr 0.01188707280832095 recall=None (reported, not tuned)
+---
+Context impl SQLiteImpl.
+Will assume non-transactional DDL.
+candidate profile v4 (1b41cbe7d500)
+  robust_stats       thr=3.3376 fpr=0.010401188707280832 recall=None auc=None latency_us=7.3 bytes=525
+  isolation_forest   thr=0.6318 fpr=0.010401188707280832 recall=None auc=None latency_us=5974.1 bytes=762636
+  half_space_trees   thr=0.7894 fpr=0.010401188707280832 recall=None auc=None latency_us=28.3 bytes=390841
+  [PASS] train_windows 2255.0 
+  [PASS] train_sources 12.0 
+  [PASS] validation_benign_windows 2019.0 
+  [PASS] robust_stats_validation_fpr 0.010401188707280832 recall=None (reported, not tuned)
+  [PASS] isolation_forest_validation_fpr 0.010401188707280832 recall=None (reported, not tuned)
+  [PASS] half_space_trees_validation_fpr 0.010401188707280832 recall=None (reported, not tuned)
+---
+Context impl SQLiteImpl.
+Will assume non-transactional DDL.
+profile v1 retired   windows=3091 sources=10 hash=ea6e52ec92a1
+profile v2 trusted   windows=361 sources=6 hash=b4a83e64fc22
+profile v3 candidate windows=4865 sources=22 hash=5a0d97c31d8a
+profile v4 candidate windows=2255 sources=12 hash=1b41cbe7d500
+  mdl-da700e21cf1b robust_stats       p4 candidate
+  mdl-ce42d41c14bb isolation_forest   p4 candidate
+  mdl-cf6ce27ac15a half_space_trees   p4 candidate
+  mdl-e4b291528bbf robust_stats       p3 candidate
+  mdl-21c05d6b7a6e isolation_forest   p3 candidate
+  mdl-51d223cb01bd half_space_trees   p3 candidate
+  mdl-904465fbc16d robust_stats       p2 active
+  mdl-9b16cb23f2ed isolation_forest   p2 active
+  mdl-fdeccd4e4e3b half_space_trees   p2 active
+  mdl-f4c34fa6d616 robust_stats       p1 retired
+  mdl-e1ffb9af6980 isolation_forest   p1 retired
+  mdl-6be7041f655b half_space_trees   p1 retired
+wrote 10216 observations to /var/lib/afw/datasets/p1-test
+wrote 2393 observations to /var/lib/afw/datasets/p1-shift

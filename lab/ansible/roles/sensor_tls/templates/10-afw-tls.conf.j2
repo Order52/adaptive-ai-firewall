@@ -1,0 +1,9 @@
+# Managed by Ansible (AFW): TLS material for the telemetry channel (ADR-029)
+global(
+  DefaultNetstreamDriver="gtls"
+  DefaultNetstreamDriverCAFile="/etc/afw/telemetry/ca.pem"
+  DefaultNetstreamDriverCertFile="/etc/afw/telemetry/client.pem"
+  DefaultNetstreamDriverKeyFile="/etc/afw/telemetry/client.key"
+)
+# RELP output (ADR-038): the telemetry action uses omrelp with the same certificates.
+module(load="omrelp")

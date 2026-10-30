@@ -1,0 +1,124 @@
+{
+ "v2/p1-test": {
+  "robust_stats": {
+   "flagged": 90,
+   "windows": 569,
+   "drivers": {
+    "interarrival_cv": 62,
+    "route_entropy": 18,
+    "auth_fail_frac": 10
+   }
+  },
+  "isolation_forest": {
+   "flagged": 313,
+   "windows": 569,
+   "drivers": {
+    "distinct_usernames": 151,
+    "interarrival_cv": 49,
+    "route_entropy": 44,
+    "req_rate": 25,
+    "route_count": 24,
+    "client_err_frac": 10,
+    "auth_fail_frac": 8,
+    "req_bytes_p95": 2
+   }
+  },
+  "half_space_trees": {
+   "flagged": 336,
+   "windows": 569,
+   "drivers": {
+    "route_count": 262,
+    "interarrival_cv": 43,
+    "req_bytes_p95": 24,
+    "route_entropy": 5,
+    "client_err_frac": 2
+   }
+  }
+ },
+ "v2/p1-shift": {
+  "robust_stats": {
+   "flagged": 22,
+   "windows": 204,
+   "drivers": {
+    "auth_fail_frac": 10,
+    "interarrival_cv": 9,
+    "route_entropy": 3
+   }
+  },
+  "isolation_forest": {
+   "flagged": 141,
+   "windows": 204,
+   "drivers": {
+    "distinct_usernames": 52,
+    "req_rate": 27,
+    "route_entropy": 14,
+    "auth_fail_frac": 13,
+    "client_err_frac": 13,
+    "interarrival_cv": 13,
+    "route_count": 9
+   }
+  },
+  "half_space_trees": {
+   "flagged": 134,
+   "windows": 204,
+   "drivers": {
+    "route_count": 97,
+    "req_bytes_p95": 25,
+    "interarrival_cv": 11,
+    "auth_fail_frac": 1
+   }
+  }
+ },
+ "v3/p1-test": {
+  "robust_stats": {
+   "flagged": 0,
+   "windows": 569,
+   "drivers": {}
+  },
+  "isolation_forest": {
+   "flagged": 25,
+   "windows": 569,
+   "drivers": {
+    "client_err_frac": 18,
+    "route_entropy": 4,
+    "auth_fail_frac": 2,
+    "interarrival_cv": 1
+   }
+  },
+  "half_space_trees": {
+   "flagged": 12,
+   "windows": 569,
+   "drivers": {
+    "client_err_frac": 10,
+    "login_rate": 1,
+    "req_bytes_p95": 1
+   }
+  }
+ },
+ "v3/p1-shift": {
+  "robust_stats": {
+   "flagged": 1,
+   "windows": 204,
+   "drivers": {
+    "auth_fail_frac": 1
+   }
+  },
+  "isolation_forest": {
+   "flagged": 21,
+   "windows": 204,
+   "drivers": {
+    "client_err_frac": 14,
+    "auth_fail_frac": 6,
+    "write_frac": 1
+   }
+  },
+  "half_space_trees": {
+   "flagged": 6,
+   "windows": 204,
+   "drivers": {
+    "client_err_frac": 5,
+    "auth_fail_frac": 1
+   }
+  }
+ }
+}

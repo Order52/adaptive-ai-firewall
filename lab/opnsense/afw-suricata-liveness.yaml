@@ -1,0 +1,7 @@
+%YAML 1.1
+---
+# AFW (ADR-041): Suricata writes its stats every 30 s, so the FW01 watchdog can tell a
+# working engine from a frozen one. Included automatically by OPNsense (conf.d).
+stats:
+  enabled: yes
+  interval: 30

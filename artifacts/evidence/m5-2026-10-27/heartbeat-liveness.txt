@@ -1,0 +1,10 @@
+# M5 heartbeat liveness, live 2026-10-27T20:44:18Z
+## 1. controller restart: time until both sensors' heartbeats are seen again (no sensor action)
+restarted at 20:44:19
+both heartbeats seen after 59s: {"sensors": {"app": {"heartbeat_age_s": 1.5, "stale": false}, "waf": {"heartbeat_age_s": 2.5, "stale": false}}, "degraded": false}
+geoip after restart: {'loaded': True, 'ranges': 362122, 'release': '2026-10', 'age_days': 26, 'stale': False, 'sha256': '097426b8ddae89157d444a59ac1847e873f7943c32d52becc4371c8b0273af80', 'source': 'https://download.db-ip.com/free/dbip-country-lite-2026-10.csv.gz', 'license': 'IP Geolocation by DB-IP (https://db-ip.com), CC BY 4.0'}
+## 2. app01 heartbeat stopped: stale + degraded expected after 150 s
+app01 timer stopped at 20:45:18
+app stale after 148s: {"sensors": {"app": {"heartbeat_age_s": 150.2, "stale": true}, "waf": {"heartbeat_age_s": 27.2, "stale": false}}, "degraded": true}
+app01 timer restarted at 20:47:47
+recovered after 2s: {"sensors": {"app": {"heartbeat_age_s": 1.5, "stale": false}, "waf": {"heartbeat_age_s": 29.5, "stale": false}}, "degraded": false}

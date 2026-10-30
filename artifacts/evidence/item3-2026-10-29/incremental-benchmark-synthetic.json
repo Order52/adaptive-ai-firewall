@@ -1,0 +1,817 @@
+{
+ "SYNTHETIC": true,
+ "windows": 6000,
+ "label_delay_s": 600,
+ "scenarios": {
+  "stationary": {
+   "rf_batch": {
+    "SYNTHETIC": true,
+    "kind": "rf_batch",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 5880,
+    "replays": 0,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0,
+      "fpr_ci95": [
+       0.0,
+       0.0009234967023744366
+      ]
+     },
+     "bruteforce": {
+      "windows": 909,
+      "recall": 0.8801,
+      "recall_ci95": [
+       0.8574,
+       0.8996
+      ],
+      "unknown": 0.1199,
+      "missed_as_benign": 0.0
+     },
+     "scan": {
+      "windows": 935,
+      "recall": 0.9455,
+      "recall_ci95": [
+       0.929,
+       0.9583
+      ],
+      "unknown": 0.0545,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.5169,
+      "scan": 0.7238
+     },
+     "seg2": {
+      "benign": 1.0,
+      "bruteforce": 0.9548,
+      "scan": 1.0
+     },
+     "seg3": {
+      "benign": 1.0,
+      "bruteforce": 0.9708,
+      "scan": 0.9947
+     },
+     "seg4": {
+      "benign": 1.0,
+      "bruteforce": 0.9652,
+      "scan": 1.0
+     },
+     "seg5": {
+      "benign": 1.0,
+      "bruteforce": 0.9835,
+      "scan": 1.0
+     }
+    },
+    "seconds": 37.2
+   },
+   "arf": {
+    "SYNTHETIC": true,
+    "kind": "arf",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 6000,
+    "replays": 11997,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0,
+      "fpr_ci95": [
+       0.0,
+       0.0009234967023744366
+      ]
+     },
+     "bruteforce": {
+      "windows": 909,
+      "recall": 0.9263,
+      "recall_ci95": [
+       0.9075,
+       0.9415
+      ],
+      "unknown": 0.0737,
+      "missed_as_benign": 0.0
+     },
+     "scan": {
+      "windows": 935,
+      "recall": 0.9519,
+      "recall_ci95": [
+       0.9362,
+       0.9638
+      ],
+      "unknown": 0.0481,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.7865,
+      "scan": 0.8177
+     },
+     "seg2": {
+      "benign": 1.0,
+      "bruteforce": 0.9322,
+      "scan": 0.9764
+     },
+     "seg3": {
+      "benign": 1.0,
+      "bruteforce": 0.9825,
+      "scan": 0.9786
+     },
+     "seg4": {
+      "benign": 1.0,
+      "bruteforce": 0.9652,
+      "scan": 1.0
+     },
+     "seg5": {
+      "benign": 1.0,
+      "bruteforce": 0.9615,
+      "scan": 0.9834
+     }
+    },
+    "seconds": 6.5
+   },
+   "hat": {
+    "SYNTHETIC": true,
+    "kind": "hat",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 6000,
+    "replays": 11997,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0101,
+      "fpr_ci95": [
+       0.007485323413765664,
+       0.013631249871140184
+      ]
+     },
+     "bruteforce": {
+      "windows": 909,
+      "recall": 0.9307,
+      "recall_ci95": [
+       0.9123,
+       0.9455
+      ],
+      "unknown": 0.0539,
+      "missed_as_benign": 0.0044
+     },
+     "scan": {
+      "windows": 935,
+      "recall": 0.9658,
+      "recall_ci95": [
+       0.9521,
+       0.9757
+      ],
+      "unknown": 0.0267,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.8933,
+      "scan": 0.8564
+     },
+     "seg2": {
+      "benign": 0.9988,
+      "bruteforce": 0.8249,
+      "scan": 0.9953
+     },
+     "seg3": {
+      "benign": 0.9656,
+      "bruteforce": 0.9825,
+      "scan": 0.9893
+     },
+     "seg4": {
+      "benign": 0.9903,
+      "bruteforce": 0.9801,
+      "scan": 0.9828
+     },
+     "seg5": {
+      "benign": 0.9952,
+      "bruteforce": 0.967,
+      "scan": 1.0
+     }
+    },
+    "seconds": 1.2
+   },
+   "arf_no_rehearsal": {
+    "SYNTHETIC": true,
+    "kind": "arf",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 6000,
+    "replays": 0,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0,
+      "fpr_ci95": [
+       0.0,
+       0.0009234967023744366
+      ]
+     },
+     "bruteforce": {
+      "windows": 909,
+      "recall": 0.7811,
+      "recall_ci95": [
+       0.753,
+       0.8067
+      ],
+      "unknown": 0.2189,
+      "missed_as_benign": 0.0
+     },
+     "scan": {
+      "windows": 935,
+      "recall": 0.9016,
+      "recall_ci95": [
+       0.8808,
+       0.9191
+      ],
+      "unknown": 0.0984,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.5112,
+      "scan": 0.6906
+     },
+     "seg2": {
+      "benign": 1.0,
+      "bruteforce": 0.7006,
+      "scan": 0.9009
+     },
+     "seg3": {
+      "benign": 1.0,
+      "bruteforce": 0.883,
+      "scan": 0.9679
+     },
+     "seg4": {
+      "benign": 1.0,
+      "bruteforce": 0.9005,
+      "scan": 0.9598
+     },
+     "seg5": {
+      "benign": 1.0,
+      "bruteforce": 0.8956,
+      "scan": 0.989
+     }
+    },
+    "seconds": 2.8
+   }
+  },
+  "drift": {
+   "rf_batch": {
+    "SYNTHETIC": true,
+    "kind": "rf_batch",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 5880,
+    "replays": 0,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0,
+      "fpr_ci95": [
+       0.0,
+       0.0009234967023744366
+      ]
+     },
+     "bruteforce": {
+      "windows": 909,
+      "recall": 0.8482,
+      "recall_ci95": [
+       0.8234,
+       0.87
+      ],
+      "unknown": 0.1496,
+      "missed_as_benign": 0.0
+     },
+     "scan": {
+      "windows": 935,
+      "recall": 0.9465,
+      "recall_ci95": [
+       0.9302,
+       0.9592
+      ],
+      "unknown": 0.0535,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.618,
+      "scan": 0.7238
+     },
+     "seg2": {
+      "benign": 1.0,
+      "bruteforce": 0.9661,
+      "scan": 1.0
+     },
+     "seg3": {
+      "benign": 1.0,
+      "bruteforce": 0.7193,
+      "scan": 1.0
+     },
+     "seg4": {
+      "benign": 1.0,
+      "bruteforce": 0.9254,
+      "scan": 1.0
+     },
+     "seg5": {
+      "benign": 1.0,
+      "bruteforce": 0.9945,
+      "scan": 1.0
+     }
+    },
+    "seconds": 37.0
+   },
+   "arf": {
+    "SYNTHETIC": true,
+    "kind": "arf",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 6000,
+    "replays": 11997,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0,
+      "fpr_ci95": [
+       0.0,
+       0.0009234967023744366
+      ]
+     },
+     "bruteforce": {
+      "windows": 909,
+      "recall": 0.8823,
+      "recall_ci95": [
+       0.8597,
+       0.9016
+      ],
+      "unknown": 0.1133,
+      "missed_as_benign": 0.0
+     },
+     "scan": {
+      "windows": 935,
+      "recall": 0.9679,
+      "recall_ci95": [
+       0.9546,
+       0.9774
+      ],
+      "unknown": 0.0321,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.8258,
+      "scan": 0.8619
+     },
+     "seg2": {
+      "benign": 1.0,
+      "bruteforce": 0.9548,
+      "scan": 1.0
+     },
+     "seg3": {
+      "benign": 1.0,
+      "bruteforce": 0.7193,
+      "scan": 1.0
+     },
+     "seg4": {
+      "benign": 1.0,
+      "bruteforce": 0.9104,
+      "scan": 0.9885
+     },
+     "seg5": {
+      "benign": 1.0,
+      "bruteforce": 0.989,
+      "scan": 0.9834
+     }
+    },
+    "seconds": 6.7
+   },
+   "hat": {
+    "SYNTHETIC": true,
+    "kind": "hat",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 6000,
+    "replays": 11997,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0075,
+      "fpr_ci95": [
+       0.005259908120249422,
+       0.010568002250183915
+      ]
+     },
+     "bruteforce": {
+      "windows": 909,
+      "recall": 0.9241,
+      "recall_ci95": [
+       0.905,
+       0.9396
+      ],
+      "unknown": 0.0253,
+      "missed_as_benign": 0.0011
+     },
+     "scan": {
+      "windows": 935,
+      "recall": 0.969,
+      "recall_ci95": [
+       0.9558,
+       0.9783
+      ],
+      "unknown": 0.0257,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.8933,
+      "scan": 0.8674
+     },
+     "seg2": {
+      "benign": 0.9901,
+      "bruteforce": 0.9944,
+      "scan": 1.0
+     },
+     "seg3": {
+      "benign": 0.9976,
+      "bruteforce": 0.7895,
+      "scan": 0.9947
+     },
+     "seg4": {
+      "benign": 0.9903,
+      "bruteforce": 0.9552,
+      "scan": 0.9885
+     },
+     "seg5": {
+      "benign": 0.9845,
+      "bruteforce": 0.978,
+      "scan": 0.989
+     }
+    },
+    "seconds": 1.1
+   },
+   "arf_no_rehearsal": {
+    "SYNTHETIC": true,
+    "kind": "arf",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 6000,
+    "replays": 0,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0,
+      "fpr_ci95": [
+       0.0,
+       0.0009234967023744366
+      ]
+     },
+     "bruteforce": {
+      "windows": 909,
+      "recall": 0.8119,
+      "recall_ci95": [
+       0.7852,
+       0.836
+      ],
+      "unknown": 0.1826,
+      "missed_as_benign": 0.0
+     },
+     "scan": {
+      "windows": 935,
+      "recall": 0.9294,
+      "recall_ci95": [
+       0.9112,
+       0.9441
+      ],
+      "unknown": 0.0706,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.4157,
+      "scan": 0.7127
+     },
+     "seg2": {
+      "benign": 1.0,
+      "bruteforce": 0.8644,
+      "scan": 1.0
+     },
+     "seg3": {
+      "benign": 1.0,
+      "bruteforce": 0.7661,
+      "scan": 0.9679
+     },
+     "seg4": {
+      "benign": 1.0,
+      "bruteforce": 0.9851,
+      "scan": 0.9598
+     },
+     "seg5": {
+      "benign": 1.0,
+      "bruteforce": 1.0,
+      "scan": 0.9945
+     }
+    },
+    "seconds": 2.5
+   }
+  },
+  "forgetting": {
+   "rf_batch": {
+    "SYNTHETIC": true,
+    "kind": "rf_batch",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 5880,
+    "replays": 0,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0,
+      "fpr_ci95": [
+       0.0,
+       0.0009234967023744366
+      ]
+     },
+     "bruteforce": {
+      "windows": 1482,
+      "recall": 0.9244,
+      "recall_ci95": [
+       0.9098,
+       0.9368
+      ],
+      "unknown": 0.0756,
+      "missed_as_benign": 0.0
+     },
+     "scan": {
+      "windows": 362,
+      "recall": 0.8536,
+      "recall_ci95": [
+       0.8135,
+       0.8863
+      ],
+      "unknown": 0.1464,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.5169,
+      "scan": 0.7238
+     },
+     "seg2": {
+      "benign": 1.0,
+      "bruteforce": 0.964
+     },
+     "seg3": {
+      "benign": 1.0,
+      "bruteforce": 0.9832
+     },
+     "seg4": {
+      "benign": 1.0,
+      "bruteforce": 0.992
+     },
+     "seg5": {
+      "benign": 1.0,
+      "bruteforce": 0.9835,
+      "scan": 0.9834
+     }
+    },
+    "seconds": 37.6
+   },
+   "arf": {
+    "SYNTHETIC": true,
+    "kind": "arf",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 6000,
+    "replays": 11997,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0,
+      "fpr_ci95": [
+       0.0,
+       0.0009234967023744366
+      ]
+     },
+     "bruteforce": {
+      "windows": 1482,
+      "recall": 0.942,
+      "recall_ci95": [
+       0.9289,
+       0.9528
+      ],
+      "unknown": 0.058,
+      "missed_as_benign": 0.0
+     },
+     "scan": {
+      "windows": 362,
+      "recall": 0.9088,
+      "recall_ci95": [
+       0.8747,
+       0.9344
+      ],
+      "unknown": 0.0912,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.7865,
+      "scan": 0.8177
+     },
+     "seg2": {
+      "benign": 1.0,
+      "bruteforce": 0.9434
+     },
+     "seg3": {
+      "benign": 1.0,
+      "bruteforce": 0.9749
+     },
+     "seg4": {
+      "benign": 1.0,
+      "bruteforce": 0.968
+     },
+     "seg5": {
+      "benign": 1.0,
+      "bruteforce": 0.9725,
+      "scan": 1.0
+     }
+    },
+    "seconds": 6.8
+   },
+   "hat": {
+    "SYNTHETIC": true,
+    "kind": "hat",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 6000,
+    "replays": 11997,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0142,
+      "fpr_ci95": [
+       0.011022076660809765,
+       0.018267884764644516
+      ]
+     },
+     "bruteforce": {
+      "windows": 1482,
+      "recall": 0.9555,
+      "recall_ci95": [
+       0.9437,
+       0.9648
+      ],
+      "unknown": 0.0263,
+      "missed_as_benign": 0.0115
+     },
+     "scan": {
+      "windows": 362,
+      "recall": 0.9282,
+      "recall_ci95": [
+       0.8968,
+       0.9505
+      ],
+      "unknown": 0.0663,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.8933,
+      "scan": 0.8564
+     },
+     "seg2": {
+      "benign": 0.9988,
+      "bruteforce": 0.9434
+     },
+     "seg3": {
+      "benign": 0.9644,
+      "bruteforce": 0.9777
+     },
+     "seg4": {
+      "benign": 0.9697,
+      "bruteforce": 0.9653
+     },
+     "seg5": {
+      "benign": 0.9964,
+      "bruteforce": 0.978,
+      "scan": 1.0
+     }
+    },
+    "seconds": 1.1
+   },
+   "arf_no_rehearsal": {
+    "SYNTHETIC": true,
+    "kind": "arf",
+    "label_delay_s": 600,
+    "windows": 6000,
+    "learnt": 6000,
+    "replays": 0,
+    "refused": {},
+    "per_family": {
+     "benign": {
+      "windows": 4156,
+      "fpr": 0.0,
+      "fpr_ci95": [
+       0.0,
+       0.0009234967023744366
+      ]
+     },
+     "bruteforce": {
+      "windows": 1482,
+      "recall": 0.886,
+      "recall_ci95": [
+       0.8688,
+       0.9012
+      ],
+      "unknown": 0.114,
+      "missed_as_benign": 0.0
+     },
+     "scan": {
+      "windows": 362,
+      "recall": 0.7403,
+      "recall_ci95": [
+       0.6928,
+       0.7828
+      ],
+      "unknown": 0.2597,
+      "missed_as_benign": 0.0
+     }
+    },
+    "checkpoints": [],
+    "recall_by_dataset": {
+     "seg1": {
+      "benign": 1.0,
+      "bruteforce": 0.5112,
+      "scan": 0.6906
+     },
+     "seg2": {
+      "benign": 1.0,
+      "bruteforce": 0.8689
+     },
+     "seg3": {
+      "benign": 1.0,
+      "bruteforce": 0.9749
+     },
+     "seg4": {
+      "benign": 1.0,
+      "bruteforce": 0.9733
+     },
+     "seg5": {
+      "benign": 1.0,
+      "bruteforce": 0.9341,
+      "scan": 0.7901
+     }
+    },
+    "seconds": 2.8
+   }
+  }
+ }
+}

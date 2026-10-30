@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import structlog
 import typer
@@ -16,17 +16,32 @@ import yaml
 
 from afw.config import get_settings, load_lab_config
 
+if TYPE_CHECKING:
+    from afw.lab.scenarios import Registry, RunJournal
+
 app = typer.Typer(no_args_is_help=True, help="AI-Adaptive-Firewall control plane")
 db_app = typer.Typer(no_args_is_help=True, help="Database migrations")
 token_app = typer.Typer(no_args_is_help=True, help="API tokens")
 ds_app = typer.Typer(no_args_is_help=True, help="Reproducible datasets")
 train_app = typer.Typer(no_args_is_help=True, help="Training and profile lifecycle")
 exp_app = typer.Typer(no_args_is_help=True, help="Offline M0/M1/M2 replay experiments")
+ch_app = typer.Typer(
+    no_args_is_help=True,
+    help="Online challenger promotion gate (promotion/rollback: admin API only)",
+)
 app.add_typer(db_app, name="db")
 app.add_typer(token_app, name="token")
 app.add_typer(ds_app, name="dataset")
 app.add_typer(train_app, name="train")
 app.add_typer(exp_app, name="experiment")
+app.add_typer(ch_app, name="challenger")
+sc_app = typer.Typer(
+    no_args_is_help=True,
+    help="Attack-evaluation harness: ground truth, limits, kill switch (no traffic generation)",
+)
+app.add_typer(sc_app, name="scenario")
+geo_app = typer.Typer(no_args_is_help=True, help="Real GeoIP (DB-IP Country Lite, CC BY 4.0)")
+app.add_typer(geo_app, name="geoip")
 
 
 def configure_logging(level: str = "INFO", as_json: bool = True) -> None:
@@ -144,6 +159,7 @@ def ds_capture(
     purpose: Annotated[str, typer.Option(help="train|validation|test|holdout|drift")],
 ) -> None:
     """Freeze observations of one recorded run (time range + labels from its manifest)."""
+    from afw.correlation.engine import CorrelationEngine
     from afw.ml.datasets import DatasetManifest, Purpose, SourceLabel
 
     c = _container()
@@ -152,6 +168,17 @@ def ds_capture(
     obs = c.events.observations_between(raw.get("app_id", "rental"), start, end)
     labelled = {IPv4Address(s["ip"]) for s in raw["sources"]}
     obs = [o for o in obs if o.client_ip in labelled]
+    # IDS evidence looks back from each window end
+    lookback = CorrelationEngine(c.cfg.risk).ids_lookback
+    alerts = [a for a in c.events.ids_alerts_between(start - lookback, end) if a.src_ip in labelled]
+    # network windows look back one long horizon; flows are reported when they end
+    from afw.features.network import HORIZONS_S, LATENESS_S
+
+    net = c.events.net_events_between(
+        start - timedelta(seconds=max(HORIZONS_S)),
+        end + timedelta(seconds=LATENESS_S),
+        sources=sorted(labelled),
+    )
     m = DatasetManifest(
         dataset_id=dataset_id,
         app_id=raw.get("app_id", "rental"),
@@ -165,8 +192,175 @@ def ds_capture(
         generator=raw.get("generator", ""),
         notes=raw.get("notes", ""),
     )
-    path = c.datasets.write(m, obs)
-    typer.echo(f"wrote {len(obs)} observations to {path}")
+    path = c.datasets.write(m, obs, alerts, net)
+    typer.echo(
+        f"wrote {len(obs)} observations, {len(alerts)} IDS alerts and {len(net)} network "
+        f"events to {path}"
+    )
+
+
+@ds_app.command("validate")
+def ds_validate(dataset_id: str) -> None:
+    """Check a captured dataset (integrity, labels, attack zone, leakage); exit 1 on FAIL."""
+    from afw.ml.dataset_validation import failed, validate
+
+    c = _container()
+    try:
+        m = c.datasets.manifest(dataset_id)
+    except FileNotFoundError as e:
+        typer.echo(f"no dataset {dataset_id}")
+        raise typer.Exit(2) from e
+    try:
+        obs = c.datasets.observations(dataset_id)
+        alerts = c.datasets.ids_alerts(dataset_id)
+    except ValueError as e:
+        typer.echo(f"FAIL integrity: {e}")
+        raise typer.Exit(1) from e
+    zone = next((z.network for z in c.cfg.zones if z.name == "ATTACK"), None)
+    findings = validate(m, obs, c.datasets.list(), zone)
+    typer.echo(f"{dataset_id}: {m.purpose}, {m.scenario}, {len(obs)} observations")
+    typer.echo(f"PASS integrity: sha256 matches the manifest ({len(alerts)} IDS alerts)")
+    for f in findings:
+        typer.echo(f"{f.level} {f.check}: {f.detail}")
+    if failed(findings):
+        raise typer.Exit(1)
+
+
+# ------------------------------------------------------------------ scenarios
+SCENARIOS = Path("config/scenarios.yaml")
+
+
+def _harness() -> tuple[Registry, RunJournal]:
+    from afw.lab.scenarios import RunJournal, load_registry
+
+    settings = get_settings()
+    cfg = load_lab_config(settings.config)
+    reg = load_registry(SCENARIOS, cfg)
+    return reg, RunJournal(Path.home() / ".config" / "afw" / "runs")
+
+
+def _kill_atk01() -> list[str]:
+    """Kill switch: stop the attack host through the GNS3 API."""
+    from afw.lab.gns3 import Gns3Client
+
+    c = Gns3Client.from_env()
+    p = c.find_project("AI-Adaptive-Firewall")
+    if p is None:
+        return ["project not found: ATK01 NOT stopped"]
+    out = []
+    for name, n in c.node_by_name(p["project_id"]).items():
+        if name == "ATK01" and n["status"] == "started":
+            c.node_action(p["project_id"], n["node_id"], "stop")
+            out.append("ATK01 stopped")
+    return out or ["ATK01 was not running"]
+
+
+@sc_app.command("list")
+def scenario_list() -> None:
+    reg, journal = _harness()
+    for s in reg.scenarios:
+        typer.echo(f"{s.id:<26} {s.family:<28} {s.purpose.value:<8} max {s.max_duration_s}s")
+    act = journal.active()
+    typer.echo(f"active run: {act.run_id} ({act.scenario_id})" if act else "no active run")
+
+
+@sc_app.command("begin")
+def scenario_begin(scenario_id: str, operator: str, notes: str = "") -> None:
+    """Record ground truth: the team starts scenario SCENARIO_ID now."""
+    from afw.domain.common import utcnow
+
+    reg, journal = _harness()
+    r = journal.begin(reg.get(scenario_id), operator, utcnow(), notes)
+    spec = reg.get(scenario_id)
+    typer.echo(f"{r.run_id} begun at {r.begun_at.isoformat()}; max {spec.max_duration_s}s")
+    typer.echo("allowed targets: " + ", ".join(f"{t.ip}:{t.port}" for t in spec.targets))
+
+
+@sc_app.command("mark")
+def scenario_mark(run_id: str, label: str) -> None:
+    from afw.domain.common import utcnow
+
+    _, journal = _harness()
+    journal.mark(run_id, label, utcnow())
+    typer.echo("marked")
+
+
+@sc_app.command("end")
+def scenario_end(run_id: str) -> None:
+    from afw.domain.common import utcnow
+
+    _, journal = _harness()
+    r = journal.end(run_id, utcnow())
+    typer.echo(f"{r.run_id} ended at {r.ended_at}")
+
+
+@sc_app.command("abort")
+def scenario_abort(run_id: str, reason: str) -> None:
+    """KILL SWITCH: stop ATK01 now, then record the abort."""
+    from afw.domain.common import utcnow
+
+    _, journal = _harness()
+    r = journal.abort(run_id, reason, utcnow(), _kill_atk01)
+    typer.echo(f"{r.run_id} {r.status.value}: {r.kill_result}")
+
+
+@sc_app.command("watchdog")
+def scenario_watchdog(every_s: float = 5.0) -> None:
+    """Keep running during a team run: aborts it (stops ATK01) past its max duration."""
+    import time as _time
+
+    from afw.domain.common import utcnow
+
+    reg, journal = _harness()
+    while journal.active() is not None:
+        r = journal.watchdog(reg, utcnow(), _kill_atk01)
+        if r is not None:
+            typer.echo(f"ABORTED {r.run_id}: {r.abort_reason}: {r.kill_result}")
+            return
+        _time.sleep(every_s)
+    typer.echo("no active run")
+
+
+@sc_app.command("manifest")
+def scenario_manifest(
+    run_id: str,
+    out: Path,
+    benign: Annotated[str, typer.Option(help="comma-separated benign background IPs")] = "",
+) -> None:
+    """Write the capture manifest (ground truth from the journal) for `afw dataset capture`."""
+    from afw.lab.scenarios import manifest_for
+
+    reg, journal = _harness()
+    r = journal.get(run_id)
+    ips = [IPv4Address(x) for x in benign.split(",") if x]
+    out.write_text(json.dumps(manifest_for(r, reg.get(r.scenario_id), ips), indent=2))
+    typer.echo(f"wrote {out}")
+
+
+# ---------------------------------------------------------------- challenger
+@ch_app.command("evaluate")
+def challenger_evaluate(
+    benign: Annotated[str, typer.Option(help="comma-separated benign holdout dataset ids")],
+    attack: Annotated[str, typer.Option(help="comma-separated labelled attack dataset ids")] = "",
+    actor: str = "cli",
+    app_id: str = "rental",
+) -> None:
+    """Run the promotion gate on the newest challenger checkpoint (no promotion)."""
+    c = _container()
+    ev = c.challenger.evaluate(
+        app_id, [d for d in benign.split(",") if d], [d for d in attack.split(",") if d], actor
+    )
+    for chk in ev.checks:
+        typer.echo(
+            f"{'PASS' if chk.passed else 'FAIL'}  {chk.name:<26} value={chk.value} "
+            f"limit={chk.limit}  {chk.detail}"
+        )
+    typer.echo(f"evaluation {ev.evaluation_id}: {'PASSED' if ev.passed else 'FAILED'}")
+
+
+@ch_app.command("status")
+def challenger_status(app_id: str = "rental") -> None:
+    typer.echo(json.dumps(_container().challenger.snapshot(app_id), indent=2, default=str))
 
 
 # ------------------------------------------------------------------ training
@@ -217,6 +411,62 @@ def train_status(app_id: str = "rental") -> None:
 
 
 # --------------------------------------------------------------- experiments
+@exp_app.command("benign-generalization")
+def experiment_benign_generalization(
+    versions: Annotated[str, typer.Option(help="comma-separated profile versions (frozen)")],
+    datasets: Annotated[str, typer.Option(help="comma-separated all-benign dataset ids")],
+    out: Annotated[Path, typer.Option(help="JSON report path")],
+    app_id: str = "rental",
+    seed: int = 0,
+    sensitivity_ref: Annotated[
+        int | None, typer.Option(help="also compare probe sensitivity against this version")
+    ] = None,
+) -> None:
+    """P1: false positives of frozen profiles on held-out benign runs, per window
+    (tumbling, source CIs), per user and per request, plus decision-level impact."""
+    from afw.ml.benign_generalization import evaluate_benign, matched_probe_sensitivity
+
+    c = _container()
+    vs = [int(x) for x in versions.split(",") if x]
+    dss = [d for d in datasets.split(",") if d]
+    loaded = {
+        v: c.learning.load_version(app_id, v)
+        for v in {*vs, *([sensitivity_ref] if sensitivity_ref else [])}
+    }
+    obs = {ds: c.datasets.observations(ds) for ds in dss}
+    wins = {
+        (v, ds): c.learning.windows(obs[ds], c.learning.catalog(app_id, loaded[v][0]))
+        for v in loaded
+        for ds in dss
+    }
+    rows = []
+    for v in vs:
+        profile, models = loaded[v]
+        for ds in dss:
+            res = evaluate_benign(
+                cfg=c.cfg,
+                profile=profile,
+                models=models,
+                manifest=c.datasets.manifest(ds),
+                observations=obs[ds],
+                windows=wins[(v, ds)],
+                seed=seed,
+            )
+            if sensitivity_ref is not None and v != sensitivity_ref:
+                r = sensitivity_ref
+                res[f"sensitivity_vs_v{r}"] = matched_probe_sensitivity(
+                    (*loaded[r], wins[(r, ds)]), (profile, models, wins[(v, ds)])
+                )
+            rows.append(res)
+            dets = " ".join(
+                f"{k}={d['rate']}[{d['users']['with_any_flag']}/{d['users']['n']}u]"
+                for k, d in res["detectors"].items()
+            )
+            typer.echo(f"v{v} {ds}: {dets}")
+    out.write_text(json.dumps(rows, indent=1, default=str))
+    typer.echo(f"wrote {out}")
+
+
 @exp_app.command("replay")
 def experiment_replay(
     datasets: Annotated[str, typer.Option(help="comma-separated labeled dataset ids")],
@@ -264,12 +514,278 @@ def experiment_replay(
             )
 
 
+@exp_app.command("supervised")
+def experiment_supervised(
+    train: Annotated[str, typer.Option(help="comma-separated labelled dataset ids")],
+    test: Annotated[str, typer.Option(help="comma-separated dataset ids never trained on")],
+    withhold: Annotated[str, typer.Option(help="attack family to leave out (novelty)")] = "",
+    introduce: Annotated[
+        str, typer.Option(help="with --withhold: confirmed runs of it to learn from (section 8)")
+    ] = "",
+    allow_synthetic: bool = False,
+    app_id: str = "rental",
+) -> None:
+    """N3/N4: known-threat classifier on labelled runs, split by run."""
+    from afw.features.windows import replay_windows
+    from afw.ml.experiments import _catalog
+    from afw.ml.supervised import (
+        KnownThreatClassifier,
+        evaluate,
+        labelled_windows,
+        learn_new_family,
+        split_by_dataset,
+        withheld_family,
+    )
+
+    c = _container()
+    loaded = c.learning.load_active(app_id)
+    if loaded is None:
+        typer.echo(f"no trusted profile for {app_id}; its endpoint catalog is needed")
+        raise typer.Exit(1)
+    catalog = _catalog(c.cfg, loaded[0])
+    tr, te = [d for d in train.split(",") if d], [d for d in test.split(",") if d]
+    intro = [d for d in introduce.split(",") if d]
+    windows = []
+    for ds in tr + intro + te:
+        obs = sorted(c.datasets.observations(ds), key=lambda o: o.observed_at)
+        vecs = replay_windows(obs, c.cfg.window, catalog)
+        windows += labelled_windows(c.datasets.manifest(ds), vecs, allow_synthetic)
+    if withhold and intro:
+        out: dict[str, object] = learn_new_family(windows, withhold, intro, te)
+    elif withhold:
+        out = withheld_family(windows, withhold, te)
+    else:
+        fit, held = split_by_dataset(windows, te)
+        out = evaluate(KnownThreatClassifier().fit(fit), held).as_dict()
+    out |= {"train": tr, "test": te}
+    typer.echo(json.dumps(out, indent=2, default=str))
+
+
+@exp_app.command("network-calibrate")
+def experiment_network_calibrate(
+    datasets: Annotated[str, typer.Option(help="comma-separated benign-labelled dataset ids")],
+    write: Annotated[bool, typer.Option(help="save for the controller (shadow detector)")] = False,
+) -> None:
+    """N2: calibrate network novelty on benign sources' residual windows of captured runs."""
+    from afw.ml.network_detector import NetworkNovelty, calibration_windows, net_calibration_path
+
+    c = _container()
+    services = [(s.address, s.port) for s in c.cfg.services]
+    vectors = []
+    for ds in [d for d in datasets.split(",") if d]:
+        m = c.datasets.manifest(ds)
+        if m.purpose.value not in ("train", "validation"):
+            typer.echo(f"{ds}: purpose {m.purpose.value} is not for calibration")
+            raise typer.Exit(1)
+        vs = calibration_windows(m, c.datasets.net_events(ds), services)
+        typer.echo(
+            f"{ds}: {m.n_net_events} network events, {len(vs)} benign windows, "
+            f"{sum(v.n_events > 0 for v in vs)} with residual activity"
+        )
+        vectors += vs
+    det = NetworkNovelty()
+    det.calibrate(vectors)
+    out = det.to_dict() | {"datasets": datasets.split(","), "effective": det.effective()}
+    typer.echo(json.dumps(out, indent=2))
+    if write:
+        path = net_calibration_path(Path(get_settings().data_dir))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=2))
+        typer.echo(f"wrote {path}; restart the controller to load it")
+
+
+@exp_app.command("online-replay")
+def experiment_online_replay(
+    learn: Annotated[str, typer.Option(help="comma-separated dataset ids to learn from")],
+    probe: Annotated[str, typer.Option(help="comma-separated held-out dataset ids to score")],
+    app_id: str = "rental",
+    relax_rate_caps: Annotated[
+        bool,
+        typer.Option(help="lift the per-source hourly cap and tenure (labelled in the report)"),
+    ] = False,
+    out: Annotated[Path | None, typer.Option(help="write the JSON report here")] = None,
+) -> None:
+    """Replay recorded runs through the live online-learning path (shadow challenger)."""
+    import json
+
+    from afw.ml.datasets import assert_disjoint
+    from afw.ml.online_replay import replay_online
+
+    c = _container()
+    loaded = c.learning.load_active(app_id)
+    if loaded is None:
+        typer.echo(f"no trusted profile for {app_id}")
+        raise typer.Exit(1)
+    profile, models = loaded
+    learn_ids = [d for d in learn.split(",") if d]
+    probe_ids = [d for d in probe.split(",") if d]
+    assert_disjoint(learn_ids, probe_ids)
+    lc = c.cfg.learning
+    if relax_rate_caps:
+        lc = lc.model_copy(
+            update={"max_windows_per_source_per_hour": 10_000, "min_source_tenure_s": 0}
+        )
+    report = replay_online(
+        cfg=c.cfg,
+        profile=profile,
+        models=models,
+        catalog=c.learning.catalog(app_id, profile),
+        learn=[o for d in learn_ids for o in c.datasets.observations(d)],
+        probe=[o for d in probe_ids for o in c.datasets.observations(d)],
+        learning=lc,
+    )
+    report = {"learn_datasets": learn_ids, "probe_datasets": probe_ids, **report}
+    text = json.dumps(report, indent=2, default=str)
+    if out:
+        out.write_text(text)
+    typer.echo(text)
+
+
+@exp_app.command("evaluate")
+def experiment_evaluate(
+    datasets: Annotated[str, typer.Option(help="comma-separated labelled attack runs")],
+    app_id: str = "rental",
+    allow_synthetic: Annotated[
+        bool, typer.Option(help="permit synthetic data (output labelled NOT A RESULT)")
+    ] = False,
+    out: Annotated[Path | None, typer.Option(help="write the JSON report here")] = None,
+    version: Annotated[
+        int | None, typer.Option(help="evaluate this stored profile version (default: trusted)")
+    ] = None,
+    streaming: Annotated[
+        bool, typer.Option(help="also replay the streaming-ML (S-ML) and hybrid (HYB) arms")
+    ] = False,
+    warmup: Annotated[
+        str,
+        typer.Option(help="comma-separated benign datasets streamed through the learner first"),
+    ] = "",
+) -> None:
+    """M6: M0/M1/M2 across labelled attack runs with run-level confidence intervals."""
+    from afw.ml.experiments import run_experiment
+    from afw.ml.run_evaluation import aggregate, is_synthetic
+    from afw.ml.streaming_arms import streaming_arms
+
+    c = _container()
+    loaded = (
+        c.learning.load_active(app_id)
+        if version is None
+        else c.learning.load_version(app_id, version)
+    )
+    if loaded is None:
+        typer.echo(f"no trusted profile for {app_id}")
+        raise typer.Exit(1)
+    profile, models = loaded
+    ids = [d for d in datasets.split(",") if d]
+    manifests = [c.datasets.manifest(d) for d in ids]
+    bad = [m.dataset_id for m in manifests if is_synthetic(m)]
+    if bad and not allow_synthetic:
+        typer.echo(f"refusing synthetic datasets {bad} (use --allow-synthetic for a labelled demo)")
+        raise typer.Exit(2)
+    warm_ids = [d for d in warmup.split(",") if d]
+    warm_m = [c.datasets.manifest(d) for d in warm_ids]
+    late = [w.dataset_id for w in warm_m for m in manifests if w.end >= m.start or w.has_attack()]
+    if late:
+        typer.echo(
+            f"warm-up must be benign and end before every evaluated run: {sorted(set(late))}"
+        )
+        raise typer.Exit(2)
+    warm_obs = [o for d in warm_ids for o in c.datasets.observations(d)]
+    reports = [
+        run_experiment(
+            cfg=c.cfg,
+            profile=profile,
+            models=models,
+            manifest=m,
+            observations=c.datasets.observations(m.dataset_id),
+            ids_alerts=c.datasets.ids_alerts(m.dataset_id),
+            extra_arms=streaming_arms(c.cfg, profile, models, warmup=warm_obs) if streaming else (),
+        )
+        for m in manifests
+    ]
+    result = aggregate(reports, manifests, allow_synthetic=allow_synthetic)
+    text = json.dumps({**result, "per_run": [r.to_dict() for r in reports]}, indent=2, default=str)
+    if out:
+        out.write_text(text)
+    typer.echo(json.dumps(result, indent=2, default=str))
+
+
+@exp_app.command("adaptation")
+def experiment_adaptation(
+    learn: Annotated[str, typer.Option(help="comma-separated recorded benign drift runs")],
+    hold: Annotated[str, typer.Option(help="comma-separated later, disjoint benign runs")],
+    app_id: str = "rental",
+    seed: int = 0,
+    out: Annotated[Path | None, typer.Option(help="write the JSON report here")] = None,
+) -> None:
+    """M4: drift adaptation, poisoning resistance and injected-regression rollback."""
+    import json
+
+    from afw.ml.adaptation_experiment import run_adaptation
+    from afw.ml.datasets import assert_disjoint
+
+    c = _container()
+    loaded = c.learning.load_active(app_id)
+    if loaded is None:
+        typer.echo(f"no trusted profile for {app_id}")
+        raise typer.Exit(1)
+    profile, models = loaded
+    learn_ids = [d for d in learn.split(",") if d]
+    hold_ids = [d for d in hold.split(",") if d]
+    assert_disjoint(learn_ids, hold_ids)
+    report = run_adaptation(
+        cfg=c.cfg,
+        profile=profile,
+        models=models,
+        catalog=c.learning.catalog(app_id, profile),
+        learn=[o for d in learn_ids for o in c.datasets.observations(d)],
+        hold=[o for d in hold_ids for o in c.datasets.observations(d)],
+        learn_ids=learn_ids,
+        hold_ids=hold_ids,
+        seed=seed,
+    )
+    text = json.dumps(report, indent=2, default=str)
+    if out:
+        out.write_text(text)
+    typer.echo(text)
+
+
 def _f(x: float | None) -> str:
     return "-" if x is None else f"{x:g}"
 
 
 if __name__ == "__main__":
     app()
+
+
+@geo_app.command("install")
+def geoip_install(
+    file: Path,
+    release: Annotated[str, typer.Option(help="DB-IP release month, YYYY-MM")],
+    source: Annotated[str, typer.Option(help="download URL, recorded as provenance")],
+) -> None:
+    """Install a downloaded dbip-country-lite CSV (.csv.gz) into <data_dir>/geo."""
+    from afw.config import get_settings
+    from afw.domain.common import utcnow
+    from afw.geoip import install
+
+    meta = install(file, Path(get_settings().data_dir) / "geo", release, source, utcnow())
+    typer.echo(json.dumps(meta.__dict__, indent=2))
+
+
+@geo_app.command("lookup")
+def geoip_lookup(ip: str) -> None:
+    from ipaddress import IPv4Address
+
+    from afw.config import get_settings
+    from afw.domain.common import utcnow
+    from afw.geoip import load_optional
+
+    db, err = load_optional(Path(get_settings().data_dir) / "geo")
+    if db is None:
+        typer.echo(err)
+        raise typer.Exit(1)
+    typer.echo(json.dumps({"ip": ip, "country": db.lookup(IPv4Address(ip))}))
+    typer.echo(json.dumps(db.status(utcnow())))
 
 
 lab_app = typer.Typer(no_args_is_help=True, help="GNS3 lab automation (API v2)")
@@ -324,10 +840,24 @@ def lab_stop(
     p = c.find_project(project)
     if p is None:
         raise Gns3Error(f"project {project} not found")
+    import httpx
+
+    pending = {}
     for name, n in c.node_by_name(p["project_id"]).items():
         if (not nodes or name in nodes) and n["status"] == "started":
-            c.node_action(p["project_id"], n["node_id"], "stop")
+            try:
+                c.node_action(p["project_id"], n["node_id"], "stop")
+            except httpx.TimeoutException:
+                # GNS3 answers after the guest's ACPI shutdown, which can outlast the
+                # HTTP timeout; the stop continues server-side, so do not abort the rest
+                typer.echo(f"{name}: stop still in progress")
+            pending[name] = n["node_id"]
+    for name, nid in pending.items():
+        try:
+            c.wait_status(p["project_id"], nid, "stopped", timeout=300)
             typer.echo(f"stopped {name}")
+        except Gns3Error as exc:
+            typer.echo(f"{name}: {exc}")
 
 
 @lab_app.command("status")
@@ -360,6 +890,32 @@ def lab_provision_fw(project: str = "AI-Adaptive-Firewall", force: bool = False)
     provision(
         fw.get("console_host") or "127.0.0.1", int(fw["console"]), log=typer.echo, force=force
     )
+
+
+@lab_app.command("provision-geo")
+def lab_provision_geo(
+    project: str = "AI-Adaptive-Firewall",
+    api_only: Annotated[bool, typer.Option(help="aliases and rules only")] = False,
+) -> None:
+    """Install real-country enforcement on FW01: tables, rules, pull job (ADR-036)."""
+    from afw.config import load_lab_config
+    from afw.lab.gns3 import Gns3Client, Gns3Error
+    from afw.lab.provision_geo import provision_api, provision_console
+    from afw.lab.provision_ids import client
+    from afw.lab.secrets import ensure_lab_secrets
+
+    g = load_lab_config(Path("config/lab.yaml")).geo_enforcement
+    ensure_lab_secrets()
+    with client() as c:
+        provision_api(c, g, log=typer.echo)
+    if api_only:
+        return
+    gc = Gns3Client.from_env()
+    p = gc.find_project(project)
+    if p is None:
+        raise Gns3Error(f"project {project} not found")
+    fw = gc.node_by_name(p["project_id"])["FW01"]
+    provision_console(fw.get("console_host") or "127.0.0.1", int(fw["console"]), typer.echo)
 
 
 @lab_app.command("recreate")
@@ -438,9 +994,19 @@ def lab_deploy(
 
 
 @lab_app.command("provision-ids")
-def lab_provision_ids() -> None:
+def lab_provision_ids(
+    plaintext: Annotated[bool, typer.Option(help="old plaintext feed to 5515")] = False,
+    feed_only: Annotated[bool, typer.Option(help="only (re)apply the syslog feed")] = False,
+    relp_only: Annotated[bool, typer.Option(help="only the sensor RELP pass rules")] = False,
+) -> None:
     """Enable Suricata IDS on FW01 and forward its alerts to CTRL01 (API, idempotent)."""
-    from afw.lab.provision_ids import client, provision
+    from afw.lab.provision_ids import client, destination, provision, relp_rules
 
     with client() as c:
-        provision(c, log=typer.echo)
+        relp_rules(c, log=typer.echo)
+        if relp_only:
+            return
+        if feed_only:
+            destination(c, plaintext, log=typer.echo)
+        else:
+            provision(c, log=typer.echo, plaintext=plaintext)

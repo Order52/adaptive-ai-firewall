@@ -1,0 +1,42 @@
+PASS  atk01   -> 10.77.30.10:443   want=allow got=open      ATTACK to WAF HTTPS
+PASS  usr01   -> 10.77.30.10:443   want=allow got=open      USERS to WAF HTTPS
+PASS  atk01   -> 10.77.40.10:8000  want=deny  got=filtered  ATTACK bypassing WAF to APP
+PASS  usr01   -> 10.77.40.10:8000  want=deny  got=filtered  USERS bypassing WAF to APP
+PASS  atk01   -> 10.77.30.10:22    want=deny  got=filtered  ATTACK to WAF SSH
+PASS  atk01   -> 10.77.50.10:22    want=deny  got=filtered  ATTACK to CTRL01
+PASS  atk01   -> 10.77.50.10:5514  want=deny  got=filtered  ATTACK forging telemetry
+PASS  atk01   -> 10.77.50.10:5516  want=deny  got=filtered  ATTACK forging RELP telemetry
+PASS  atk01   -> 10.77.10.1:443   want=deny  got=filtered  ATTACK to FW web GUI
+PASS  atk01   -> 10.77.20.10:22    want=deny  got=filtered  ATTACK to USERS
+PASS  usr01   -> 10.77.10.10:22    want=deny  got=filtered  USERS to ATTACK
+PASS  atk01   -> 10.77.10.1:icmp  want=allow got=open      ATTACK ping own gateway
+PASS  atk01   -> 1.1.1.1:443   want=allow got=open      ATTACK to Internet (egress allowed)
+PASS  atk01   -> 10.77.30.10:icmp  want=deny  got=filtered  ATTACK ping WAF (only HTTPS allowed)
+PASS  waf01   -> 10.77.40.10:8000  want=allow got=open      WAF to APP
+PASS  waf01   -> 10.77.50.10:5514  want=allow got=open      WAF telemetry to CTRL01
+PASS  waf01   -> 10.77.50.10:5516  want=allow got=open      WAF RELP telemetry to CTRL01
+PASS  waf01   -> 10.77.50.10:22    want=deny  got=filtered  WAF to CTRL01 SSH
+PASS  waf01   -> 10.77.20.10:22    want=deny  got=filtered  WAF to USERS
+PASS  waf01   -> 1.1.1.1:443   want=allow got=open      WAF to Internet (egress allowed)
+PASS  app01   -> 10.77.50.10:5514  want=allow got=open      APP telemetry to CTRL01
+PASS  app01   -> 10.77.50.10:5516  want=allow got=open      APP RELP telemetry to CTRL01
+PASS  waf01   -> 10.77.50.10:5515  want=deny  got=filtered  WAF plaintext telemetry (mTLS only)
+PASS  app01   -> 10.77.50.10:5515  want=deny  got=filtered  APP plaintext telemetry (mTLS only)
+PASS  app01   -> 10.77.30.10:443   want=deny  got=filtered  APP to WAF
+PASS  app01   -> 10.77.50.10:22    want=deny  got=filtered  APP to CTRL01 SSH
+PASS  app01   -> 1.1.1.1:443   want=allow got=open      APP to Internet (egress allowed)
+PASS  app01   -> 10.77.60.10:5432  want=allow got=open      APP to DB (only path to the database)
+PASS  usr01   -> 10.77.60.10:5432  want=deny  got=filtered  USERS bypassing app to DB
+PASS  atk01   -> 10.77.60.10:5432  want=deny  got=filtered  ATTACK bypassing app to DB
+PASS  waf01   -> 10.77.60.10:5432  want=deny  got=filtered  WAF bypassing app to DB
+PASS  db01    -> 10.77.40.10:8000  want=deny  got=filtered  DB back-connecting to APP
+PASS  db01    -> 10.77.50.10:5514  want=deny  got=filtered  DB forging telemetry
+PASS  db01    -> 10.77.50.10:5516  want=deny  got=filtered  DB forging RELP telemetry
+PASS  db01    -> 1.1.1.1:443   want=allow got=open      DB to Internet (egress allowed)
+PASS  db01    -> 10.77.60.1:icmp  want=allow got=open      DB ping own gateway
+PASS  ctrl01  -> 10.77.30.10:22    want=allow got=open      CTRL01 to WAF SSH
+PASS  ctrl01  -> 10.77.40.10:22    want=allow got=open      CTRL01 to APP SSH
+PASS  ctrl01  -> 10.77.20.10:22    want=allow got=open      CTRL01 to USERS (probe agent path)
+PASS  ctrl01  -> 10.77.60.10:22    want=allow got=open      CTRL01 to DB SSH (management)
+PASS  ctrl01  -> 10.77.50.1:443   want=allow got=open      CTRL01 to FW API
+41/41 checks passed

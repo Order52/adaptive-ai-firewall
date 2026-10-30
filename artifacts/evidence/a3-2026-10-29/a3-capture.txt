@@ -1,0 +1,67 @@
+wrote 17503 observations, 0 IDS alerts and 43680 network events to /var/lib/afw/datasets/a3-sel
+wrote 4179 observations, 0 IDS alerts and 11798 network events to /var/lib/afw/datasets/a3-sel-shift
+wrote 51497 observations, 0 IDS alerts and 109615 network events to /var/lib/afw/datasets/nv1-train
+wrote 23030 observations, 0 IDS alerts and 50103 network events to /var/lib/afw/datasets/nv1-val
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 17503 observations, manifest 17503
+PASS time_range: 0 observations outside 2026-10-29 03:11:16+00:00..2026-10-29 04:13:00+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/17503 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+PASS benign_users_unseen: benign addresses also in training/validation datasets (address count): none; results on them are 'unseen users' only for models not fitted on those datasets
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 4179 observations, manifest 4179
+PASS time_range: 0 observations outside 2026-10-29 03:11:16+00:00..2026-10-29 04:13:00+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/4179 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+PASS benign_users_unseen: benign addresses also in training/validation datasets (address count): none; results on them are 'unseen users' only for models not fitted on those datasets
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 51497 observations, manifest 51497
+PASS time_range: 0 observations outside 2026-10-29 03:11:16+00:00..2026-10-29 04:13:00+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/51497 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 23030 observations, manifest 23030
+PASS time_range: 0 observations outside 2026-10-29 03:11:16+00:00..2026-10-29 04:13:00+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/23030 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+# Completeness: WAF01 access-log lines for the same sources and period: {'a3-sel': 17503, 'a3-sel-shift': 4179, 'nv1-train': 51497, 'nv1-val': 23030}

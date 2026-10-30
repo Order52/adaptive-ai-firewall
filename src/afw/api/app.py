@@ -7,11 +7,11 @@ import time
 from datetime import datetime, timedelta
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import psutil
 from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -30,9 +30,11 @@ from afw.domain.policy import (
     PolicyTarget,
     RateProfile,
 )
+from afw.geoip import GeoIpDatabase, country_preview
 from afw.ml.inference import Strategy
 from afw.policy.service import PolicyError
 from afw.profiling.builder import diff_profiles
+from afw.services.challenger import PromotionRefused
 from afw.services.explain import explain_policy
 from afw.services.learning import GateFailed
 
@@ -40,6 +42,7 @@ STATIC = Path(__file__).resolve().parent.parent / "dashboard" / "static"
 Viewer = Annotated[Principal, Depends(require(Role.VIEWER))]
 Operator = Annotated[Principal, Depends(require(Role.OPERATOR))]
 Admin = Annotated[Principal, Depends(require(Role.ADMIN))]
+Firewall = Annotated[Principal, Depends(require(Role.FIREWALL))]
 _PROCESS = psutil.Process(os.getpid())
 _STARTED = time.time()
 
@@ -82,6 +85,12 @@ class CandidateRequest(BaseModel):
 
 class ReviewRequest(BaseModel):
     note: str = Field(min_length=3, max_length=500)
+
+
+class ChallengerEvalRequest(BaseModel):
+    app_id: str = "rental"
+    benign_dataset_ids: list[str] = Field(min_length=1)
+    attack_dataset_ids: list[str] = []
 
 
 def _intent(c: Container, req: IntentRequest, who: Principal) -> PolicyIntent:
@@ -128,6 +137,7 @@ def create_app(c: Container) -> FastAPI:
     @app.exception_handler(PolicyError)
     @app.exception_handler(InvalidTransition)
     @app.exception_handler(GateFailed)
+    @app.exception_handler(PromotionRefused)
     async def _conflict(_: Any, exc: Exception) -> JSONResponse:
         return JSONResponse(status_code=409, content={"detail": str(exc)})
 
@@ -143,6 +153,7 @@ def create_app(c: Container) -> FastAPI:
             "simulated_backends": c.simulated,
             "reconciled_since_start": c.policy_service.reconciled_since_start,
             "telemetry_degraded": c.controller.degraded(),
+            "model_error": c.controller.model_error,
             "backends": [o.model_dump(mode="json") for o in rep.observed] if rep else [],
             "last_reconcile": rep.at.isoformat() if rep else None,
         }
@@ -206,11 +217,75 @@ def create_app(c: Container) -> FastAPI:
             "pending_approval": len(
                 [p for p in c.policies_repo.recent(200) if p.state.value == "pending_approval"]
             ),
-            "telemetry": c.stats.snapshot(),
+            "telemetry": {**c.stats.snapshot(), "sensors": c.controller.sensor_health()},
             "telemetry_degraded": ctl.degraded(),
             "adaptation": ctl.drift.snapshot() if ctl.drift else None,
             "resources": resources(c),
+            "geoip": _geo_status(),
         }
+
+    # -------------------------------------------------------------- geoip
+    def _geo_status() -> dict[str, Any]:
+        if c.geoip is None:
+            return {"loaded": False, "reason": c.geoip_error, "enforcement": _geo_enforcement()}
+        return {**c.geoip.status(utcnow()), "enforcement": _geo_enforcement()}
+
+    def _geo_enforcement() -> dict[str, Any]:
+        g = c.geo_tables
+        if g is None:
+            return {"enabled": False}
+        return {
+            "enabled": True,
+            **{
+                d: {
+                    "alias": g.alias(d),
+                    "countries": list(lst.countries),
+                    "networks": len(lst.networks),
+                    "sha256": lst.sha256,
+                }
+                for d, lst in g.published.items()
+            },
+        }
+
+    def _geo() -> GeoIpDatabase:
+        if c.geoip is None:
+            raise HTTPException(503, c.geoip_error or "no GeoIP database")
+        return c.geoip
+
+    @app.get("/api/geo/status")
+    def geo_status(_: Viewer) -> dict[str, Any]:
+        return _geo_status()
+
+    @app.get("/api/geo/lookup/{ip}")
+    def geo_lookup(_: Viewer, ip: IPv4Address) -> dict[str, Any]:
+        return {"ip": str(ip), "country": _geo().lookup(ip), "database": _geo_status()}
+
+    @app.get("/api/geo/preview/{country_code}")
+    def geo_preview(
+        _: Viewer,
+        country_code: str,
+        direction: Literal["inbound", "outbound", "both"] = "inbound",
+    ) -> dict[str, Any]:
+        seen = c.events.recent_sources(utcnow() - timedelta(hours=24))
+        try:
+            out = country_preview(_geo(), country_code, direction, seen, utcnow())
+        except ValueError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        if c.geo_tables is not None:
+            out["enforcement"] = (
+                "available: a real geo_block policy (simulated=false) is enforced on FW01 via "
+                f"{c.geo_tables.cfg.inbound_alias}/{c.geo_tables.cfg.outbound_alias} (ADR-036)"
+            )
+        return out
+
+    @app.get("/api/geo/enforcement/{direction}", response_class=PlainTextResponse)
+    def geo_enforcement_list(
+        _: Firewall, direction: Literal["inbound", "outbound"]
+    ) -> PlainTextResponse:
+        """FW01's pull source: the published networks of one direction (ADR-036)."""
+        if c.geo_tables is None:
+            raise HTTPException(404, "real-country enforcement is not enabled")
+        return PlainTextResponse(c.geo_tables.published[direction].text(direction))
 
     # ------------------------------------------------------------ evidence
     @app.get("/api/events")
@@ -354,7 +429,103 @@ def create_app(c: Container) -> FastAPI:
                 for e in c.adaptation.evaluations(app_id)
             ],
             "feedback": [f.model_dump(mode="json") for f in c.adaptation.feedback(app_id)][:100],
+            "shadow_learner": c.controller.shadow.snapshot() if c.controller.shadow else None,
         }
+
+    @app.get("/api/network")
+    def network(_: Viewer, limit: int = 100) -> dict[str, Any]:
+        """N1/N2 network view (SHADOW: verdicts are not used by any decision)."""
+        ctl = c.controller
+        counts = ctl.stats.snapshot()["counts"]
+        assert isinstance(counts, dict)
+        verdicts = list(ctl.net_verdicts)[-min(limit, 500) :]
+        return {
+            "mode": "shadow (not used for decisions)",
+            "events": {
+                k: v for k, v in counts.items() if k.startswith(("net_", "duplicate_net", "pf_"))
+            },
+            "windows": {
+                "tracked_sources": ctl.net_windows.tracked_sources,
+                "too_late": ctl.net_windows.too_late,
+                "dropped": ctl.net_windows.dropped,
+            },
+            "detector": {
+                "calibrated_on": ctl.net_detector.n_calibration,
+                "calibration_error": ctl.net_calibration_error,
+                "effective_thresholds": ctl.net_detector.effective(),
+            },
+            "recent": [v.__dict__ for v in reversed(verdicts)],
+            # pf blocks of protected sources (lateral-movement evidence, shadow only)
+            "protected_blocked": [
+                b.model_dump(mode="json")
+                for b in reversed(list(ctl.protected_blocks)[-min(limit, 500) :])
+            ],
+        }
+
+    @app.get("/api/learning/shadow")
+    def shadow_learning(_: Viewer, app_id: str = "rental", limit: int = 200) -> dict[str, Any]:
+        """Online challenger (shadow only): state, gate outcomes, champion-vs-challenger."""
+        sh = c.controller.shadow
+        repo = sh.repo if sh else None
+        scores = repo.shadow(app_id, min(limit, 1000)) if repo else []
+        valid = [s for s in scores if s.challenger_warm]
+        return {
+            "status": sh.snapshot() if sh else None,
+            "agreement": None
+            if not valid
+            else {
+                "windows": len(valid),
+                "both_normal": sum(
+                    1 for s in valid if not s.champion_anomalous and not s.challenger_anomalous
+                ),
+                "champion_only_anomalous": sum(
+                    1 for s in valid if s.champion_anomalous and not s.challenger_anomalous
+                ),
+                "challenger_only_anomalous": sum(
+                    1 for s in valid if s.challenger_anomalous and not s.champion_anomalous
+                ),
+                "both_anomalous": sum(
+                    1 for s in valid if s.champion_anomalous and s.challenger_anomalous
+                ),
+                "note": "challenger flags use the champion threshold; the calibrated "
+                "threshold is set by a promotion-gate evaluation",
+            },
+            "recent_shadow": [s.model_dump(mode="json") for s in scores[:50]],
+            "recent_learned": [w.model_dump(mode="json") for w in repo.learned(app_id, 50)]
+            if repo
+            else [],
+            "checkpoints": [k.model_dump(mode="json") for k in repo.checkpoints(app_id)]
+            if repo
+            else [],
+        }
+
+    @app.get("/api/learning/challenger")
+    def challenger_status(_: Viewer, app_id: str = "rental") -> dict[str, Any]:
+        """Promotion-gate evaluations and the probation of a promoted challenger."""
+        return c.challenger.snapshot(app_id)
+
+    @app.post("/api/learning/challenger/evaluate")
+    def challenger_evaluate(req: ChallengerEvalRequest, who: Admin) -> dict[str, Any]:
+        ev = c.challenger.evaluate(
+            req.app_id, req.benign_dataset_ids, req.attack_dataset_ids, who.name
+        )
+        return {**ev.model_dump(mode="json"), "passed": ev.passed}
+
+    @app.post("/api/learning/challenger/{evaluation_id}/promote")
+    def challenger_promote(
+        evaluation_id: str, req: ReviewRequest, who: Admin, app_id: str = "rental"
+    ) -> dict[str, Any]:
+        rec = c.challenger.promote(app_id, evaluation_id, who.name, req.note)
+        c.controller.reload()
+        return {"active_hst": rec.version, "threshold": rec.threshold}
+
+    @app.post("/api/learning/challenger/rollback")
+    def challenger_rollback(
+        req: ReviewRequest, who: Admin, app_id: str = "rental"
+    ) -> dict[str, Any]:
+        rec = c.challenger.rollback(app_id, who.name, req.note)
+        c.controller.reload()
+        return {"active_hst": rec.version, "threshold": rec.threshold}
 
     @app.post("/api/feedback")
     def feedback(req: FeedbackRequest, who: Operator) -> dict[str, str]:

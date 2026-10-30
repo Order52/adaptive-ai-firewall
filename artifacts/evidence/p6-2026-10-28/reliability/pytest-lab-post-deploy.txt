@@ -1,0 +1,10 @@
+..............                                                           [100%]
+=============================== warnings summary ===============================
+tests/lab/test_api_tls_lab.py: 2 warnings
+tests/lab/test_enforcement_lab.py: 7 warnings
+tests/lab/test_geo_enforcement_lab.py: 2 warnings
+  /home/gns3/uot/ai-adaptive-firewall/.venv/lib/python3.12/site-packages/httpx/_config.py:51: DeprecationWarning: `verify=<str>` is deprecated. Use `verify=ssl.create_default_context(cafile=...)` or `verify=ssl.create_default_context(capath=...)` instead.
+    warnings.warn(message, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+14 passed, 11 warnings in 129.46s (0:02:09)

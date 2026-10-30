@@ -1,0 +1,95 @@
+{
+ "stage": "test",
+ "frozen": {
+  "path": "artifacts/evidence/nv1-2026-10-29/dev/nv1-dev1.calibration.json",
+  "sha256": "90a1793b19f60ec837b324c30be5405e497cae14937263534a9ab0feadf9a877"
+ },
+ "test": {
+  "data": {
+   "a3-sel": {
+    "net_events": 43680,
+    "windows": 1824,
+    "nonzero": 1770
+   },
+   "a3-sel-shift": {
+    "net_events": 11798,
+    "windows": 684,
+    "nonzero": 675
+   }
+  },
+  "unfamiliar": {
+   "rate": 0.0678,
+   "ci95": [
+    0.0088,
+    0.1575
+   ],
+   "n_sources": 22,
+   "n_windows": 2508
+  },
+  "strong": {
+   "rate": 0.0008,
+   "ci95": [
+    0.0,
+    0.0024
+   ],
+   "n_sources": 22,
+   "n_windows": 2508
+  },
+  "users_with_strong": [
+   "10.77.20.156"
+  ],
+  "per_user_unfamiliar_share": {
+   "10.77.20.140": 0.0,
+   "10.77.20.141": 0.0088,
+   "10.77.20.142": 0.0,
+   "10.77.20.143": 0.0,
+   "10.77.20.144": 0.0,
+   "10.77.20.145": 0.0,
+   "10.77.20.146": 0.0,
+   "10.77.20.147": 0.0,
+   "10.77.20.148": 0.0,
+   "10.77.20.149": 0.0,
+   "10.77.20.150": 0.0,
+   "10.77.20.151": 0.0088,
+   "10.77.20.152": 0.0789,
+   "10.77.20.153": 0.2281,
+   "10.77.20.154": 0.2719,
+   "10.77.20.155": 0.0,
+   "10.77.20.156": 0.8509,
+   "10.77.20.157": 0.0,
+   "10.77.20.158": 0.0,
+   "10.77.20.159": 0.0,
+   "10.77.20.160": 0.0,
+   "10.77.20.161": 0.0439
+  },
+  "by_habit_mean_share": {
+   "light": 0.0055,
+   "normal": 0.0011,
+   "heavy": 0.2398
+  },
+  "drivers": {
+   "bytes_out_log_300": 111,
+   "flows_300": 105,
+   "udp_flows_300": 67,
+   "dns_queries_300": 60,
+   "failed_300": 54,
+   "dst_hosts_300": 40,
+   "bytes_out_log_60": 36,
+   "flows_60": 28,
+   "dst_hosts_60": 17,
+   "dns_queries_60": 17,
+   "udp_flows_60": 16,
+   "median_duration_s_300": 5,
+   "failed_60": 3,
+   "median_duration_s_60": 1,
+   "dns_names_60": 1
+  }
+ },
+ "criteria": {
+  "pass": false,
+  "why": [
+   "unfamiliar FPR 0.0678 ci [0.0088, 0.1575]",
+   "strong verdict for ['10.77.20.156']"
+  ]
+ }
+}

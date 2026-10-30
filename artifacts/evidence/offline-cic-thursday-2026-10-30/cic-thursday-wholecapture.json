@@ -1,0 +1,45 @@
+{
+ "note": "ML trained on Tuesday+Friday only (never saw Thursday); static = ET Open 2026 ruleset, fair HOME_NET; compromised hosts excluded",
+ "whole_day": {
+  "attack_windows": 324,
+  "static_recall": 0.1636,
+  "ml_recall": 0.5432,
+  "union_recall": 0.571,
+  "only_static": 9,
+  "only_ml": 132,
+  "both": 44,
+  "neither": 139,
+  "benign_windows": 11630,
+  "static_fpr": 0.0414,
+  "ml_fpr": 0.0,
+  "union_fpr": 0.0414
+ },
+ "morning_UTC<14 (web attacks)": {
+  "attack_windows": 163,
+  "static_recall": 0.2822,
+  "ml_recall": 0.8773,
+  "union_recall": 0.908,
+  "only_static": 5,
+  "only_ml": 102,
+  "both": 41,
+  "neither": 15,
+  "benign_windows": 2840,
+  "static_fpr": 0.0546,
+  "ml_fpr": 0.0,
+  "union_fpr": 0.0546
+ },
+ "afternoon_UTC>=14": {
+  "attack_windows": 161,
+  "static_recall": 0.0435,
+  "ml_recall": 0.205,
+  "union_recall": 0.2298,
+  "only_static": 4,
+  "only_ml": 30,
+  "both": 3,
+  "neither": 124,
+  "benign_windows": 8790,
+  "static_fpr": 0.0371,
+  "ml_fpr": 0.0,
+  "union_fpr": 0.0371
+ }
+}

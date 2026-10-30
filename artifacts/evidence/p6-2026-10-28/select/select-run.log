@@ -1,0 +1,58 @@
+trained in 53s
+benign R2/p6-sel 115s
+benign R3/p6-sel 152s
+benign D/p6-sel 188s
+benign F/p6-sel 225s
+benign C/p6-sel 262s
+benign S/p6-sel 298s
+benign FS/p6-sel 334s
+benign R2/p6-sel-shift 345s
+benign R3/p6-sel-shift 350s
+benign D/p6-sel-shift 356s
+benign F/p6-sel-shift 361s
+benign C/p6-sel-shift 367s
+benign S/p6-sel-shift 373s
+benign FS/p6-sel-shift 379s
+selection: {
+ "ineligible_reasons": {
+  "R2": [
+   "robust_stats fpr 0.2608 ci [0.0937, 0.4539]",
+   "isolation_forest fpr 0.4295 ci [0.2808, 0.5942]",
+   "M2 restricts 12/16 users on p6-sel",
+   "M2 restricts 6/6 users on p6-sel-shift"
+  ],
+  "R3": [
+   "robust_stats fpr 0.1041 ci [0.0096, 0.2284]",
+   "M2 restricts 5/16 users on p6-sel",
+   "M2 restricts 3/6 users on p6-sel-shift"
+  ],
+  "D": [
+   "isolation_forest fpr 0.0212 ci [0.0078, 0.0413]",
+   "M2 restricts 5/16 users on p6-sel",
+   "M2 restricts 2/6 users on p6-sel-shift"
+  ],
+  "F": [
+   "M2 restricts 1/16 users on p6-sel",
+   "M2 restricts 5/6 users on p6-sel-shift"
+  ],
+  "C": [
+   "isolation_forest fpr 0.0203 ci [0.0067, 0.0403]",
+   "M2 restricts 7/16 users on p6-sel",
+   "M2 restricts 4/6 users on p6-sel-shift"
+  ],
+  "S": [
+   "isolation_forest fpr 0.0212 ci [0.0078, 0.0413]",
+   "security fpr 0.0682 ci [0.0, 0.1637]",
+   "M2 restricts 5/16 users on p6-sel",
+   "M2 restricts 2/6 users on p6-sel-shift"
+  ],
+  "FS": [
+   "security fpr 0.0682 ci [0.0, 0.1637]",
+   "M2 restricts 1/16 users on p6-sel",
+   "M2 restricts 5/6 users on p6-sel-shift"
+  ]
+ },
+ "eligible": [],
+ "selected": null
+}
+done 400 s; must-detect min: {'nominal': {'R2': 1.0, 'R3': 1.0, 'D': 0.5108, 'F': 0.6043, 'C': 0.5612, 'S': 0.9137, 'FS': 0.964}, 'stressed': {'R2': 0.3525, 'R3': 0.5468, 'D': 0.1655, 'F': 0.3669, 'C': 0.0216, 'S': 0.6259, 'FS': 0.8273}, 'selection_score': {'R2': 0.3525, 'R3': 0.5468, 'D': 0.1655, 'F': 0.3669, 'C': 0.0216, 'S': 0.6259, 'FS': 0.8273}}

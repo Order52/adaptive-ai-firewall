@@ -108,8 +108,8 @@ def test_contract_must_match_owner_declaration(lab_cfg, clock):
     assert not val.validate(mk(bad), OperatingMode.ASSISTED, 0, clock()).ok
 
 
-def test_geo_requires_real_geoip_unless_simulated(lab_cfg, clock):
-    val = PolicyValidator(lab_cfg)
+def test_geo_requires_real_geo_enforcement_unless_simulated(lab_cfg, clock):
+    val = PolicyValidator(lab_cfg)  # no GeoTables: real-country enforcement unavailable
     real = CountryTarget(country_code="CN", direction="inbound", simulated=False)
     sim = real.model_copy(update={"simulated": True})
     mk = lambda t: intent(kind=PolicyKind.GEO_BLOCK, target=t, origin=PolicyOrigin.MCP)
@@ -282,7 +282,7 @@ def test_simulated_country_policy_blocks_mapped_sources_only(svc):
     [
         (CountryTarget(country_code="CN", direction="outbound", simulated=True), "only inbound"),
         (CountryTarget(country_code="FR", direction="inbound", simulated=True), "no simulated"),
-        (CountryTarget(country_code="CN", direction="inbound", simulated=False), "GeoIP"),
+        (CountryTarget(country_code="CN", direction="inbound", simulated=False), "not enabled"),
     ],
 )
 def test_country_policy_rejections(svc, target, needle):

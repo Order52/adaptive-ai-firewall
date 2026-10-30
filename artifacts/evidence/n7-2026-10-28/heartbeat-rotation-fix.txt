@@ -1,0 +1,17 @@
+Heartbeat stopped by log rotation (2026-10-29), found and fixed
+
+Found 02:09Z: /api/overview sensors app/waf stale, heartbeat_age_s ~7770 (since ~00:00Z); ids fresh.
+WAF01 and APP01 rsyslog journal, at the daily logrotate:
+  Oct 29 00:00:09 WAF01 rsyslogd: imfile: error accessing file '/var/log/afw-hb/heartbeat.log': Permission denied
+  Oct 29 00:00:06 APP01 rsyslogd: imfile: error accessing file '/var/log/afw-hb/heartbeat.log': Permission denied
+The file itself was root 0644 afterwards; imfile never followed the re-created file.
+(AppArmor had denied imfile reads of /, /var/, /var/log/ directories at boot 19:49:42.)
+Heartbeat writer kept writing (timer fine); only forwarding stopped. Controller reported
+telemetry_degraded=true the whole time (fail-visible, as designed).
+
+Fix (lab/ansible/roles/sensor_tls): logrotate copytruncate; imfile reopenOnTruncate="on".
+Deployed 02:10Z: uv run afw lab deploy --limit waf01,app01 -> failed=0, rsyslog restarted.
+  02:10:5x sensors app 17.7 s, waf 5.7 s, ids 29.7 s (fresh)
+Forced rotation 02:11:00Z on both (logrotate -f): heartbeat.log truncated to 0 bytes.
+  02:12:44 sensors app 11.0 s, ids 14.0 s, waf 20.0 s; degraded: False
+  heartbeat.log 3 new lines on each host; no imfile errors in the rsyslog journal since 02:10:50.

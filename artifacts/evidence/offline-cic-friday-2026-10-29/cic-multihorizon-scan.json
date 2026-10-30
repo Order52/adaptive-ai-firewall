@@ -1,0 +1,144 @@
+{
+ "provenance": "CIC-IDS2017 Friday offline; real NMAP scan; separate gate",
+ "attacker": "172.16.0.1",
+ "n_benign_sources": 23,
+ "attacker_total_distinct_ports": 997,
+ "horizons": {
+  "60s": {
+   "attacker_max_distinct_ports": 997,
+   "benign_p99_max_distinct_ports": 48,
+   "benign_max": 48,
+   "thresholds": {
+    "15": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 3,
+     "benign_fpr": 0.1304
+    },
+    "30": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 2,
+     "benign_fpr": 0.087
+    },
+    "50": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 0,
+     "benign_fpr": 0.0
+    },
+    "100": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 0,
+     "benign_fpr": 0.0
+    }
+   }
+  },
+  "300s": {
+   "attacker_max_distinct_ports": 997,
+   "benign_p99_max_distinct_ports": 66,
+   "benign_max": 66,
+   "thresholds": {
+    "15": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 8,
+     "benign_fpr": 0.3478
+    },
+    "30": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 2,
+     "benign_fpr": 0.087
+    },
+    "50": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 1,
+     "benign_fpr": 0.0435
+    },
+    "100": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 0,
+     "benign_fpr": 0.0
+    }
+   }
+  },
+  "900s": {
+   "attacker_max_distinct_ports": 997,
+   "benign_p99_max_distinct_ports": 71,
+   "benign_max": 71,
+   "thresholds": {
+    "15": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 11,
+     "benign_fpr": 0.4783
+    },
+    "30": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 2,
+     "benign_fpr": 0.087
+    },
+    "50": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 2,
+     "benign_fpr": 0.087
+    },
+    "100": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 0,
+     "benign_fpr": 0.0
+    }
+   }
+  },
+  "1800s": {
+   "attacker_max_distinct_ports": 997,
+   "benign_p99_max_distinct_ports": 76,
+   "benign_max": 76,
+   "thresholds": {
+    "15": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 12,
+     "benign_fpr": 0.5217
+    },
+    "30": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 2,
+     "benign_fpr": 0.087
+    },
+    "50": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 2,
+     "benign_fpr": 0.087
+    },
+    "100": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 0,
+     "benign_fpr": 0.0
+    }
+   }
+  },
+  "whole_capture": {
+   "attacker_max_distinct_ports": 997,
+   "benign_p99_max_distinct_ports": 197,
+   "benign_max": 197,
+   "thresholds": {
+    "15": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 13,
+     "benign_fpr": 0.5652
+    },
+    "30": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 12,
+     "benign_fpr": 0.5217
+    },
+    "50": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 8,
+     "benign_fpr": 0.3478
+    },
+    "100": {
+     "attacker_detected": true,
+     "benign_false_positive_sources": 1,
+     "benign_fpr": 0.0435
+    }
+   }
+  }
+ },
+ "finding": "the shipped 15-ports/60s ceiling misses this spread scan; a longer horizon recovers it. Best trade-off (detect attacker, 0 benign FP) is reported per horizon/threshold above. Any lab adoption must re-check benign FPR (#7)."
+}

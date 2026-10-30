@@ -1,0 +1,100 @@
+
+PLAY [all:!desktop] ************************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [ctrl01]
+
+TASK [common : Time from the zone gateway (FW01 runs NTP)] *********************
+ok: [ctrl01]
+
+TASK [common : Use only lab time sources] **************************************
+ok: [ctrl01]
+
+TASK [common : AFW directories] ************************************************
+ok: [ctrl01] => (item=/etc/afw)
+ok: [ctrl01] => (item=/etc/afw/tls)
+ok: [ctrl01] => (item=/var/log/afw)
+
+TASK [common : Lab CA (trust store + /etc/afw/tls)] ****************************
+ok: [ctrl01] => (item=/usr/local/share/ca-certificates/afw-lab-ca.crt)
+ok: [ctrl01] => (item=/etc/afw/tls/lab-ca.pem)
+
+TASK [common : rsyslog accepts large (audit) messages] *************************
+ok: [ctrl01]
+
+TASK [common : Host firewall (default deny inbound; SSH only from MGMT)] *******
+ok: [ctrl01]
+
+TASK [common : nftables enabled] ***********************************************
+ok: [ctrl01]
+
+TASK [common : ansible.builtin.meta] *******************************************
+
+TASK [common : Service name for clients (Host header / SNI)] *******************
+ok: [ctrl01]
+
+PLAY [db] **********************************************************************
+skipping: no hosts matched
+
+PLAY [app] *********************************************************************
+skipping: no hosts matched
+
+PLAY [waf] *********************************************************************
+skipping: no hosts matched
+
+PLAY [controller] **************************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [ctrl01]
+
+TASK [controller : Build the current controller wheel on the host] *************
+ok: [ctrl01 -> localhost]
+
+TASK [controller : Find the wheel] *********************************************
+ok: [ctrl01 -> localhost]
+
+TASK [controller : Copy wheel] *************************************************
+changed: [ctrl01]
+
+TASK [controller : Install wheel into the baked venv when its hash differs (deps already present, offline)] ***
+changed: [ctrl01]
+
+TASK [controller : Controller user] ********************************************
+ok: [ctrl01]
+
+TASK [controller : Controller directories] *************************************
+ok: [ctrl01] => (item={'p': '/var/lib/afw', 'o': 'afwctl', 'm': '0750'})
+ok: [ctrl01] => (item={'p': '/etc/afw/secrets', 'o': 'root', 'm': '0750'})
+
+TASK [controller : Secrets (from the host, never from Git)] ********************
+ok: [ctrl01] => (item={'s': '/home/gns3/.config/afw/opnsense/controller.key', 'd': 'opnsense.key'})
+ok: [ctrl01] => (item={'s': '/home/gns3/.config/afw/opnsense/controller.secret', 'd': 'opnsense.secret'})
+ok: [ctrl01] => (item={'s': '/home/gns3/.config/afw/pki/lab-ca.pem', 'd': 'opnsense-ca.pem'})
+ok: [ctrl01] => (item={'s': '/home/gns3/.config/afw/pki/lab-ca.pem', 'd': 'lab-ca.pem'})
+ok: [ctrl01] => (item={'s': '/home/gns3/.config/afw/tokens/waf-helper.token', 'd': 'waf-helper.token'})
+ok: [ctrl01] => (item={'s': '/home/gns3/.config/afw/tokens/probe.token', 'd': 'probe.token'})
+ok: [ctrl01] => (item={'s': '/home/gns3/.config/afw/api/api_tokens.yaml', 'd': 'api_tokens.yaml'})
+ok: [ctrl01] => (item={'s': '/home/gns3/.config/afw/pki/CTRL01.pem', 'd': 'ctrl01.pem'})
+ok: [ctrl01] => (item={'s': '/home/gns3/.config/afw/pki/CTRL01.key', 'd': 'ctrl01.key'})
+
+TASK [controller : Lab configuration] ******************************************
+ok: [ctrl01]
+
+TASK [controller : Controller unit] ********************************************
+ok: [ctrl01]
+
+TASK [controller : Controller running] *****************************************
+ok: [ctrl01]
+
+RUNNING HANDLER [controller : restart controller] ******************************
+changed: [ctrl01]
+
+PLAY [probes] ******************************************************************
+skipping: no hosts matched
+
+PLAY [desktop] *****************************************************************
+skipping: no hosts matched
+
+PLAY RECAP *********************************************************************
+ctrl01                     : ok=21   changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+

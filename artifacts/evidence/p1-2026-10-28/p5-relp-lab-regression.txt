@@ -1,0 +1,2 @@
+..............                                                           [100%]
+Result: 14 lab tests, all passed (14 dots, no F/E).

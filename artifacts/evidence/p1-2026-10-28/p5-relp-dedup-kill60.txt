@@ -1,0 +1,8 @@
+11:59:46Z FW01 states WAF01<->CTRL01 before: ['40']
+11:59:46Z counter before 101
+12:00:46Z killed states: ['killed_by_id=2']
+12:02:18Z writer done: 150 lines written
+12:02:18Z delivered so far 60
+12:03:08Z delivered so far 150
+12:03:39Z RESULT written=150 delivered=150 lost=0
+12:03:39Z sessions {'relp_session:app': 1, 'tls_session:ids': 1, 'relp_session:waf': 2, 'relp_duplicate': 17} sensors {'app': {'heartbeat_age_s': 28.2, 'stale': False}, 'ids': {'heartbeat_age_s': 8.2, 'stale': False}, 'waf': {'heartbeat_age_s': 0.2, 'stale': False}}

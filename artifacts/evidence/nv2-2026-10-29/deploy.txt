@@ -1,0 +1,6 @@
+# NV2 code deployed before the NV2 capture (so no controller restart during it)
+~07:28Z afw lab deploy --limit ctrl01 (commit e9ca05f): ok=21 changed=3 failed=0, controller restarted
+        afw experiment network-calibrate --datasets nv1-train --write: new schema (sweep_hosts), shadow only,
+        NOT validated (placeholder until the NV2 calibration); controller restarted
+        /api/health: ok, monitor; /api/network detector: calibrated_on 2736, calibration_error None, mode shadow
+07:32:58Z NV2 capture started on USR01 (launch.sh, generator sha256 5edbb6c8...f49b)

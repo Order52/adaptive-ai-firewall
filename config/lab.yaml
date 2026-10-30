@@ -7,6 +7,7 @@ zones:
   - {name: USERS, network: 10.77.20.0/24, clients: true}
   - {name: DMZ, network: 10.77.30.0/24}
   - {name: APP, network: 10.77.40.0/24}
+  - {name: DB, network: 10.77.60.0/24}
   - {name: MGMT, network: 10.77.50.0/24}
 
 services:
@@ -34,6 +35,7 @@ safety:
     - {network: 10.77.50.0/24, reason: management network and recovery path}
     - {network: 10.77.30.0/24, reason: WAF/DMZ infrastructure}
     - {network: 10.77.40.0/24, reason: application backend}
+    - {network: 10.77.60.0/24, reason: database tier}
     - {network: 10.77.10.1/32, reason: firewall interface}
     - {network: 10.77.20.1/32, reason: firewall interface}
     - {network: 10.77.20.250/32, reason: verification probe source}
@@ -58,8 +60,22 @@ window: {length_s: 30, hop_s: 5, min_requests: 3}
 
 telemetry:
   listen_host: 10.77.50.10
-  listen_port: 5514
-  allowed_senders: [10.77.30.10, 10.77.40.10, 10.77.50.1]
+  # Plaintext listener disabled (P5, 2026-10-28): FW01 Suricata now uses the mTLS
+  # channel below with its own client certificate (role "ids"). To fall back, set
+  # listen_port: 5515 and run `afw lab provision-ids --feed-only --plaintext`.
+  listen_port: null
+  allowed_senders: [10.77.50.1]
+  # Mutually authenticated TLS (ADR-029): WAF/APP/FW01 client certs -> sensor role.
+  tls_port: 5514
+  relp_port: 5516  # WAF01/APP01 (rsyslog omrelp); FW01 stays on 5514
+  tls_allowed_senders: [10.77.30.10, 10.77.40.10, 10.77.50.1]
+  tls_cert: /etc/afw/secrets/ctrl01.pem
+  tls_key: /etc/afw/secrets/ctrl01.key
+  tls_ca: /etc/afw/secrets/lab-ca.pem
+  tls_identities:
+    waf01-telemetry.lab.afw: waf
+    app01-telemetry.lab.afw: app
+    fw01-telemetry.lab.afw: ids
   waf_sensor_ips: [10.77.30.10]
   queue_size: 2000
   max_line_bytes: 65536
@@ -93,3 +109,18 @@ initial_mode: monitor
 geo_simulation:
   CN: [10.77.10.10, 10.77.10.11, 10.77.10.12]
   RU: [10.77.10.20, 10.77.10.21]
+
+# REAL-country enforcement (ADR-036), from the installed DB-IP database. FW01 pulls
+# the networks of active real geo_block policies into AFW_GEO_IN / AFW_GEO_OUT
+# (afw lab provision-geo installs the rules, aliases and the pull job).
+#   inbound:  block packets entering FW01 from the country (all interfaces)
+#   outbound: reject connections from the client zones (USERS, ATTACK) to the
+#             country; servers and MGMT egress are deliberately not covered
+geo_enforcement:
+  enabled: true
+  max_networks: 40000
+  egress_source: 10.77.20.10
+  # outbound verification: one TCP connect from USR01; country from GeoIP at use
+  egress_targets:
+    cloudflare-dns: {address: 1.1.1.1, port: 443}
+    google-dns: {address: 8.8.8.8, port: 443}

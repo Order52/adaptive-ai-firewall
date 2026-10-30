@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Enforcement verification probe agent (runs on USR01 / ATK01, stdlib only).
 
-Exactly one operation: ``GET /v1/probe?source=<ip>`` makes ONE HTTPS
-``GET /health`` request to the fixed, configured protected service, bound to
-``source`` (which must be an address on this host), and reports whether a TCP
-connection was established and what HTTP status came back.
+Two operations, both bound to ``source`` (which must be an address on this host):
+
+* ``GET /v1/probe?source=<ip>`` makes ONE HTTPS ``GET /health`` request to the fixed,
+  configured protected service and reports whether a TCP connection was established
+  and what HTTP status came back;
+* ``GET /v1/egress?source=<ip>&target=<name>`` (ADR-036) opens and immediately closes
+  ONE TCP connection to the egress target ``name`` from this agent's own fixed list
+  (``AFW_PROBE_EGRESS="name=addr:port,..."``), sending no data. It verifies real-country
+  outbound blocking on FW01.
 
 It accepts no URL, host, port, path, payload or command, only callers from the
 controller address may use it, and it requires a bearer token. It therefore
@@ -36,6 +41,18 @@ CA = os.environ.get("AFW_LAB_CA", "/etc/afw/tls/lab-ca.pem")
 ALLOWED_CALLERS = {os.environ.get("AFW_PROBE_CALLER", "10.77.50.10")}
 TOKEN = Path(os.environ.get("AFW_PROBE_TOKEN_FILE", "/etc/afw/probe.token")).read_text().strip()
 TIMEOUT_S = 4.0
+
+
+def _egress_targets(spec: str) -> dict[str, tuple[str, int]]:
+    out: dict[str, tuple[str, int]] = {}
+    for item in filter(None, (x.strip() for x in spec.split(","))):
+        name, _, hostport = item.partition("=")
+        host, _, port = hostport.rpartition(":")
+        out[name] = (str(ipaddress.IPv4Address(host)), int(port))
+    return out
+
+
+EGRESS = _egress_targets(os.environ.get("AFW_PROBE_EGRESS", ""))
 
 
 def local_addresses() -> set[str]:
@@ -73,6 +90,16 @@ def probe(source: str) -> dict[str, object]:
     return result
 
 
+def egress(source: str, target: str) -> dict[str, object]:
+    addr, port = EGRESS[target]
+    try:
+        sock = socket.create_connection((addr, port), timeout=TIMEOUT_S, source_address=(source, 0))
+        sock.close()
+        return {"source": source, "target": target, "connected": True}
+    except OSError as exc:  # refused (FW01 reject), filtered or timed out
+        return {"source": source, "target": target, "connected": False, "error": type(exc).__name__}
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "afw-probe"
 
@@ -91,14 +118,20 @@ class Handler(BaseHTTPRequestHandler):
         if not hmac.compare_digest(got.encode(), TOKEN.encode()):
             return self._send(401, {"error": "unauthorized"})
         url = urlsplit(self.path)
-        if url.path != "/v1/probe":
+        if url.path not in ("/v1/probe", "/v1/egress"):
             return self._send(404, {"error": "not_found"})
+        query = parse_qs(url.query)
         try:
-            source = str(ipaddress.IPv4Address(parse_qs(url.query).get("source", [""])[0]))
+            source = str(ipaddress.IPv4Address(query.get("source", [""])[0]))
         except ValueError:
             return self._send(400, {"error": "bad_source"})
         if source not in local_addresses():
             return self._send(200, {"source": source, "error": "source_not_local"})
+        if url.path == "/v1/egress":
+            target = query.get("target", [""])[0]
+            if target not in EGRESS:
+                return self._send(400, {"error": "unknown_target"})
+            return self._send(200, egress(source, target))
         try:
             return self._send(200, probe(source))
         except OSError as exc:  # no TCP connection: filtered/refused/timeout

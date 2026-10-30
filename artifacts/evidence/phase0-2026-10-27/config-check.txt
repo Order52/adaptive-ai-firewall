@@ -1,0 +1,1 @@
+OK: afw-gns3-lab: 6 zones, 1 app(s)

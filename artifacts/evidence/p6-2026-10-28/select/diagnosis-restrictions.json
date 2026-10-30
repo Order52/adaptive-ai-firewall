@@ -1,0 +1,174 @@
+{
+ "D/p6-sel": {
+  "restricted_users": 5,
+  "intents": 9,
+  "paths": {
+   "rate_limit: behavior_ml [detectors agree]": 4,
+   "rate_limit: auth [detectors agree]": 1
+  },
+  "per_user": {
+   "10.77.20.141": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.155": {
+    "rate_limit: auth [detectors agree]": 4
+   },
+   "10.77.20.149": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.153": {
+    "rate_limit: behavior_ml [detectors agree]": 2
+   },
+   "10.77.20.142": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   }
+  }
+ },
+ "D/p6-sel-shift": {
+  "restricted_users": 2,
+  "intents": 2,
+  "paths": {
+   "rate_limit: behavior_ml [detectors agree]": 2
+  },
+  "per_user": {
+   "10.77.20.160": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.161": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   }
+  }
+ },
+ "F/p6-sel": {
+  "restricted_users": 1,
+  "intents": 16,
+  "paths": {
+   "rate_limit: auth [detectors agree]": 1
+  },
+  "per_user": {
+   "10.77.20.155": {
+    "rate_limit: auth [detectors agree]": 16
+   }
+  }
+ },
+ "F/p6-sel-shift": {
+  "restricted_users": 5,
+  "intents": 11,
+  "paths": {
+   "rate_limit: behavior_ml [detectors agree]": 5
+  },
+  "per_user": {
+   "10.77.20.159": {
+    "rate_limit: behavior_ml [detectors agree]": 4
+   },
+   "10.77.20.156": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.158": {
+    "rate_limit: behavior_ml [detectors agree]": 3
+   },
+   "10.77.20.160": {
+    "rate_limit: behavior_ml [detectors agree]": 2
+   },
+   "10.77.20.161": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   }
+  }
+ },
+ "C/p6-sel": {
+  "restricted_users": 7,
+  "intents": 19,
+  "paths": {
+   "rate_limit: behavior_ml [detectors agree]": 7,
+   "rate_limit: auth [detectors agree]": 1
+  },
+  "per_user": {
+   "10.77.20.144": {
+    "rate_limit: behavior_ml [detectors agree]": 2
+   },
+   "10.77.20.155": {
+    "rate_limit: auth [detectors agree]": 7,
+    "rate_limit: behavior_ml [detectors agree]": 2
+   },
+   "10.77.20.142": {
+    "rate_limit: behavior_ml [detectors agree]": 2
+   },
+   "10.77.20.141": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.149": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.153": {
+    "rate_limit: behavior_ml [detectors agree]": 2
+   },
+   "10.77.20.143": {
+    "rate_limit: behavior_ml [detectors agree]": 2
+   }
+  }
+ },
+ "C/p6-sel-shift": {
+  "restricted_users": 4,
+  "intents": 4,
+  "paths": {
+   "rate_limit: behavior_ml [detectors agree]": 4
+  },
+  "per_user": {
+   "10.77.20.160": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.157": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.156": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.161": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   }
+  }
+ },
+ "R3/p6-sel": {
+  "restricted_users": 5,
+  "intents": 30,
+  "paths": {
+   "rate_limit: behavior_ml [detectors agree]": 4,
+   "rate_limit: auth [detectors agree]": 1
+  },
+  "per_user": {
+   "10.77.20.144": {
+    "rate_limit: behavior_ml [detectors agree]": 2
+   },
+   "10.77.20.155": {
+    "rate_limit: auth [detectors agree]": 24
+   },
+   "10.77.20.141": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.153": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.143": {
+    "rate_limit: behavior_ml [detectors agree]": 2
+   }
+  }
+ },
+ "R3/p6-sel-shift": {
+  "restricted_users": 3,
+  "intents": 3,
+  "paths": {
+   "rate_limit: behavior_ml [detectors agree]": 3
+  },
+  "per_user": {
+   "10.77.20.160": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.157": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   },
+   "10.77.20.161": {
+    "rate_limit: behavior_ml [detectors agree]": 1
+   }
+  }
+ }
+}

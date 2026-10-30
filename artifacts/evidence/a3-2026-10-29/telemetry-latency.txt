@@ -1,0 +1,13 @@
+# End-to-end telemetry latency, 2026-10-29 ~05:35Z, after the A3 deploy (tools/latency.sh)
+# benign marked GET from USR01 (10.77.20.99) -> FW01 -> WAF01 -> rsyslog/RELP -> CTRL01 observation store
+# value = (first visible in CTRL01 DB, polled every 0.25 s) - (send time on USR01); chrony offsets 17 us / 65 us
+# The poller starts after the send returns over SSH, so ~0.5 s is a floor of the method: values are upper bounds.
+afwlat-1793252080604680764 2.02
+afwlat-1793252089818146475 1.57
+afwlat-1793252098585195078 0.5
+afwlat-1793252106277707832 1.03
+afwlat-1793252114505375708 1.03
+afwlat-1793252122726158547 0.5
+afwlat-1793252130418252872 1.01
+afwlat-1793252138627816420 1.03
+# n=8: min 0.5, median 1.03, max 2.02 s

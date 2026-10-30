@@ -1,0 +1,17 @@
+[Unit]
+Description=AFW database tier (PostgreSQL {{ db_name }}, container)
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+ExecStartPre=-/usr/bin/docker rm -f afw-db
+ExecStart=/usr/bin/docker run --rm --name afw-db --network host \
+  --env-file /etc/afw/db.env \
+  -v afw-db-data:/var/lib/postgresql/data \
+  {{ db_image }} -c listen_addresses={{ db_ip }},127.0.0.1
+ExecStop=/usr/bin/docker stop -t 10 afw-db
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

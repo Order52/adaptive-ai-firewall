@@ -1,0 +1,6 @@
+alias AFW_GEO_IN: exists
+alias AFW_GEO_OUT: exists
+rule 'AFW: real-country inbound block (ADR-036)': updated
+rule 'AFW: real-country outbound reject, client zones (ADR-036)': updated
+filter applied
+FW01: CA, pull token and watchdog (with country-table sync) installed

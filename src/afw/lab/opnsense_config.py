@@ -2,11 +2,11 @@
 
 Works on the config dumped from the running image so image-specific defaults
 (and their private keys) never enter Git. Element formats were taken from the
-26.7 factory config and model sources (see docs/IMPLEMENTATION_STATUS.md).
+26.7 factory config and model sources (see docs/archive/IMPLEMENTATION_STATUS.md).
 
 Zone ↔ interface map (GNS3 adapter order):
   lan=vtnet0 MGMT · wan=vtnet1 maintenance uplink · opt1=vtnet2 ATTACK
-  opt2=vtnet3 USERS · opt3=vtnet4 DMZ · opt4=vtnet5 APP
+  opt2=vtnet3 USERS · opt3=vtnet4 DMZ · opt4=vtnet5 APP · opt5=vtnet6 DB
 """
 
 from __future__ import annotations
@@ -23,10 +23,13 @@ ZONES = {  # key: (if, descr, address)
     "opt2": ("vtnet3", "USERS", "10.77.20.1"),
     "opt3": ("vtnet4", "DMZ", "10.77.30.1"),
     "opt4": ("vtnet5", "APP", "10.77.40.1"),
+    "opt5": ("vtnet6", "DB", "10.77.60.1"),
 }
 CLIENT_ZONES = ("opt1", "opt2")
+LAB_SUPERNET = "10.77.0.0/16"  # internal supernet: block inter-zone, allow Internet
 WAF = "10.77.30.10"
 APP = "10.77.40.10"
+DB = "10.77.60.10"
 CTRL = "10.77.50.10"
 
 
@@ -133,7 +136,7 @@ def lab_rules(template: ET.Element) -> list[ET.Element]:
             destination_port="443",
             description=f"AFW: {ZONES[z][1]} to WAF HTTPS",
         )
-    for z in ("opt1", "opt2", "opt3", "opt4"):
+    for z in ("opt1", "opt2", "opt3", "opt4", "opt5"):
         add(
             interface=z,
             protocol="UDP",
@@ -157,6 +160,14 @@ def lab_rules(template: ET.Element) -> list[ET.Element]:
         destination_port="8000",
         description="AFW: WAF to APP (only path to the app)",
     )
+    add(
+        interface="opt4",
+        protocol="TCP",
+        source_net=APP,
+        destination_net=DB,
+        destination_port="5432",
+        description="AFW: APP to DB (only path to the database tier)",
+    )
     for src, z in ((WAF, "opt3"), (APP, "opt4")):
         add(
             interface=z,
@@ -165,6 +176,35 @@ def lab_rules(template: ET.Element) -> list[ET.Element]:
             destination_net=CTRL,
             destination_port="5514",
             description=f"AFW: {ZONES[z][1]} telemetry to CTRL01",
+        )
+        add(
+            interface=z,
+            protocol="TCP",
+            source_net=src,
+            destination_net=CTRL,
+            destination_port="5516",
+            description=f"AFW: {ZONES[z][1]} RELP telemetry to CTRL01 (ADR-038)",
+        )
+    # Internet egress ("real-test" mode): the lab is no longer air-gapped. Each zone
+    # may reach the Internet (NATed out the MAINT uplink), but inter-zone traffic
+    # stays blocked — the specific allows above (quick) match first, then a block of
+    # the lab supernet, then a pass to anywhere else (the Internet). Segmentation
+    # (WAF bypass, DB isolation, telemetry integrity, mgmt isolation) is preserved;
+    # only the previous "no egress" property is intentionally removed.
+    for z in ("opt1", "opt2", "opt3", "opt4", "opt5"):
+        add(
+            interface=z,
+            action="block",
+            source_net=z,
+            destination_net=LAB_SUPERNET,
+            log="1",
+            description=f"AFW: {ZONES[z][1]} deny inter-zone (keep segmentation)",
+        )
+        add(
+            interface=z,
+            source_net=z,
+            destination_net="any",
+            description=f"AFW: {ZONES[z][1]} Internet egress (real-test mode)",
         )
     return rules
 

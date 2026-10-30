@@ -1,0 +1,23 @@
+{
+ "name": "F",
+ "sha256": "4df998cfbf216cef72dd7962697added1143d6ce4ac80ea380f5e18f233851e6",
+ "notes": {
+  "train": [
+   "real-benign-train2",
+   "p1-train",
+   "p6-train"
+  ],
+  "val": [
+   "real-benign-val",
+   "p1-val",
+   "p6-val"
+  ],
+  "train_windows": 19430,
+  "val_windows": 8338,
+  "thresholds": {
+   "robust_stats": 3.2933,
+   "isolation_forest": 0.5826,
+   "half_space_trees": 0.72471
+  }
+ }
+}

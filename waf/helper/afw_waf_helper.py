@@ -3,7 +3,10 @@
 
 Accepts ONLY the typed desired state from the controller:
     {"denied_sources": [ipv4...], "rate_limited": {ipv4: "strict"|"moderate"},
-     "contracts": [{route, allowed_methods, allowed_content_types, max_body_bytes, revision}]}
+     "contracts": [{route, allowed_methods, allowed_content_types, max_body_bytes, revision}],
+     "login_controls": {ipv4: "throttle"|"deny"}}            (optional; A3)
+login_controls act on the application's login routes only (AFW_LOGIN_ROUTES): a
+throttle limits them to LOGIN_RATE with LOGIN_BURST, a deny answers 403 there.
 Renders reviewed templates, validates with `nginx -t` inside the running WAF
 container (same image/modules), reloads, verifies the served revision through
 an end-to-end request, and restores the previous configuration on any failure.
@@ -49,6 +52,9 @@ PARAM_RE = re.compile(r"^\{[A-Za-z_][A-Za-z0-9_]*\}$")
 METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}
 CTYPES = {"application/json", "application/x-www-form-urlencoded", "text/plain"}
 RATES = {"strict": ("1r/s", 5), "moderate": ("5r/s", 10)}
+LOGIN_ROUTES = [r for r in os.environ.get("AFW_LOGIN_ROUTES", "/login").split(",") if r]
+LOGIN_RATE, LOGIN_BURST = "3r/m", 4  # A3_AUTH_CONTROLS.md §2.2
+LOGIN_LEVELS = {"throttle", "deny"}
 LOCK = threading.Lock()
 
 
@@ -65,8 +71,17 @@ def _client_ip(text: str) -> str:
 
 
 def validate(doc: object) -> dict:
-    if not isinstance(doc, dict) or set(doc) != {"denied_sources", "rate_limited", "contracts"}:
-        raise Invalid("expected exactly denied_sources, rate_limited, contracts")
+    base = {"denied_sources", "rate_limited", "contracts"}
+    if not isinstance(doc, dict) or not base <= set(doc) <= base | {"login_controls"}:
+        raise Invalid("expected denied_sources, rate_limited, contracts[, login_controls]")
+    logins = {}
+    raw_logins = doc.get("login_controls", {})
+    if not isinstance(raw_logins, dict):
+        raise Invalid("login_controls must be an object")
+    for ip, level in raw_logins.items():
+        if level not in LOGIN_LEVELS:
+            raise Invalid(f"unknown login control {level!r}")
+        logins[_client_ip(ip)] = level
     denied = sorted({_client_ip(x) for x in doc["denied_sources"]})
     if not isinstance(doc["rate_limited"], dict):
         raise Invalid("rate_limited must be an object")
@@ -112,11 +127,14 @@ def validate(doc: object) -> dict:
                 "revision": int(c["revision"]),
             }
         )
-    return {
+    out = {
         "denied_sources": denied,
         "rate_limited": dict(sorted(rates.items())),
         "contracts": sorted(contracts, key=lambda x: x["route"]),
     }
+    if logins:
+        out["login_controls"] = dict(sorted(logins.items()))
+    return out
 
 
 # ------------------------------------------------------------------ rendering
@@ -136,6 +154,14 @@ def render(state: dict, rev: int) -> dict[str, str]:
             f'map $afw_rate_class $afw_key_{name} {{ {name} $binary_remote_addr; default ""; }}',
             f"limit_req_zone $afw_key_{name} zone=afw_{name}:1m rate={rate};",
         ]
+    logins = state.get("login_controls", {})
+    http += ["geo $afw_login_class {", '    default "";']
+    http += [f"    {ip}/32 {lvl};" for ip, lvl in logins.items()]
+    http += [
+        "}",
+        'map $afw_login_class $afw_key_login { throttle $binary_remote_addr; default ""; }',
+        f"limit_req_zone $afw_key_login zone=afw_login:1m rate={LOGIN_RATE};",
+    ]
     http += ["limit_req_status 429;", ""]
 
     server = [
@@ -143,11 +169,30 @@ def render(state: dict, rev: int) -> dict[str, str]:
         "if ($afw_denied) { return 403; }",
     ]
     server += [f"limit_req zone=afw_{n} burst={b} nodelay;" for n, (_, b) in RATES.items()]
+    site_limits = [f"    limit_req zone=afw_{n} burst={b} nodelay;" for n, (_, b) in RATES.items()]
+    # A3: every login route gets its own exact location (always rendered, so the shape
+    # does not depend on the policy); nginx does not inherit limit_req into a location
+    # that sets its own, so the site-wide zones are repeated there
+    login_lines = [
+        '    if ($afw_login_class = "deny") { return 403; }',
+        *site_limits,
+        f"    limit_req zone=afw_login burst={LOGIN_BURST} nodelay;",
+    ]
+    contract_routes = {c["route"] for c in state["contracts"]}
+    for route in LOGIN_ROUTES:
+        if route not in contract_routes:
+            server += [
+                f"location = {route} {{",
+                *login_lines,
+                "    include /etc/nginx/afw/proxy_backend.conf;",
+                "}",
+            ]
     for c in state["contracts"]:
         parts = ["[^/]+" if PARAM_RE.match(s) else re.escape(s) for s in c["route"].split("/")]
         loc = "~ ^" + "/".join(parts) + "$" if "{" in c["route"] else "= " + c["route"]
         server += [
             f"location {loc} {{",
+            *(login_lines if c["route"] in LOGIN_ROUTES else []),
             f"    limit_except {' '.join(c['allowed_methods'])} {{ deny all; }}",
             f"    client_max_body_size {max(c['max_body_bytes'], 1)};",
         ]

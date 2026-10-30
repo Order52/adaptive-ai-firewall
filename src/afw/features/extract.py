@@ -6,10 +6,11 @@ import math
 from collections import Counter
 from collections.abc import Sequence
 from datetime import datetime
+from itertools import combinations
 
 import numpy as np
 
-from afw.domain.events import AuthOutcome, HttpObservation
+from afw.domain.events import AuthOutcome, HttpObservation, Provenance
 from afw.domain.features import FeatureVector, WindowSpec
 from afw.telemetry.routes import is_unknown
 
@@ -55,15 +56,9 @@ def _entropy(counts: Counter[str]) -> float:
     return -sum((c / total) * math.log2(c / total) for c in counts.values()) if total else 0.0
 
 
-def compute_features(
-    obs: Sequence[HttpObservation],
-    window: WindowSpec,
-    catalog: EndpointCatalog,
-    window_start: datetime,
-    window_end: datetime,
-) -> FeatureVector:
-    if not obs:
-        raise ValueError("cannot compute features for an empty window")
+def _values(
+    obs: Sequence[HttpObservation], window: WindowSpec, catalog: EndpointCatalog
+) -> dict[str, float]:
     n = len(obs)
     length = float(window.length_s)
     routes = Counter(o.route for o in obs)
@@ -76,7 +71,7 @@ def compute_features(
     gaps = np.diff(np.array(times)) if n >= 3 else np.array([])
     cv = float(gaps.std() / gaps.mean()) if gaps.size and gaps.mean() > 0 else 0.0
 
-    values = {
+    return {
         "req_rate": n / length,
         "route_count": float(len(routes)),
         "route_entropy": _entropy(routes),
@@ -102,6 +97,51 @@ def compute_features(
         "interarrival_cv": min(cv, 10.0),
     }
 
+
+def _auth_evidence_request(o: HttpObservation, catalog: EndpointCatalog) -> bool:
+    """A request that the AUTH evidence rule counts as a failure."""
+    return (
+        o.route in catalog.login_routes
+        and o.method == "POST"
+        and o.auth_outcome is AuthOutcome.FAILURE
+    )
+
+
+def _waf_evidence_request(o: HttpObservation) -> bool:
+    return o.waf_blocked or o.waf_anomaly_score >= WAF_SIGNAL_MIN_SCORE
+
+
+def residuals(
+    obs: Sequence[HttpObservation], window: WindowSpec, catalog: EndpointCatalog
+) -> dict[str, dict[str, float] | None]:
+    """Feature values without the requests behind AUTH and/or WAF evidence (SV-1)."""
+    drop = {
+        "auth": [_auth_evidence_request(o, catalog) for o in obs],
+        "waf": [_waf_evidence_request(o) for o in obs],
+    }
+    present = [k for k, flags in drop.items() if any(flags)]
+    out: dict[str, dict[str, float] | None] = {}
+    for r in range(1, len(present) + 1):
+        for keys in combinations(present, r):
+            rest = [o for i, o in enumerate(obs) if not any(drop[k][i] for k in keys)]
+            out["+".join(sorted(keys))] = _values(rest, window, catalog) if rest else None
+    return out
+
+
+def compute_features(
+    obs: Sequence[HttpObservation],
+    window: WindowSpec,
+    catalog: EndpointCatalog,
+    window_start: datetime,
+    window_end: datetime,
+) -> FeatureVector:
+    if not obs:
+        raise ValueError("cannot compute features for an empty window")
+    n = len(obs)
+    logins = [o for o in obs if o.route in catalog.login_routes and o.method == "POST"]
+    login_outcomes = [o.auth_outcome for o in logins if o.auth_outcome is not None]
+    failures = sum(1 for a in login_outcomes if a is AuthOutcome.FAILURE)
+    values = _values(obs, window, catalog)
     evidence: dict[str, float] = {
         "waf_hit_requests": float(sum(1 for o in obs if o.waf_rule_ids)),
         "waf_signal_requests": float(
@@ -113,6 +153,10 @@ def compute_features(
         "login_attempts": float(len(logins)),
         "app_unjoined": float(sum(1 for o in obs if not o.app_joined and o.reached_backend)),
         "backend_requests": float(sum(1 for o in obs if o.reached_backend)),
+        # Provenance (ADR-029): online learning needs every observation trusted
+        # and confirmed by the application.
+        "untrusted_obs": float(sum(1 for o in obs if o.provenance is Provenance.UNVERIFIED)),
+        "unjoined_obs": float(sum(1 for o in obs if not o.app_joined)),
     }
     families: Counter[str] = Counter()
     for o in obs:
@@ -134,4 +178,5 @@ def compute_features(
         app_versions=tuple(sorted({o.app_version for o in obs if o.app_version})),
         evidence=evidence,
         request_ids=tuple(o.request_id for o in obs[-50:]),
+        residuals=residuals(obs, window, catalog),
     )

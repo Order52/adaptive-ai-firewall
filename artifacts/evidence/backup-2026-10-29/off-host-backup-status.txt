@@ -1,0 +1,9 @@
+Off-host backup status — 2026-10-29 ~23:18Z
+- Verified git bundle (full history, 69 commits), test-cloned: ~/afw-backups/*.bundle
+- Portable consolidated backup (bundle + config/lab.yaml + config/scenarios.yaml + dataset SHA256SUMS):
+  ~/afw-backups/afw-portable-backup-*.tar.gz (6.5 MB) + .sha256
+- Host has ONE disk (/dev/nvme0n1p3), no secondary/removable mount, so every copy is on-host.
+- TRUE off-host copy = git push to origin OR scp to a user-provided destination. Both need the
+  owner's authorization (NOT given), so NOT performed. The tarball is ready for a one-command move:
+    scp ~/afw-backups/afw-portable-backup-<stamp>.tar.gz <user-destination>
+  or, when authorized:  git push origin engineering-directive

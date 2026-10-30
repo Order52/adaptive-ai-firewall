@@ -35,7 +35,7 @@ users:
     lock_passwd: true
     ssh_authorized_keys: ["$(cat "$HOME/.config/afw/lab_ed25519.pub")"]
 package_update: true
-packages: [python3-venv, rsyslog, docker.io, nftables, chrony, curl, jq, ca-certificates,
+packages: [python3-venv, rsyslog, rsyslog-gnutls, docker.io, nftables, chrony, curl, jq, ca-certificates,
            tcpdump, iproute2, iputils-ping, netcat-openbsd, openssh-server, qemu-guest-agent, logrotate]
 write_files:
   - path: /opt/afw/dist/requirements.txt
@@ -47,9 +47,10 @@ write_files:
 runcmd:
   - [bash, -c, "python3 -m venv /opt/afw/venv && /opt/afw/venv/bin/pip install -q -r /opt/afw/dist/requirements.txt && /opt/afw/venv/bin/pip install -q --no-deps /opt/afw/dist/*.whl"]
   - [bash, -c, "systemctl enable --now docker && docker pull $WAF_IMAGE && docker tag $WAF_IMAGE afw/waf:4.25.2-lts"]
+  - [bash, -c, "docker pull postgres:16-alpine && docker tag postgres:16-alpine afw/postgres:16"]
   - [bash, -c, "mkdir -p /var/log/afw /etc/afw && systemctl disable --now docker.socket docker || true"]
   - [bash, -c, "echo 'net.ipv6.conf.all.disable_ipv6=1' > /etc/sysctl.d/90-afw.conf"]
-  - [bash, -c, "/opt/afw/venv/bin/python -c 'import afw, sklearn, river, fastapi; print(\"AFW_BAKE_OK\", afw.__version__)' > /dev/ttyS0"]
+  - [bash, -c, "/opt/afw/venv/bin/python -c 'import afw, sklearn, river, fastapi, psycopg, psycopg_pool; print(\"AFW_BAKE_OK\", afw.__version__)' > /dev/ttyS0"]
   - [bash, -c, "cloud-init clean --logs --machine-id && apt-get clean && fstrim -av || true"]
   - [poweroff]
 UD

@@ -1,0 +1,28 @@
+{
+ "name": "FS",
+ "sha256": "c3480f89942c9d38d2b99eac8ed25baf3eb8f12001f60dafcd0a01050ecb8b9a",
+ "notes": {
+  "security_effective": {
+   "auth_failures": 6.0,
+   "auth_fail_lb": 0.5476840249579531,
+   "distinct_usernames": 1.0000000000000002,
+   "login_rate": 18.000000000000004,
+   "client_errors": 6.000000000000001,
+   "unknown_route_lb": 3.2805682357786585e-18,
+   "novel_method_lb": 3.2805682357786585e-18
+  },
+  "train": [
+   "p7-train"
+  ],
+  "val": [
+   "p7-val"
+  ],
+  "train_windows": 11670,
+  "val_windows": 5115,
+  "thresholds": {
+   "robust_stats": 3.87155,
+   "isolation_forest": 0.68567,
+   "half_space_trees": 0.81255
+  }
+ }
+}

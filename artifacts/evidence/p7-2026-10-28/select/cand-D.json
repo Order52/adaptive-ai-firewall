@@ -1,0 +1,19 @@
+{
+ "name": "D",
+ "sha256": "4bd7bd1ff0a5d20051865be67f65c7f7d978b7faee4d42eb2338c099ad652857",
+ "notes": {
+  "train": [
+   "p7-train"
+  ],
+  "val": [
+   "p7-val"
+  ],
+  "train_windows": 11670,
+  "val_windows": 5115,
+  "thresholds": {
+   "robust_stats": 7.98,
+   "isolation_forest": 0.66546,
+   "half_space_trees": 0.78107
+  }
+ }
+}

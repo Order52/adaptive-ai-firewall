@@ -1,0 +1,52 @@
+
+PLAY [all:!desktop] ************************************************************
+skipping: no hosts matched
+
+PLAY [db] **********************************************************************
+skipping: no hosts matched
+
+PLAY [app] *********************************************************************
+skipping: no hosts matched
+
+PLAY [waf] *********************************************************************
+skipping: no hosts matched
+
+PLAY [controller] **************************************************************
+skipping: no hosts matched
+
+PLAY [probes] ******************************************************************
+skipping: no hosts matched
+
+PLAY [desktop] *****************************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [desk01]
+
+TASK [desktop : Lab CA in the system trust store] ******************************
+changed: [desk01]
+
+TASK [desktop : Firefox policy directory] **************************************
+changed: [desk01]
+
+TASK [desktop : Lab CA for Firefox (snap Firefox has its own certificate store)] ***
+changed: [desk01]
+
+TASK [desktop : Firefox enterprise policy installing the lab CA] ***************
+changed: [desk01]
+
+TASK [desktop : Launchers and MCP client use HTTPS] ****************************
+[WARNING]: Module remote_tmp /root/.ansible/tmp did not exist and was created with a mode of 0700, this may cause issues when running as another user. To avoid this, create the remote_tmp dir with the correct permissions manually
+changed: [desk01] => (item=/home/afw/Desktop/AI-Dashboard.desktop)
+changed: [desk01] => (item=/opt/afw/bin/mcp-tools)
+changed: [desk01] => (item=/opt/afw/bin/mcp_client.py)
+changed: [desk01] => (item=/home/afw/README-test.txt)
+
+TASK [desktop : MCP client verifies the controller with the lab CA] ************
+changed: [desk01]
+
+RUNNING HANDLER [desktop : update ca certificates] *****************************
+changed: [desk01]
+
+PLAY RECAP *********************************************************************
+desk01                     : ok=8    changed=7    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+

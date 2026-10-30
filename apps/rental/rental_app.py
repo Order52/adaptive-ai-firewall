@@ -25,6 +25,7 @@ from typing import Any
 from fastapi import Cookie, FastAPI, HTTPException, Request, Response
 from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field
+from store import make_store, pw_hash
 
 APP_ID = "rental"
 VERSION = os.environ.get("APP_VERSION", "1.0.0")
@@ -42,28 +43,12 @@ except OSError:
 _h.setFormatter(logging.Formatter("%(message)s"))
 event_log.addHandler(_h)
 
-# ---------------------------------------------------------------- fake data
-CARS = [
-    {"id": i, "model": m, "daily_rate": 30 + (i * 7) % 90, "city": c}
-    for i, (m, c) in enumerate(
-        [
-            (f"Model-{chr(65 + k % 26)}{k}", ["Tripoli", "Benghazi", "Misrata"][k % 3])
-            for k in range(40)
-        ],
-        start=1,
-    )
-]
-_SALT = b"afw-lab-static-salt"  # synthetic users only
-
-
-def _pw_hash(pw: str) -> str:
-    return hashlib.pbkdf2_hmac("sha256", pw.encode(), _SALT, 20_000).hex()
-
-
-USERS = {f"user{n}": _pw_hash(f"pw-{n}") for n in range(1, 51)}
+# ------------------------------------------------------- data store (3-tier)
+# Business data (catalogue, users, bookings, reviews) lives in the DB tier when
+# DATABASE_URL is set (PostgreSQL on DB01, its own zone), else in-memory for
+# tests/offline. Sessions are ephemeral auth state and stay in the app process.
+STORE = make_store()
 SESSIONS: dict[str, str] = {}
-BOOKINGS: dict[int, dict[str, Any]] = {}
-REVIEWS: dict[int, list[dict[str, Any]]] = {}
 
 app = FastAPI(title="Rental (AFW protected app)", version=VERSION, docs_url=None, redoc_url=None)
 
@@ -136,26 +121,27 @@ def health() -> dict[str, str]:
 
 @app.get("/")
 def index() -> dict[str, Any]:
-    return {"app": "rental", "version": VERSION, "cars": len(CARS)}
+    return {"app": "rental", "version": VERSION, "cars": STORE.car_count()}
 
 
 @app.get("/cars")
 def cars(city: str | None = None) -> list[dict[str, Any]]:
-    return [c for c in CARS if city is None or c["city"] == city]
+    return STORE.cars(city)
 
 
 @app.get("/cars/{car_id}")
 def car(car_id: int) -> dict[str, Any]:
-    if not 1 <= car_id <= len(CARS):
+    c = STORE.car(car_id)
+    if c is None:
         raise HTTPException(404, "no such car")
-    return CARS[car_id - 1]
+    return c
 
 
 @app.post("/login")
 def login(body: LoginBody, request: Request, response: Response) -> dict[str, str]:
     request.state.user_h = user_hash(body.username)
-    expected = USERS.get(body.username)
-    if expected is None or not secrets.compare_digest(expected, _pw_hash(body.password)):
+    expected = STORE.user_pw_hash(body.username)
+    if expected is None or not secrets.compare_digest(expected, pw_hash(body.password)):
         request.state.auth = "failure"
         raise HTTPException(401, "invalid credentials")
     request.state.auth = "success"
@@ -174,24 +160,22 @@ def logout(session: str | None = Cookie(default=None)) -> dict[str, str]:
 @app.get("/bookings")
 def bookings(session: str | None = Cookie(default=None)) -> list[dict[str, Any]]:
     user = _session_user(session)
-    return [b for b in BOOKINGS.values() if b["user"] == user]
+    return STORE.bookings(user)
 
 
 @app.post("/booking", status_code=201)
 def booking(body: BookingBody, session: str | None = Cookie(default=None)) -> dict[str, Any]:
     user = _session_user(session)
-    if not 1 <= body.car_id <= len(CARS):
+    if STORE.car(body.car_id) is None:
         raise HTTPException(404, "no such car")
-    bid = len(BOOKINGS) + 1
-    BOOKINGS[bid] = {"id": bid, "user": user, **body.model_dump()}
-    return BOOKINGS[bid]
+    return STORE.add_booking(user, body.car_id, body.days, body.city)
 
 
 @app.get("/booking/{booking_id}")
 def get_booking(booking_id: int, session: str | None = Cookie(default=None)) -> dict[str, Any]:
     user = _session_user(session)
-    b = BOOKINGS.get(booking_id)
-    if b is None or b["user"] != user:
+    b = STORE.booking(booking_id, user)
+    if b is None:
         raise HTTPException(404, "not found")
     return b
 
@@ -200,11 +184,9 @@ if V2:
 
     @app.get("/cars/{car_id}/reviews")
     def reviews(car_id: int) -> list[dict[str, Any]]:
-        return REVIEWS.get(car_id, [])
+        return STORE.reviews(car_id)
 
     @app.post("/reviews", status_code=201)
     def add_review(body: ReviewBody, session: str | None = Cookie(default=None)) -> dict[str, Any]:
         user = _session_user(session)
-        item = {"user": user, **body.model_dump()}
-        REVIEWS.setdefault(body.car_id, []).append(item)
-        return item
+        return STORE.add_review(user, body.car_id, body.stars, body.text)

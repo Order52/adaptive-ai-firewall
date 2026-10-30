@@ -11,11 +11,11 @@ _Live, verified against the running GNS3 project `AI-Adaptive-Firewall`
              ┌───────────────────────────────────────────────┐
              │   CTRL01  —  AI-ADAPTIVE-FIREWALL              │
              │   AI / ML / profiling / correlation / MCP      │
-             │   dashboard (HTTPS) · policy control plane     │
+             │   dashboard (HTTPS via SSH tunnel) · control   │
              │        │                                       │
              │   SW-MGMT ── HOST-MGMT (host TAP)  MAINT-NAT   │
              └────────┼──────────────────────────────────────┘
-                      │  management API (bearer token, TLS)
+                      │  management API (bearer token; HTTPS)
                       ▼
                    ┌──────┐
      ATTACK  ──────┤ FW01 ├────── USERS
@@ -30,29 +30,40 @@ _Live, verified against the running GNS3 project `AI-Adaptive-Firewall`
                       ▼
                    APPLICATION ZONE  (10.77.40.0/24)
                    SW-APP ── APP01  (rental web app)
+                      │  firewall policy (APP → DB:5432 only)
+                      ▼
+                   DATABASE ZONE  (10.77.60.0/24)
+                   SW-DB ── DB01  (PostgreSQL, container)
 ```
 
 The management plane (CTRL01 ↔ FW01 API) is isolated on the host-only MGMT zone.
-The data path is **clients → FW01 → WAF01 (DMZ) → APP01**; there is no direct
-client→APP path (gate G1 verifies this, see below). OPNsense is **one enforcement
-backend**; the AI controller (CTRL01) is the project's primary contribution.
+The data path is a real 3-tier flow **clients → FW01 → WAF01 (DMZ) → APP01 → DB01**;
+there is no direct client→APP path and no direct client/WAF→DB path (gate G1
+verifies both). OPNsense is **one enforcement backend**; the AI controller (CTRL01)
+is the project's primary contribution.
 
-## Node inventory (13 nodes, 12 links)
+## Node inventory (16 nodes, 15 links)
+
+16 GNS3 nodes = 8 VMs (FW01, CTRL01, DESK01, WAF01, APP01, DB01, USR01, ATK01) +
+6 zone switches + 2 host connectors (HOST-MGMT cloud, MAINT-NAT). Earlier documents
+said 13 (7 VMs + 6 switches, before DESK01 was added on 2026-10-22) or 15 (the same
+plus the 2 connectors); `lab/gns3/topology.yaml` and `afw lab status` are authoritative.
 
 | Node | GNS3 type | Role | Address | Zone |
 |---|---|---|---|---|
 | **CTRL01** | qemu (guest) | AI-Adaptive-Firewall controller: AI/ML, profiling, correlation, policy, MCP, dashboard | 10.77.50.10 | MGMT |
-| **FW01** | qemu (guest) | OPNsense 26.7 — pf firewall + Suricata IDS; 6 NICs (MGMT/MAINT/ATTACK/USERS/DMZ/APP) | .1 in each zone | router/core |
+| **FW01** | qemu (guest) | OPNsense 26.7 — pf firewall + Suricata IDS; 7 NICs (MGMT/MAINT/ATTACK/USERS/DMZ/APP/DB) | .1 in each zone | router/core |
 | **WAF01** | qemu (guest) | OWASP CRS ModSecurity (nginx, host networking) + policy helper | 10.77.30.10 | DMZ |
-| **APP01** | qemu (guest) | Protected rental web app | 10.77.40.10 | APP |
+| **APP01** | qemu (guest) | Protected rental web app (uses the DB tier) | 10.77.40.10 | APP |
+| **DB01** | qemu (guest) | PostgreSQL 16 (container) — persistent business data | 10.77.60.10 | DB |
 | **USR01** | qemu (guest) | Legitimate user client + probe agent | 10.77.20.10 | USERS |
 | **ATK01** | qemu (guest) | Attack-scenario client + probe agent | 10.77.10.10 | ATTACK |
-| SW-MGMT / SW-ATTACK / SW-USERS / SW-DMZ / SW-APP | ethernet_switch | Per-zone L2 segments | — | infra |
+| SW-MGMT / SW-ATTACK / SW-USERS / SW-DMZ / SW-APP / SW-DB | ethernet_switch | Per-zone L2 segments | — | infra |
 | HOST-MGMT | cloud | Host TAP `afw-mgmt0` (10.77.50.254) into the MGMT segment | — | infra |
 | MAINT-NAT | nat | Maintenance/IDS-rule-update uplink on FW01's MAINT NIC | — | infra |
 
-**Six functional machines** (CTRL01, FW01, WAF01, APP01, USR01, ATK01). The five
-switches, the cloud and the NAT are infrastructure, not guests. No node is
+**Seven functional machines** (CTRL01, FW01, WAF01, APP01, DB01, USR01, ATK01). The
+six switches, the cloud and the NAT are infrastructure, not guests. No node is
 redundant: each switch is one security zone's L2 segment, HOST-MGMT is the only
 host entry point, and MAINT-NAT is FW01's only outbound path (IDS rule updates),
 kept off the data zones.
@@ -65,12 +76,14 @@ FW01:1 ── MAINT-NAT    SW-ATTACK ── ATK01
 FW01:2 ── SW-ATTACK    SW-USERS ── USR01
 FW01:3 ── SW-USERS     SW-DMZ ── WAF01
 FW01:4 ── SW-DMZ       SW-APP ── APP01
-FW01:5 ── SW-APP
+FW01:5 ── SW-APP       SW-DB ── DB01
+FW01:6 ── SW-DB
 ```
 
-No link bypasses FW01: clients (ATTACK/USERS) and the DMZ/APP segments each meet
-only at FW01, so every cross-zone packet is subject to pf. The WAF is the only
-path from a client zone into the APP zone.
+No link bypasses FW01: clients (ATTACK/USERS) and the DMZ/APP/DB segments each meet
+only at FW01, so every cross-zone packet is subject to pf. The WAF is the only path
+from a client zone into the APP zone, and **APP01 is the only host that may reach
+DB01:5432** — clients and the WAF cannot, and the DB initiates no outbound traffic.
 
 ## Canvas layout (professional, reproducible)
 
@@ -81,7 +94,8 @@ traffic path and draws colour-coded zone boxes + labels:
 - **FW01** (centre): OPNsense, labelled, firewall symbol.
 - **Attack** (red, left) / **Users** (green, right): client zones feeding FW01.
 - **DMZ** (amber): SW-DMZ + WAF01, directly below FW01.
-- **Application** (teal, bottom): SW-APP + APP01, reachable only via the WAF.
+- **Application** (teal): SW-APP + APP01, reachable only via the WAF.
+- **Database** (violet, bottom): SW-DB + DB01 (PostgreSQL), reachable only from APP01.
 
 Symbols are role-appropriate (server for CTRL01/WAF01/APP01, firewall for FW01,
 ethernet-switch for switches, cloud for HOST-MGMT/MAINT-NAT). Node positions,
@@ -90,11 +104,12 @@ close/reopen (verified in earlier sessions).
 
 ## Isolation gate (G1)
 
-`afw lab verify` runs 26 reachability checks from *inside* the guests (also
+`afw lab verify` runs 34 reachability checks from *inside* the guests (also
 exposed as the MCP tool `verify_isolation`). It confirms: clients cannot bypass
-the WAF to the app, clients cannot reach each other, clients have no Internet,
-telemetry/SSH ports are closed to clients, and management reaches all zones.
-Historical result: **26/26**.
+the WAF to the app, **only APP01 may reach DB01:5432** (clients/WAF cannot, and the
+DB has no Internet and no back-connection to the app), clients cannot reach each
+other, clients have no Internet, telemetry/SSH ports are closed to clients, and
+management reaches all zones.
 
 ## Reproduce from code
 

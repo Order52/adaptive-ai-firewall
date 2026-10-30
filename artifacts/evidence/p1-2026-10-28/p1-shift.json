@@ -1,0 +1,35 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-28T07:38:19+00:00",
+ "end": "2026-10-28T08:09:00+00:00",
+ "scenario": "P1 Phase B workload shift: 6 users, one shared generator (10-27 workload)",
+ "seed": 404,
+ "generator": "traffic/benign_personas.py AFW_MODE=shared AFW_SOURCES=10.77.20.61-66 AFW_SEED=404",
+ "notes": "P1 predeclared protocol",
+ "sources": [
+  {
+   "ip": "10.77.20.61",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.62",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.63",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.64",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.65",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.66",
+   "role": "benign"
+  }
+ ]
+}

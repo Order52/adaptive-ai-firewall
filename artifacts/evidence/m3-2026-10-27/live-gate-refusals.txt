@@ -1,0 +1,7 @@
+2026-10-27T19:52:38Z
+# live CTRL01: evaluate with no challenger checkpoint (live challenger learned 0 windows; see m2 live-shadow-final.txt)
+{"detail":"no valid challenger checkpoint for the active champion"} HTTP 409
+# promote unknown evaluation
+{"detail":"unknown evaluation"} HTTP 409
+# viewer cannot evaluate
+HTTP 403

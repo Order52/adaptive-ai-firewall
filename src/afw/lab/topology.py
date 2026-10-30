@@ -62,6 +62,19 @@ def _node_body(
             "node_type": "qemu",
             "properties": _qemu_props(spec, topo["images"]["ubuntu"], iso),
         }
+    elif kind == "desktop":
+        iso = f"afw-seed-{name.lower()}.iso"
+        build_seed(
+            IMAGES_DIR / iso, name, spec["ip"], spec["gw"], spec.get("extra_ips", []), pubkey
+        )
+        log(f"seed {iso}")
+        props = _qemu_props(spec, topo["images"]["desktop"], iso)
+        props["console_type"] = "vnc"  # graphical XFCE desktop, viewed via GNS3 VNC
+        body |= {
+            "node_type": "qemu",
+            "symbol": ":/symbols/computer.svg",
+            "properties": props,
+        }
     elif kind == "cloud":
         tap = spec["tap"]
         body |= {

@@ -1,3 +1,10 @@
+- name: Egress verification targets (single source of truth is config/lab.yaml, ADR-036)
+  ansible.builtin.set_fact:
+    probe_egress: >-
+      {%- set g = (lookup('file', repo_root ~ '/config/lab.yaml') | from_yaml).geo_enforcement | default({}) -%}
+      {%- for n, t in (g.egress_targets | default({})).items() -%}
+      {{ n }}={{ t.address }}:{{ t.port | default(443) }}{{ '' if loop.last else ',' }}
+      {%- endfor -%}
 - name: Code directory
   ansible.builtin.file: {path: /opt/afw/probe, state: directory, mode: "0755"}
 - name: Probe user
@@ -22,6 +29,7 @@
       Environment=AFW_PROBE_CALLER={{ ctrl_ip }}
       Environment=AFW_LAB_CA=/etc/afw/tls/lab-ca.pem
       Environment=AFW_PROBE_TOKEN_FILE=/etc/afw/probe.token
+      Environment=AFW_PROBE_EGRESS={{ probe_egress }}
       ExecStart=/usr/bin/python3 /opt/afw/probe/probe_agent.py
       Restart=on-failure
       NoNewPrivileges=true

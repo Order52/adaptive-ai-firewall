@@ -10,11 +10,16 @@ re-added after every successful reconcile. The firewall-local watchdog
 (lab/opnsense/afw-watchdog.sh, cron, checks every 30 s) flushes ``AFW_BLOCK_WEB``
 when the sentinel's pf "Cleared" timestamp is older than 90 s, so dynamic blocks
 cannot outlive a dead controller by more than ~120 s (measured: 106 s on FW01).
+
+Real-country policies (ADR-036) are not written through this key: the adapter
+*publishes* the desired network list per direction (``GeoTables``), FW01 pulls it into
+``AFW_GEO_IN`` / ``AFW_GEO_OUT`` with an atomic ``pfctl -T replace``, and this adapter
+reads those tables back. The watchdog flushes them with the block table.
 """
 
 from __future__ import annotations
 
-from ipaddress import IPv4Address, ip_address
+from ipaddress import IPv4Address, ip_address, ip_network
 from pathlib import Path
 from typing import Any
 
@@ -23,20 +28,31 @@ import structlog
 
 from afw.config import OpnsenseConfig, ServiceConfig
 from afw.domain.policy import PolicyKind
+from afw.policy.geo import DIRECTIONS, Direction, GeoTables
 from afw.ports.enforcement import ApplyReport, DesiredState, ObservedState
 
 log = structlog.get_logger(__name__)
 HEARTBEAT_ALIAS = "AFW_HEARTBEAT"
 HEARTBEAT_SENTINEL = "192.0.2.1"  # TEST-NET-1; never routable in the lab
+# OPNsense 26.7 returns a malformed chunked body for alias_util/list responses of
+# about 5000 rows or more (measured 2026-10-28: 2000-row pages 3/3 ok, 5000-row 0/3), so
+# large tables are read in pages well below that.
+PAGE = 1000
 
 
 class OpnsenseBackend:
     name = "opnsense"
     handles = frozenset({PolicyKind.SOURCE_BLOCK, PolicyKind.GEO_BLOCK})
 
-    def __init__(self, cfg: OpnsenseConfig, service: ServiceConfig) -> None:
+    def __init__(
+        self, cfg: OpnsenseConfig, service: ServiceConfig, geo: GeoTables | None = None
+    ) -> None:
         self.cfg = cfg
         self.service = service
+        self.geo = geo
+        # read a geo table only while something is (or was last seen) in it
+        self._geo_nonempty: dict[Direction, bool] = {d: True for d in DIRECTIONS}
+        self._geo_watch: frozenset[str] = frozenset()
         verify: bool | str = str(cfg.ca_file) if cfg.ca_file and cfg.verify_tls else cfg.verify_tls
         self.client = httpx.Client(
             base_url=cfg.base_url.rstrip("/") + "/api",
@@ -62,15 +78,55 @@ class OpnsenseBackend:
                 out.add(addr)
         return frozenset(out)
 
+    def _table(self, alias: str) -> frozenset[str]:
+        """Every entry of a (possibly large) pf table, normalised to CIDR strings."""
+        out: set[str] = set()
+        page = 1
+        while True:
+            data = self._call(
+                "POST", f"/firewall/alias_util/list/{alias}", {"current": page, "rowCount": PAGE}
+            )
+            rows = data.get("rows", [])
+            out |= {str(ip_network(str(r["ip"]), strict=False)) for r in rows if r.get("ip")}
+            if not rows or len(out) >= int(data.get("total", 0)) or len(rows) < PAGE:
+                return frozenset(out)
+            page += 1
+
+    def _observe_geo(self, d: Direction) -> frozenset[str]:
+        assert self.geo is not None
+        pub = self.geo.published[d]
+        if not pub.networks and not self._geo_nonempty[d]:
+            return frozenset()
+        table = self._table(self.geo.alias(d))
+        self._geo_nonempty[d] = bool(table)
+        return self.geo.present(table, frozenset(pub.countries) | self._geo_watch)
+
     def observe(self) -> ObservedState:
         try:
+            geo: dict[Direction, frozenset[str] | None] = {d: None for d in DIRECTIONS}
+            if self.geo is not None:
+                geo = {d: self._observe_geo(d) for d in DIRECTIONS}
             return ObservedState(
-                backend=self.name, reachable=True, blocked_sources=self._members(self.cfg.alias)
+                backend=self.name,
+                reachable=True,
+                blocked_sources=self._members(self.cfg.alias),
+                geo_inbound=geo["inbound"],
+                geo_outbound=geo["outbound"],
             )
         except (httpx.HTTPError, ValueError) as exc:
             return ObservedState(backend=self.name, reachable=False, error=str(exc))
 
+    def _geo_desired(self, desired: DesiredState) -> list[str]:
+        # The policy service publishes the lists FW01 pulls; this adapter only records
+        # which countries to read back (including ones being removed).
+        if self.geo is None:
+            wanted = desired.geo_inbound or desired.geo_outbound
+            return ["real-country enforcement is not configured"] if wanted else []
+        self._geo_watch = desired.geo_inbound | desired.geo_outbound | desired.geo_watch
+        return []
+
     def reconcile(self, desired: DesiredState) -> ApplyReport:
+        geo_errors = self._geo_desired(desired)
         try:
             current = self._members(self.cfg.alias)
         except httpx.TimeoutException as exc:
@@ -79,7 +135,7 @@ class OpnsenseBackend:
             return ApplyReport(backend=self.name, ok=False, error=str(exc), ambiguous=True)
         add = desired.blocked_sources - current
         remove = current - desired.blocked_sources
-        errors: list[str] = []
+        errors: list[str] = list(geo_errors)
         ambiguous = False
         for verb, items in (("add", add), ("delete", remove)):
             for ip in sorted(items):

@@ -1,0 +1,21 @@
+FW01 read-only load sample, 2026-10-29 03:51:03Z, during the A3/NV1 capture
+(58 generated users on USR01: web journeys + NV1 network activity). Script:
+fw01_load_sample.py (serial console, read-only commands; no configuration change).
+
+hw.ncpu 2, hw.physmem 1,566,023,680 (1.5 GB). Uptime 8:03, load averages 0.16 0.19 0.17.
+vmstat 5 s samples: user 1-2 %, system 0-1 %, idle 95-97 %.
+Suricata (pcap on vtnet2 + vtnet3): RSS 330,388 KB, VSZ 726,920 KB, %CPU 0.1, CPU time 3:55.69 since start.
+
+Interface counters since boot (Ipkts, Ibytes, Obytes):
+  vtnet0      778,112   127,049,858   352,552,953   (WAN)
+  vtnet1       46,259    40,115,549     4,392,138   (MGMT)
+  vtnet2          643       105,513       122,752   (ATTACK, inspected)
+  vtnet3      636,469    92,554,853   308,922,999   (USERS, inspected)
+  vtnet4    1,097,536   509,021,957   364,226,086   (DMZ, not inspected)
+  vtnet5      463,394   231,565,681   164,312,713   (APP, not inspected)
+  vtnet6      127,911   115,191,831    12,150,519   (DB, not inspected)
+Inspecting DMZ+APP would add ~1.56 M input packets to the ~0.64 M now inspected (~3.4x
+in total) since boot; the dominant part is WAF01<->APP01 proxied HTTP and telemetry.
+Disk: / 7.5G, 2.1G used, 4.8G free. suricata_20261029.log 84 MB at 03:51 (daily rotation).
+
+Note: NV1 protocol §6.3 says "FW01 (1 vCPU)"; it has 2 vCPUs.

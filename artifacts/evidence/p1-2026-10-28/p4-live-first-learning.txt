@@ -1,0 +1,89 @@
+P4 live shadow learning, first admissions (2026-10-28T07:52:58Z)
+{
+    "status": {
+        "enabled": true,
+        "mode": "shadow (no influence on enforcement; promotion only via gate + admin)",
+        "champion_model": "half_space_trees-p2-20261017190622",
+        "challenger": {
+            "n_learned": 17,
+            "counter": 18,
+            "warm": true,
+            "window_size": 180,
+            "l_mass_total": 4950.0,
+            "r_mass_total": 49500.0
+        },
+        "last_checkpoint": {
+            "id": "ckpt-54bef309373f",
+            "seq": 1,
+            "n_learned": 5,
+            "created_at": "2026-10-28T07:52:20.726574+00:00"
+        },
+        "quarantine": 281,
+        "unflushed_learned": 12,
+        "counts": {
+            "windows": 3751,
+            "quarantined": 445,
+            "learned": 17
+        },
+        "excluded": {
+            "sensitive_range": 604,
+            "tainted": 959,
+            "overlap": 1738,
+            "tenure": 105,
+            "late_taint": 42,
+            "unverified": 5
+        }
+    },
+    "agreement": {
+        "windows": 200,
+        "both_normal": 173,
+        "champion_only_anomalous": 0,
+        "challenger_only_anomalous": 0,
+        "both_anomalous": 27,
+        "note": "challenger flags use the champion threshold; the calibrated threshold is set by a promotion-gate evaluation"
+    },
+    "recent_shadow": [
+        {
+            "app_id": "rental",
+            "source_ip": "10.77.20.68",
+            "window_end": "2026-10-28T07:52:53.142091Z",
+            "champion_score": 0.50438,
+            "champion_anomalous": false,
+            "challenger_score": 0.50438,
+            "challenger_anomalous": false,
+            "challenger_warm": true,
+            "n_learned": 12,
+            "threshold": 0.8064672290072192
+        },
+        {
+            "app_id": "rental",
+            "source_ip": "10.77.20.53",
+            "window_end": "2026-10-28T07:52:53.142091Z",
+            "champion_score": 0.690846,
+            "champion_anomalous": false,
+            "challenger_score": 0.690846,
+            "challenger_anomalous": false,
+            "challenger_warm": true,
+            "n_learned": 12,
+            "threshold": 0.8064672290072192
+        },
+        {
+            "app_id": "rental",
+            "source_ip": "10.77.20.77",
+            "window_end": "2026-10-28T07:52:53.142091Z",
+            "champion_score": 0.469956,
+            "champion_anomalous": false,
+            "challenger_score": 0.469956,
+            "challenger_anomalous": false,
+            "challenger_warm": true,
+            "n_learned": 12,
+            "threshold": 0.8064672290072192
+        },
+--- learned_windows ledger (read-only)
+['fingerprint', 'app_id', 'source_ip', 'window_end', 'checkpoint_id', 'body']
+learned_windows rows: 5
+f8d8271d8d9e1c1e 10.77.20.69 2026-10-28 07:42:20.084140 ckpt-54bef309373f {"fingerprint":"f8d8271d8d9e1c1e15768f0a61043f7c62ae6aae65becda9a653df53e5672777","app_id":"rental","source_ip":"10.77.20.69","window_start":"2026-10-28T07:41:50.084140Z","window_end":"2026-10-28T07:42:20.084140Z","learn
+b56df8d6a93d41b1 10.77.20.74 2026-10-28 07:42:20.084140 ckpt-54bef309373f {"fingerprint":"b56df8d6a93d41b1acaa23dc32cd785ee5d19b1311cca714826a83892ac8e72e","app_id":"rental","source_ip":"10.77.20.74","window_start":"2026-10-28T07:41:50.084140Z","window_end":"2026-10-28T07:42:20.084140Z","learn
+160da3cdc8acfb07 10.77.20.78 2026-10-28 07:42:20.084140 ckpt-54bef309373f {"fingerprint":"160da3cdc8acfb077479fb8545103843a286e5e62271f19dca84049128b166c2","app_id":"rental","source_ip":"10.77.20.78","window_start":"2026-10-28T07:41:50.084140Z","window_end":"2026-10-28T07:42:20.084140Z","learn
+54b2c352a3038999 10.77.20.80 2026-10-28 07:42:20.084140 ckpt-54bef309373f {"fingerprint":"54b2c352a30389997a547cf02a9f9cb34460bb753ddc7717d2b85f9330447889","app_id":"rental","source_ip":"10.77.20.80","window_start":"2026-10-28T07:41:50.084140Z","window_end":"2026-10-28T07:42:20.084140Z","learn
+8a82e684f497f13a 10.77.20.81 2026-10-28 07:42:20.084140 ckpt-54bef309373f {"fingerprint":"8a82e684f497f13a5ddd929e52f99d7def3750f2378370884a727fef1d407c8a","app_id":"rental","source_ip":"10.77.20.81","window_start":"2026-10-28T07:41:50.084140Z","window_end":"2026-10-28T07:42:20.084140Z","learn

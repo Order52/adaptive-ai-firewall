@@ -1,0 +1,198 @@
+{
+ "n_windows": 13784,
+ "n_attack": 285,
+ "n_benign": 13499,
+ "note": "labels are pure source-IP (source in ATTACKERS); see audit",
+ "feature_separation": {
+  "failed_60": {
+   "attack_mean": 0.0,
+   "attack_median": 0.0,
+   "benign_mean": 0.544,
+   "benign_p99": 7.0,
+   "benign_max": 47.0
+  },
+  "flows_60": {
+   "attack_mean": 34.439,
+   "attack_median": 36.0,
+   "benign_mean": 6.017,
+   "benign_p99": 100.0,
+   "benign_max": 891.0
+  },
+  "ssh_flows_60": {
+   "attack_mean": 12.702,
+   "attack_median": 0.0,
+   "benign_mean": 0.088,
+   "benign_p99": 2.0,
+   "benign_max": 2.0
+  },
+  "dst_hosts_60": {
+   "attack_mean": 0.877,
+   "attack_median": 1.0,
+   "benign_mean": 2.929,
+   "benign_p99": 44.0,
+   "benign_max": 140.0
+  },
+  "failed_300": {
+   "attack_mean": 0.0,
+   "attack_median": 0.0,
+   "benign_mean": 3.203,
+   "benign_p99": 35.0,
+   "benign_max": 231.0
+  },
+  "flows_300": {
+   "attack_mean": 228.646,
+   "attack_median": 232.0,
+   "benign_mean": 71.287,
+   "benign_p99": 622.06,
+   "benign_max": 1557.0
+  },
+  "median_duration_s_60": {
+   "attack_mean": 9.268,
+   "attack_median": 9.35,
+   "benign_mean": 1.277,
+   "benign_p99": 13.895,
+   "benign_max": 60.975
+  },
+  "bytes_out_log_60": {
+   "attack_mean": 9.585,
+   "attack_median": 10.866,
+   "benign_mean": 4.307,
+   "benign_p99": 12.069,
+   "benign_max": 14.308
+  }
+ },
+ "gap_split": {
+  "train": 8270,
+  "train_attack": 142,
+  "gap_windows_dropped": 132,
+  "test": 5382,
+  "test_attack": 143
+ },
+ "ablation_gap_split": {
+  "all_features": {
+   "recall": 0.8462,
+   "precision": 1.0,
+   "fpr": 0.0,
+   "tp": 121,
+   "fp": 0,
+   "fn": 22,
+   "tn": 5239,
+   "recall_ci95": [
+    0.778,
+    0.8962
+   ],
+   "top_features": [
+    [
+     "median_duration_s_300",
+     0.1581
+    ],
+    [
+     "dns_queries_300",
+     0.1437
+    ],
+    [
+     "dst_ports_300",
+     0.1206
+    ],
+    [
+     "dst_hosts_300",
+     0.1174
+    ],
+    [
+     "dns_names_300",
+     0.1155
+    ],
+    [
+     "median_duration_s_60",
+     0.0847
+    ],
+    [
+     "flows_300",
+     0.0432
+    ],
+    [
+     "sweep_hosts_300",
+     0.0389
+    ]
+   ]
+  },
+  "behaviour_only (no port/host/fanout)": {
+   "recall": 0.8951,
+   "precision": 1.0,
+   "fpr": 0.0,
+   "tp": 128,
+   "fp": 0,
+   "fn": 15,
+   "tn": 5239,
+   "recall_ci95": [
+    0.8341,
+    0.9354
+   ]
+  },
+  "identity_only (port/host/fanout)": {
+   "recall": 0.0,
+   "precision": 0.0,
+   "fpr": 0.017179,
+   "tp": 0,
+   "fp": 90,
+   "fn": 143,
+   "tn": 5149,
+   "recall_ci95": [
+    0.0,
+    0.0262
+   ]
+  },
+  "drop_ssh_flows_and_dst_hosts": {
+   "recall": 0.9231,
+   "precision": 1.0,
+   "fpr": 0.0,
+   "tp": 132,
+   "fp": 0,
+   "fn": 11,
+   "tn": 5239,
+   "recall_ci95": [
+    0.8675,
+    0.9565
+   ]
+  }
+ },
+ "family_counts": {
+  "benign": 13499,
+  "ftp": 159,
+  "ssh": 126
+ },
+ "held_out_family_audit": {
+  "all_features:train_ftp_test_ssh": {
+   "withheld_recall": 0.9921,
+   "withheld_recall_ci95": [
+    0.9564,
+    0.9986
+   ],
+   "benign_fpr": 0.0
+  },
+  "all_features:train_ssh_test_ftp": {
+   "withheld_recall": 0.0,
+   "withheld_recall_ci95": [
+    -0.0,
+    0.0236
+   ],
+   "benign_fpr": 0.0
+  },
+  "behaviour_only:train_ftp_test_ssh": {
+   "withheld_recall": 0.9921,
+   "withheld_recall_ci95": [
+    0.9564,
+    0.9986
+   ],
+   "benign_fpr": 0.0
+  },
+  "behaviour_only:train_ssh_test_ftp": {
+   "withheld_recall": 0.6604,
+   "withheld_recall_ci95": [
+    0.5838,
+    0.7294
+   ],
+   "benign_fpr": 0.0
+  }
+ }
+}

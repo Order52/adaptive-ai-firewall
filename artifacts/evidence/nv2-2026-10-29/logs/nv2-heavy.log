@@ -1,0 +1,72 @@
+app reviews: off (AFW_APP_REVIEWS=auto)
+net 10.77.20.162: heavy dns/min=4.06 visit=0.59 pings/h=1.77 typed/h=0.97 resolver=8.8.8.8
+net 10.77.20.163: heavy dns/min=3.90 visit=0.65 pings/h=1.50 typed/h=0.72 resolver=8.8.8.8
+net 10.77.20.164: heavy dns/min=4.03 visit=0.62 pings/h=1.03 typed/h=0.56 resolver=1.1.1.1
+net 10.77.20.165: heavy dns/min=4.18 visit=0.67 pings/h=1.54 typed/h=1.00 resolver=1.1.1.1
+net 10.77.20.166: heavy dns/min=5.21 visit=0.54 pings/h=0.58 typed/h=0.33 resolver=8.8.8.8
+net 10.77.20.167: heavy dns/min=2.68 visit=0.67 pings/h=0.96 typed/h=0.41 resolver=8.8.8.8
+net 10.77.20.168: heavy dns/min=4.53 visit=0.70 pings/h=1.65 typed/h=0.59 resolver=8.8.8.8
+net 10.77.20.169: heavy dns/min=3.87 visit=0.63 pings/h=1.25 typed/h=0.68 resolver=8.8.8.8
+persona 10.77.20.162: {'think': 1.0, 'depth': 4, 'auth': 0.6440827419102275, 'typo': 0.054885021039593515, 'book': 0.7629648854344948, 'review': 0.009363482571345961, 'gap': 90.0, 'user': ('user26', 'pw-26'), 'archetype': 'stale', 'stale': 0.14997288275365178, 'max_typos': 1, 'accounts': [('user26', 'pw-26')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.163: {'think': 0.5, 'depth': 5, 'auth': 0.95, 'typo': 0.05398881755378364, 'book': 0.9, 'review': 0.1832249997688511, 'gap': 2.0, 'user': ('user44', 'pw-44'), 'archetype': 'power', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user44', 'pw-44')], 'city': 0.0, 'detail': 0.8}
+persona 10.77.20.164: {'think': 2.0, 'depth': 2, 'auth': 0.005566112563328174, 'typo': 0.1148209168212241, 'book': 0.38365628510611904, 'review': 0.010959169751829735, 'gap': 90.0, 'user': ('user40', 'pw-40'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user40', 'pw-40')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.165: {'think': 4.0, 'depth': 1, 'auth': 0.8, 'typo': 0.03346264108978695, 'book': 0.43201608410141995, 'review': 0.007217345069157055, 'gap': 30.0, 'user': ('user26', 'pw-26'), 'archetype': 'household', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user49', 'pw-49'), ('user20', 'pw-20')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.166: {'think': 2.0, 'depth': 3, 'auth': 0.8, 'typo': 0.1324119542916006, 'book': 0.2941654021344683, 'review': 0.2381923765897033, 'gap': 2.0, 'user': ('user46', 'pw-46'), 'archetype': 'household', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user40', 'pw-40'), ('user31', 'pw-31'), ('user28', 'pw-28')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.167: {'think': 6.0, 'depth': 1, 'auth': 0.20850757263066003, 'typo': 0.09939753316852189, 'book': 0.7077663753327437, 'review': 0.2945775120679074, 'gap': 180.0, 'user': ('user43', 'pw-43'), 'archetype': 'slow', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user43', 'pw-43')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.168: {'think': 4.0, 'depth': 2, 'auth': 0.0006807292139928145, 'typo': 0.14191514712787667, 'book': 0.32864882724571964, 'review': 0.2661544504559395, 'gap': 2.0, 'user': ('user1', 'pw-1'), 'archetype': 'casual', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user1', 'pw-1')], 'city': 0.0, 'detail': 0.3}
+persona 10.77.20.169: {'think': 1.0, 'depth': 2, 'auth': 0.4553742258565044, 'typo': 0.09918713693765031, 'book': 0.5216623098086619, 'review': 0.3109884350182401, 'gap': 90.0, 'user': ('user9', 'pw-9'), 'archetype': 'city', 'stale': 0.0, 'max_typos': 1, 'accounts': [('user9', 'pw-9')], 'city': 0.556960856605052, 'detail': 0.3}
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.169 (dns): timed out
+net error from 10.77.20.166 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.165 (dns): timed out
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.168 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.165 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.165 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.167 (dns): timed out
+net error from 10.77.20.169 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.166 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.169 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.168 (dns): timed out
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.162 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.165 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.163 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.167 (dns): timed out
+net error from 10.77.20.162 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.162 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.165 (dns): timed out
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.168 (dns): timed out
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.165 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.164 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.162 (dns): timed out
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.164 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.166 (dns): timed out
+net error from 10.77.20.163 (dns): [Errno 1] Operation not permitted
+net error from 10.77.20.166 (dns): [Errno 1] Operation not permitted
+done: 1519 legitimate sessions over 3600s from 8 persona users: {'10.77.20.163': 684, '10.77.20.166': 342, '10.77.20.162': 47, '10.77.20.168': 266, '10.77.20.164': 35, '10.77.20.165': 82, '10.77.20.167': 19, '10.77.20.169': 44}
+network activity: {'dns': 1884, 'ntp': 47, 'error': 53, 'typed': 4, 'ping': 10}

@@ -1,0 +1,14 @@
+ARF zero-recall cause (P2) — 2026-10-29
+Original eval fed ARF windows in TIME order: thousands of benign, then the FTP attack
+arrives in ONE late burst. Frozen ARF (train FTP, test SSH) then gave recall 0.0.
+Controlled test (arf_diag.py), train FTP -> test SSH:
+  - time-ordered (original):            recall 0.000
+  - SHUFFLED training order:            recall 0.976
+  - shuffled, 30 models:                recall 0.921
+  - shuffled, 10 models, 20x oversample attack: recall 0.952
+  - RandomForest reference:             recall 0.990
+Conclusion: the ARF 0.0 was a DATA-ORDERING artifact (Hoeffding trees commit splits on the
+long benign prefix before the single late attack burst), NOT class imbalance or a defect.
+With representative ordering, ARF (~0.92-0.98) is comparable to RF (~0.99). Therefore we do
+NOT claim continuous/incremental learning is superior; the fair comparison shows RF and ARF
+are comparable on this data, and the earlier 'frozen ARF 0.0' was an unfair baseline.

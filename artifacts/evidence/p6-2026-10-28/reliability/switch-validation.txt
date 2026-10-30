@@ -1,0 +1,89 @@
+== kill during rollback v2->v1 after status write 1
+dying after status write 1
+exit=0
+-- fresh process:
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload: True profile 2 models [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+== kill during rollback v2->v1 after status write 2
+dying after status write 2
+exit=0
+-- fresh process:
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload: True profile 2 models [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+== kill during rollback v2->v1 after status write 3
+dying after status write 3
+exit=0
+-- fresh process:
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload: True profile 2 models [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+== kill during rollback v2->v1 after status write 4
+dying after status write 4
+exit=0
+-- fresh process:
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload: True profile 2 models [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+== kill during rollback v2->v1 after status write 5
+dying after status write 5
+exit=0
+-- fresh process:
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload: True profile 2 models [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+== kill during rollback v2->v1 after status write 6
+dying after status write 6
+exit=0
+-- fresh process:
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload: True profile 2 models [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+== kill during rollback v2->v1 after status write 7
+dying after status write 7
+-- fresh process:
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload: True profile 2 models [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+== kill during rollback v2->v1 after status write 8
+dying after status write 8
+-- fresh process:
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload: True profile 2 models [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+== kill during rollback v2->v1 after status write 9
+rollback completed (no kill reached)
+-- fresh process:
+trusted profile: 1
+active models: [('half_space_trees', 1), ('isolation_forest', 1), ('robust_stats', 1)]
+controller reload: True profile 1 models [('half_space_trees', 1), ('isolation_forest', 1), ('robust_stats', 1)]
+== completed rollback v2->v1 (fallback selection)
+rollback completed
+-- fresh process:
+trusted profile: 1
+active models: [('half_space_trees', 1), ('isolation_forest', 1), ('robust_stats', 1)]
+controller reload: True profile 1 models [('half_space_trees', 1), ('isolation_forest', 1), ('robust_stats', 1)]
+== (a) active IF artifact corrupted, then a fresh controller loads
+corrupted isolation_forest v2 artifact mdl-9b16cb23f2ed.joblib
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload FAILED: ValueError model artifact mdl-9b16cb23f2ed failed integrity check
+== (b) rollback target v1 IF artifact corrupted, then rollback v2->v1
+rollback completed
+trusted profile: 1
+active models: [('half_space_trees', 1), ('isolation_forest', 1), ('robust_stats', 1)]
+controller reload FAILED: ValueError model artifact mdl-e1ffb9af6980 failed integrity check
+##### after the fix (verify artifacts before switching; controller survives unloadable models)
+== (a') active IF artifact corrupted, fresh controller
+corrupted isolation_forest v2 artifact mdl-9b16cb23f2ed.joblib
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload: False profile None models []
+== (b') rollback target v1 IF corrupted, rollback v2->v1
+  File "/home/gns3/uot/ai-adaptive-firewall/src/afw/services/learning.py", line 431, in _verified
+    raise ValueError(f"profile v{version}: artifact rejected: {exc}") from exc
+ValueError: profile v1: artifact rejected: model artifact mdl-e1ffb9af6980 failed integrity check
+trusted profile: 2
+active models: [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]
+controller reload: True profile 2 models [('half_space_trees', 2), ('isolation_forest', 2), ('robust_stats', 2)]

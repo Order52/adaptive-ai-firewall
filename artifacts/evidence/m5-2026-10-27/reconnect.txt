@@ -1,0 +1,20 @@
+# M5 reconnect evidence 2026-10-27T20:15:23Z
+baseline (sensors redeployed with tcp_retries2=8 + RebindInterval): observations flowing after 6s (1 new since 2026-10-27 20:15:23)
+# restarting controller (systemctl restart afw-controller) at 20:15:29
+  afw-controller.service                         loaded active running AFW controller (telemetry, detection, policy, reconciliation, API, dashboard)
+controller restarted at 20:15:38; sensors untouched
+after controller restart, no sensor action: observations flowing after 12s (1 new since 2026-10-27 20:15:46)
+waf01: 4 rsyslog suspend/resume lines
+app01: 4 rsyslog suspend/resume lines
+# idle case: no client traffic for 150 s, then controller restart, idle 60 s, then traffic
+controller restarted at 20:18:40 (sensors idle)
+CLOSE-WAIT 1535   0        10.77.30.10:33636  10.77.50.10:5514        
+idle restart then traffic: observations flowing after 12s (1 new since 2026-10-27 20:19:40)
+# long-idle case: controller restart, sensors idle 17 min (beyond pf closing-state timeouts), then traffic
+controller restarted at 20:20:08
+CLOSE-WAIT 1535   0        10.77.30.10:39214  10.77.50.10:5514        
+long-idle restart then traffic: observations flowing after 120s (1 new since 2026-10-27 20:37:08)
+Oct 27 20:39:02 WAF01 rsyslogd[23307]: unexpected GnuTLS error -53, wantsWriteData=1 - this could be caused by a broken connection. GnuTLS reports: Error in the push function.  [v8.2312.0 try https://
+Oct 27 20:39:02 WAF01 rsyslogd[23307]: omfwd: TCPSendBuf error -2078, destruct TCP Connection to 10.77.50.10:5514 [v8.2312.0 try https://www.rsyslog.com/e/2078 ]
+Oct 27 20:39:02 WAF01 rsyslogd[23307]: action 'action-1-builtin:omfwd' suspended (module 'builtin:omfwd'), retry 0. There should be messages before this one giving the reason for suspension. [v8.2312.
+Oct 27 20:39:03 WAF01 rsyslogd[23307]: action 'action-1-builtin:omfwd' resumed (module 'builtin:omfwd') [v8.2312.0 try https://www.rsyslog.com/e/2359 ]

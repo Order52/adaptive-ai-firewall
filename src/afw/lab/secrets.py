@@ -19,12 +19,16 @@ API_PRINCIPALS = [  # name, role, channel
     ("operator", "operator", "api"),
     ("dashboard", "viewer", "api"),
     ("mcp", "operator", "mcp"),
+    ("fw01-geo", "firewall", "api"),  # FW01 pulls real-country tables (ADR-036)
 ]
 LEAVES = {
     "WAF01": ["10.77.30.10"],  # + DNS rental.lab.afw (see pki.ensure_leaf)
-    "CTRL01": ["10.77.50.10"],
+    "CTRL01": ["10.77.50.10", "127.0.0.1"],  # + DNS localhost (SSH tunnel)
     "FW01": ["10.77.50.1"],
 }
+# Sensor client certificates for the mutually authenticated telemetry channel
+# (ADR-029). CN = "<name>.lab.afw"; mapped to a role in config/lab.yaml.
+CLIENT_LEAVES = ("WAF01-telemetry", "APP01-telemetry", "FW01-telemetry")
 
 
 def _write_secret(path: Path, value: str) -> None:
@@ -40,6 +44,10 @@ def ensure_lab_secrets(base: Path = BASE) -> list[str]:
         if not p.exists():
             _write_secret(p, secrets.token_urlsafe(32))
             created.append(str(p))
+    db_pw = base / "db" / "password"
+    if not db_pw.exists():
+        _write_secret(db_pw, secrets.token_urlsafe(24))
+        created.append(str(db_pw))
     hashes_file = base / "api" / "api_tokens.yaml"
     entries = yaml.safe_load(hashes_file.read_text()) if hashes_file.exists() else []
     known = {e["name"] for e in entries or []}
@@ -56,4 +64,6 @@ def ensure_lab_secrets(base: Path = BASE) -> list[str]:
     ensure_ca()
     for leaf, ips in LEAVES.items():
         ensure_leaf(leaf, ips)
+    for leaf in CLIENT_LEAVES:
+        ensure_leaf(leaf, [], client=True)
     return created

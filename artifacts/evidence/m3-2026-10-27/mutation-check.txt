@@ -1,0 +1,15 @@
+# M3 mutation check 2026-10-27T18:35:15Z commit-base f41f6cf (uncommitted M3 tree)
+# each line: guard disabled -> pytest tail (expect a FAILED test)
+probation-exclusivity -> FAILED tests/unit/test_challenger_lifecycle.py::test_second_promotion_refused_during_probation 
+sensitive-invariance -> FAILED tests/unit/test_challenger_lifecycle.py::test_gate_catches_a_challenger_poisoned_toward_attack_like_behaviour 
+ledger-clean -> FAILED tests/unit/test_challenger_lifecycle.py::test_gate_fails_when_a_learned_source_is_tainted_later 
+holdout-leak -> FAILED tests/unit/test_challenger_lifecycle.py::test_gate_detects_holdout_leakage 
+synthetic-attack-refusal -> FAILED tests/unit/test_challenger_lifecycle.py::test_gate_refuses_synthetic_attack_evidence 
+rate-rollback -> FAILED tests/unit/test_challenger_lifecycle.py::test_probation_breach_rolls_back_automatically 
+fp-rollback -> FAILED tests/unit/test_challenger_lifecycle.py::test_operator_false_positive_reports_roll_back 
+champion-changed -> FAILED tests/unit/test_challenger_lifecycle.py::test_promotion_refused_when_stale_or_champion_changed_or_artifact_tampered 
+probation-persistence -> FAILED tests/unit/test_challenger_lifecycle.py::test_probation_counts_survive_restart 
+restored -> ....................                                                     [100%]
+similarity-check disabled (any anomalous peer counts) -> FAILED tests/unit/test_online_learning.py::test_benign_drift_cannot_vouch_for_poison_sharing_a_driver_name
+M5 ids-only observe rule disabled -> FAILED tests/unit/test_telemetry_v2.py::test_ids_only_source_is_assessed_but_never_more_than_watched 
+M5 random IDS ids (pre-M5 behaviour) -> FAILED tests/unit/test_telemetry_v2.py::test_ids_ids_are_content_derived - As... FAILED tests/unit/test_telemetry_v2.py::test_replayed_ids_line_is_stored_and_counted_once 

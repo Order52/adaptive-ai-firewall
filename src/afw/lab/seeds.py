@@ -47,6 +47,9 @@ def network_config(ip: str, gw: str, extra_ips: list[str]) -> str:
                 "accept-ra": False,
                 "addresses": [ip, *extra_ips],
                 "routes": [{"to": "default", "via": gw}],
+                # Public resolvers, reachable via the firewall's Internet egress
+                # (real-test mode). Harmless when the lab is air-gapped.
+                "nameservers": {"addresses": ["1.1.1.1", "8.8.8.8"]},
             }
         },
     }

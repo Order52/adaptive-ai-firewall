@@ -42,6 +42,16 @@ ids_alerts = Table(
     Column("body", Text, nullable=False),
 )
 
+net_events = Table(
+    "net_events",
+    metadata,
+    Column("event_id", String(40), primary_key=True),
+    Column("observed_at", DateTime(timezone=True), nullable=False, index=True),
+    Column("src_ip", String(15), nullable=False, index=True),
+    Column("kind", String(8), nullable=False),
+    Column("body", Text, nullable=False),
+)
+
 features = Table(
     "features",
     metadata,
@@ -157,6 +167,69 @@ experiment_results = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("experiment", String(64), nullable=False, index=True),
     Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("body", Text, nullable=False),
+)
+
+# --- online (shadow) learning (migration 0002, ADR-028)
+source_reputation = Table(
+    "source_reputation",
+    metadata,
+    Column("source_ip", String(15), primary_key=True),
+    Column("first_seen", DateTime(timezone=True), nullable=False),
+    Column("last_seen", DateTime(timezone=True), nullable=False, index=True),
+    Column("taint_until", DateTime(timezone=True), nullable=True),
+    Column("taint_reason", String(64), nullable=True),
+)
+
+challenger_checkpoints = Table(
+    "challenger_checkpoints",
+    metadata,
+    Column("checkpoint_id", String(40), primary_key=True),
+    Column("app_id", String(32), nullable=False),
+    Column("seq", Integer, nullable=False),
+    Column("status", String(16), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("body", Text, nullable=False),
+    UniqueConstraint("app_id", "seq", name="uq_challenger_checkpoints_app_seq"),
+)
+
+learned_windows = Table(
+    "learned_windows",
+    metadata,
+    Column("fingerprint", String(64), primary_key=True),
+    Column("app_id", String(32), nullable=False),
+    Column("source_ip", String(15), nullable=False, index=True),
+    Column("window_end", DateTime(timezone=True), nullable=False, index=True),
+    Column("checkpoint_id", String(40), nullable=False, index=True),
+    Column("body", Text, nullable=False),
+)
+
+shadow_scores = Table(
+    "shadow_scores",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("app_id", String(32), nullable=False),
+    Column("window_end", DateTime(timezone=True), nullable=False, index=True),
+    Column("body", Text, nullable=False),
+)
+
+# --- challenger promotion lifecycle (migration 0003, ADR-030)
+challenger_evaluations = Table(
+    "challenger_evaluations",
+    metadata,
+    Column("evaluation_id", String(40), primary_key=True),
+    Column("app_id", String(32), nullable=False),
+    Column("evaluated_at", DateTime(timezone=True), nullable=False, index=True),
+    Column("body", Text, nullable=False),
+)
+
+model_probations = Table(
+    "model_probations",
+    metadata,
+    Column("probation_id", String(40), primary_key=True),
+    Column("app_id", String(32), nullable=False),
+    Column("status", String(16), nullable=False, index=True),
+    Column("started_at", DateTime(timezone=True), nullable=False),
     Column("body", Text, nullable=False),
 )
 

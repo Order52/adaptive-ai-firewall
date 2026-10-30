@@ -1,0 +1,3 @@
+rule 'AFW: DMZ RELP telemetry to CTRL01 (ADR-038)': created
+rule 'AFW: APP RELP telemetry to CTRL01 (ADR-038)': created
+filter applied

@@ -1,9 +1,10 @@
 """Lab verification probes via fixed-target probe agents on USER01/ATTACK01.
 
-Each agent (traffic/probe_agent.py) exposes exactly one operation: make one
-HTTPS request to the *configured* protected service from a named local source
-address. It accepts no URL, host or command, so the controller cannot use it
-as a general attack or execution channel.
+Each agent (traffic/probe_agent.py) exposes two operations: one HTTPS request to the
+*configured* protected service from a named local source address, and (ADR-036) one TCP
+connect to an egress target chosen *by name* from the agent's own fixed allowlist. It
+accepts no URL, host, port or command, so the controller cannot use it as a general
+attack or execution channel.
 """
 
 from __future__ import annotations
@@ -27,14 +28,16 @@ class LabProbe:
         self.legit_source = legit_source
         self.timeout = timeout_s
 
-    def _ask(self, source: IPv4Address) -> dict[str, object] | None:
+    def _ask(
+        self, source: IPv4Address, op: str = "probe", **params: str
+    ) -> dict[str, object] | None:
         agent = next((a for a in self.agents if source in a.owns), None)
         if agent is None:
             return None
         try:
             r = httpx.get(
-                f"{agent.url}/v1/probe",
-                params={"source": str(source)},
+                f"{agent.url}/v1/{op}",
+                params={"source": str(source), **params},
                 headers={"Authorization": f"Bearer {agent.token}"},
                 timeout=self.timeout,
             )
@@ -53,3 +56,9 @@ class LabProbe:
         if res is None or res.get("error") == "source_not_local":
             return None
         return not bool(res.get("connected"))
+
+    def egress_connects(self, source: IPv4Address, target: str) -> bool | None:
+        res = self._ask(source, "egress", target=target)
+        if res is None or "connected" not in res:
+            return None
+        return bool(res["connected"])

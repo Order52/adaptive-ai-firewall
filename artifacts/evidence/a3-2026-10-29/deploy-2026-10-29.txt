@@ -1,0 +1,15 @@
+# Live deployment after the A3/NV1 capture ended (04:11:35Z); no capture running at the time.
+05:31Z  afw lab deploy --limit waf01,app01 --check: changes = helper code (A3 login controls), rsyslog imfile
+        reopenOnTruncate, /etc/logrotate.d/afw-{waf,app}; handlers: restart helper, restart rsyslog (nginx not restarted)
+05:32Z  afw lab deploy --limit waf01,app01: waf01 ok=38 changed=5, app01 ok=33 changed=3, failed=0
+        afw-waf, afw-waf-helper, rsyslog active; logrotate -d parses both files
+05:33Z  afw lab deploy --limit ctrl01: wheel installed (A3 code), controller restarted 05:33:03Z; ok=21 changed=3 failed=0
+05:34Z  afw experiment network-calibrate --datasets nv1-train --write (shadow detector; effective levels equal the
+        frozen NV1 calibration 90a1793b; NOT validated: the NV1 test failed); controller restarted
+        /api/health: status ok, mode monitor, telemetry_degraded false, model_error null, nothing enforced
+safety.behavior_only_rate_limit unchanged (True live). No mode change. No promotion.
+~06:00Z live login check under the deployed A3 helper (WAF01 access log, Phase E users .170-.197, read-only):
+        POST /login 200: 99, 401 (mistyped): 22, 429/403: 0, from 25 users. Logins unaffected in monitor mode.
+        (Login-control enforcement itself cannot be exercised live in monitor mode; it is covered by
+        test_waf_helper_login.py and the SYNTHETIC limiter model.)
+Local gates after the NV1 display fix: pytest 368 passed, 14 skipped; ruff, format, mypy (111 files) clean.

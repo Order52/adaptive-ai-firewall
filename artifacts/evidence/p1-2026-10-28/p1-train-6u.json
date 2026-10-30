@@ -1,0 +1,35 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-28T06:44:25+00:00",
+ "end": "2026-10-28T07:30:00+00:00",
+ "scenario": "P1 ablation: first 6 of the 16 training users",
+ "seed": 101,
+ "generator": "traffic/benign_personas.py AFW_MODE=personas AFW_SOURCES=10.77.20.21-26 AFW_SEED=101",
+ "notes": "P1 predeclared data-size ablation",
+ "sources": [
+  {
+   "ip": "10.77.20.21",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.22",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.23",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.24",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.25",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.26",
+   "role": "benign"
+  }
+ ]
+}

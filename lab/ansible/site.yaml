@@ -1,7 +1,10 @@
 # Deploy all lab services. Run via `afw lab deploy` (ensures host-side secrets first).
-- hosts: all
+- hosts: all:!desktop  # DESK01 is a GUI image baked separately (lab/images)
   become: true
   roles: [common]
+- hosts: db
+  become: true
+  roles: [db]
 - hosts: app
   become: true
   roles: [app]
@@ -14,3 +17,6 @@
 - hosts: probes
   become: true
   roles: [probe]
+- hosts: desktop
+  become: true
+  roles: [desktop]

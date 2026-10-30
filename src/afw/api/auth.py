@@ -1,4 +1,7 @@
-"""Bearer-token authentication with roles (viewer < operator < admin).
+"""Bearer-token authentication with roles (firewall < viewer < operator < admin).
+
+``firewall`` is FW01's pull credential (ADR-036): it may fetch the published
+country tables and nothing else, because every other endpoint needs viewer or above.
 
 Tokens are stored only as SHA-256 hashes in the tokens file (outside Git).
 """
@@ -18,6 +21,7 @@ from pydantic import BaseModel
 
 
 class Role(IntEnum):
+    FIREWALL = 0
     VIEWER = 1
     OPERATOR = 2
     ADMIN = 3

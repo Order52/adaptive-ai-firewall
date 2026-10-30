@@ -16,11 +16,18 @@ from datetime import datetime, timedelta
 from ipaddress import IPv4Address
 
 from afw.config import RiskConfig
+from afw.correlation.auth import AuthTracker
 from afw.domain.common import new_id
 from afw.domain.detection import DetectionResult, DetectorKind
 from afw.domain.events import IdsAlert
 from afw.domain.features import FeatureVector
-from afw.domain.risk import EvidenceCategory, EvidenceItem, RiskAssessment, RiskBand
+from afw.domain.risk import (
+    EvidenceCategory,
+    EvidenceItem,
+    RiskAssessment,
+    RiskBand,
+    independence_key,
+)
 
 CAPS = {
     EvidenceCategory.BEHAVIOR_ML: 35.0,
@@ -45,8 +52,14 @@ class _History:
 
 
 class CorrelationEngine:
-    def __init__(self, risk: RiskConfig, ids_lookback_s: int = 60) -> None:
+    def __init__(
+        self, risk: RiskConfig, ids_lookback_s: int = 60, auth: AuthTracker | None = None
+    ) -> None:
+        """``auth``: account-aware AUTH evidence (A3). Without it the A2 window rule is
+        used; that is kept only as the baseline for comparisons and for callers that
+        have no observation stream."""
         self.cfg = risk
+        self.auth = auth
         self.ids_lookback = timedelta(seconds=ids_lookback_s)
         self._ids: dict[IPv4Address, deque[IdsAlert]] = defaultdict(lambda: deque(maxlen=200))
         self._history: dict[IPv4Address, _History] = defaultdict(_History)
@@ -83,8 +96,19 @@ class CorrelationEngine:
             totals[it.category] += it.points
         score = min(100.0, sum(min(v, CAPS[k]) for k, v in totals.items()))
         cats = {k for k, v in totals.items() if v > 0 and k is not EvidenceCategory.HISTORY}
+        others = cats - _BEHAVIOR
+        # ADR-027: behaviour counts only if it is anomalous for reasons other than
+        # the events that already produced the AUTH/WAF evidence.
+        key = independence_key(others)
+        behavior_independent = not key or any(
+            d.is_anomalous and key in d.independent_of for d in detections
+        )
+        discounted: tuple[EvidenceCategory, ...] = ()
+        if cats & _BEHAVIOR and not behavior_independent:
+            discounted = (EvidenceCategory.BEHAVIOR_ML,)
         corroborating = sorted(
-            ({EvidenceCategory.BEHAVIOR_ML} if cats & _BEHAVIOR else set()) | (cats - _BEHAVIOR),
+            ({EvidenceCategory.BEHAVIOR_ML} if cats & _BEHAVIOR and not discounted else set())
+            | others,
             key=str,
         )
         band = self._band(score)
@@ -107,6 +131,69 @@ class CorrelationEngine:
             detection_ids=tuple(d.detection_id for d in detections),
             detections=tuple(detections),
             degraded_telemetry=degraded,
+            discounted_categories=discounted,
+        )
+
+    def ids_sources(self, now: datetime) -> set[IPv4Address]:
+        """Sources with IDS alerts inside the lookback."""
+        lo = now - self.ids_lookback
+        return {src for src, q in self._ids.items() if q and q[-1].observed_at >= lo}
+
+    def assess_ids_only(
+        self, app_id: str, src: IPv4Address, now: datetime
+    ) -> RiskAssessment | None:
+        """Assessment for a source seen only by the IDS (scans, non-HTTP probing)."""
+        items = self._ids_evidence(src, now)
+        if not items:
+            return None
+        items += self._history_evidence(src, now)
+        totals: dict[EvidenceCategory, float] = defaultdict(float)
+        for it in items:
+            totals[it.category] += it.points
+        score = min(100.0, sum(min(v, CAPS[k]) for k, v in totals.items()))
+        return RiskAssessment(
+            assessment_id=new_id("risk"),
+            app_id=app_id,
+            source_ip=src,
+            assessed_at=now,
+            window_end=now,
+            score=round(score, 1),
+            band=self._band(score),
+            evidence=tuple(items),
+            corroborating_categories=(EvidenceCategory.IDS,),
+            model_version=None,
+            profile_version=None,
+            view="ids_only",
+        )
+
+    def assess_auth_only(
+        self, app_id: str, src: IPv4Address, now: datetime
+    ) -> RiskAssessment | None:
+        """Assessment for a source with login activity but no HTTP window (A3): a slow
+        guesser sends fewer requests than a window needs and was never assessed."""
+        if self.auth is None:
+            return None
+        items = self.auth.evidence(src, now)
+        if not items:
+            return None
+        items += self._history_evidence(src, now)
+        totals: dict[EvidenceCategory, float] = defaultdict(float)
+        for it in items:
+            totals[it.category] += it.points
+        score = min(100.0, sum(min(v, CAPS[k]) for k, v in totals.items()))
+        return RiskAssessment(
+            assessment_id=new_id("risk"),
+            app_id=app_id,
+            source_ip=src,
+            assessed_at=now,
+            window_end=now,
+            score=round(score, 1),
+            band=self._band(score),
+            evidence=tuple(items),
+            corroborating_categories=(EvidenceCategory.AUTH,),
+            model_version=None,
+            profile_version=None,
+            view="auth_only",
         )
 
     def _band(self, score: float) -> RiskBand:
@@ -153,6 +240,12 @@ class CorrelationEngine:
         return out
 
     def _auth(self, fv: FeatureVector) -> list[EvidenceItem]:
+        if self.auth is not None:
+            return self.auth.evidence(fv.source_ip, fv.window_end)
+        return self._auth_window_a2(fv)
+
+    def _auth_window_a2(self, fv: FeatureVector) -> list[EvidenceItem]:
+        """The A2 rule: >= 5 failures at >= 50 % inside one window (baseline only)."""
         fails = fv.evidence.get("auth_failures", 0.0)
         attempts = fv.evidence.get("login_attempts", 0.0)
         users = fv.values.get("distinct_usernames", 0.0)

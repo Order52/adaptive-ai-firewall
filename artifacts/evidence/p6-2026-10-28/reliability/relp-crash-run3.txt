@@ -1,0 +1,10 @@
+# RELP crash-loss run: source 10.77.20.90,10.77.20.91,10.77.20.92,10.77.20.93,10.77.20.94 seed 953 duration 240s; SIGKILL at +90 s
+start 2026-10-28T14:51:22Z
+kill  2026-10-28T14:52:52.350043961Z 14190
+Failed to kill unit afw-controller.service: Failed to send signal SIGKILL to auxiliary processes: Invalid argument
+back  2026-10-28T14:52:59Z state=active pid=14410
+waf_requests_before_kill 1359 within_10s_after_kill 192
+waf_requests 3823
+controller_observations 3823
+lost 0 []
+unexpected 0

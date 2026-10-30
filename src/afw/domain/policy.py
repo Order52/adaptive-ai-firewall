@@ -36,6 +36,7 @@ class PolicyKind(StrEnum):
     WAF_DENY = "waf_deny"  # WAF-level deny of one source for one application
     HTTP_CONTRACT = "http_contract"  # validated WAF route contract revision
     GEO_BLOCK = "geo_block"  # optional extension: country-scoped network policy
+    LOGIN_CONTROL = "login_control"  # WAF control on the login routes only (A3)
 
 
 class PolicyState(StrEnum):
@@ -125,6 +126,13 @@ PolicyTarget = Annotated[SourceTarget | CountryTarget | ContractTarget, Field(di
 class RateProfile(StrEnum):
     STRICT = "strict"  # e.g. 1 r/s burst 5
     MODERATE = "moderate"  # e.g. 5 r/s burst 10
+    # login routes only (LOGIN_CONTROL, A3): 3 per minute burst 4, or refused (403)
+    LOGIN_THROTTLE = "login_throttle"
+    LOGIN_DENY = "login_deny"
+
+
+LOGIN_PROFILES = frozenset({RateProfile.LOGIN_THROTTLE, RateProfile.LOGIN_DENY})
+SITE_PROFILES = frozenset({RateProfile.STRICT, RateProfile.MODERATE})
 
 
 class PolicyIntent(DomainModel):

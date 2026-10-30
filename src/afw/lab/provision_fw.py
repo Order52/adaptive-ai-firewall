@@ -14,6 +14,7 @@ import hashlib
 import re
 import secrets
 import subprocess
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -24,6 +25,10 @@ from afw.lab.pki import ensure_leaf
 SECRETS = Path("~/.config/afw/opnsense").expanduser()
 ASSETS = Path(__file__).resolve().parents[3] / "lab" / "opnsense"
 PROMPT = r"AFWSH# $"
+# Guest swap + boot hook (FW01 is a no-swap nano image; Suricata was OOM-killed under load).
+RESOURCE_HOOK = "/usr/local/etc/rc.syshook.d/start/99-afw-resources"
+SWAP_FILE = "/swap0"
+SWAP_FSTAB = "md99 none swap sw,file=/swap0,late 0 0"
 
 
 def _secret(name: str, nbytes: int) -> str:
@@ -59,6 +64,14 @@ def fw_params() -> FwParams:
     )
 
 
+# Lab-owned Suricata includes (OPNsense renders conf.d/*.yaml into suricata.yaml):
+# engine liveness for the watchdog (ADR-041) and network metadata export (ADR-042).
+SURICATA_CONF_D = (
+    ("afw-suricata-liveness.yaml", "afw-liveness.yaml"),
+    ("afw-suricata-netflow.yaml", "afw-netflow.yaml"),
+)
+
+
 class FwShell:
     def __init__(self, con: SerialConsole, log: Callable[[str], None]) -> None:
         self.c = con
@@ -85,6 +98,20 @@ class FwShell:
                 self.c.expect([PROMPT], 20)
                 return
         raise RuntimeError("could not reach a root shell on FW01")
+
+    def logout(self) -> None:
+        """Leave the console at a login prompt rather than an open root shell. Best effort:
+        a failure here must never fail provisioning. Exiting the shell usually goes straight
+        to 'login:'; if the console menu is shown first, option 0 logs out."""
+        try:
+            self.c.sendline("exit")
+            for _ in range(3):
+                i, _out = self.c.expect([r"login: $", r"Enter an option: $"], 15)
+                if i == 0:
+                    return
+                self.c.sendline("0")
+        except Exception as exc:
+            self.log(f"FW01: console logout skipped ({exc})")
 
     def run(self, cmd: str, timeout: float = 120, check: bool = True) -> str:
         self.c.sendline(f"{cmd}; echo __RC''=$?")
@@ -121,6 +148,37 @@ class FwShell:
         self.run(f"chmod {mode} {tmp} && mv {tmp} {path} && rm -f {tmp}.b64")
 
 
+def ensure_resources(sh: FwShell, log: Callable[[str], None]) -> None:
+    """Persistent guest swap + the boot hook that mounts it and keeps cron (the heartbeat
+    watchdog) running. Idempotent. Short commands only: the serial console drops long lines."""
+    sh.run("mkdir -p /usr/local/etc/rc.syshook.d/start")
+    sh.write_file(RESOURCE_HOOK, (ASSETS / "afw-resources.syshook").read_bytes(), "0755")
+    sh.run(f"[ -f {SWAP_FILE} ] || dd if=/dev/zero of={SWAP_FILE} bs=1m count=1024")
+    sh.run(f"chmod 600 {SWAP_FILE}")
+    sh.run(f"grep -q '^md99 ' /etc/fstab || echo '{SWAP_FSTAB}' >> /etc/fstab")
+    sh.run(RESOURCE_HOOK)
+    log("FW01: guest swap + boot hook installed")
+
+
+def _suricata_healthy(sh: FwShell, old_pid: str, wait_s: int = 180) -> bool:
+    """A *new* suricata process (pid != ``old_pid``) that has written stats.log (30 s
+    interval, ADR-041) after it was first seen. The stopping process also writes
+    stats.log, so a fresh file alone proves nothing (2026-10-28 18:52Z).
+    Short commands only: the serial console drops long lines."""
+    seen_at: int | None = None
+    for _ in range(wait_s // 10):
+        pid = sh.run("pgrep -x suricata || true", check=False).strip()
+        if pid and pid != old_pid:
+            if seen_at is None:
+                seen_at = int(sh.run("date +%s").strip())
+            else:
+                mtime = sh.run("stat -f %m /var/log/suricata/stats.log", check=False).strip()
+                if mtime.isdigit() and int(mtime) > seen_at:
+                    return True
+        time.sleep(10)
+    return False
+
+
 def provision(
     host: str, port: int, log: Callable[[str], None] = print, force: bool = False
 ) -> None:
@@ -150,10 +208,36 @@ def provision(
             "0644",
         )
         log("FW01: watchdog installed")
+        ensure_resources(sh, log)
+        changed = []
+        for asset, name in SURICATA_CONF_D:
+            body = (ASSETS / asset).read_bytes()
+            conf = f"/usr/local/etc/suricata/conf.d/{name}"
+            have = sh.run(f"[ -f {conf} ] && sha256 -q {conf} || echo none").strip()
+            if have != hashlib.sha256(body).hexdigest():
+                sh.write_file(conf, body, "0644")
+                changed.append(name)
+        if changed:
+            sh.run("configctl template reload OPNsense/IDS", timeout=120)  # renders conf.d
+            old_pid = sh.run("pgrep -x suricata || true", check=False).strip()
+            sh.run("configctl ids restart", timeout=300)
+            if not _suricata_healthy(sh, old_pid):
+                # never leave the IDS down: drop what changed and go back
+                for name in changed:
+                    sh.run(f"rm -f /usr/local/etc/suricata/conf.d/{name}")
+                sh.run("configctl template reload OPNsense/IDS", timeout=120)
+                sh.run("configctl ids restart", timeout=300)
+                raise RuntimeError(
+                    f"Suricata unhealthy after {', '.join(changed)}; removed and restarted "
+                    f"(healthy now: {_suricata_healthy(sh, '')})"
+                )
+            log(f"FW01: Suricata conf.d updated ({', '.join(changed)}), IDS restarted")
         if not already or force:
             con.sendline("reboot")
             log("FW01: rebooting")
             con.expect([r"login: $"], 900)
             log("FW01: back at login prompt")
+        else:
+            sh.logout()
     finally:
         con.close()

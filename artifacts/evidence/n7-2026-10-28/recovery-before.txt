@@ -1,0 +1,21 @@
+2026-10-28T19:40:36Z
+DESK01     qemu             started  console=5900
+FW01       qemu             started  console=5019
+HOST-MGMT  cloud            started  console=None
+MAINT-NAT  nat              started  console=None
+SW-APP     ethernet_switch  started  console=5003
+SW-ATTACK  ethernet_switch  started  console=5000
+SW-DB      ethernet_switch  started  console=5009
+SW-DMZ     ethernet_switch  started  console=5002
+SW-MGMT    ethernet_switch  started  console=5004
+SW-USERS   ethernet_switch  started  console=5001
+USR01      qemu             started  console=5018
+WAF01      qemu             started  console=5012
+{"status":"ok","version":"0.1.0","mode":"monitor","strategy":"ml","simulated_backends":false,"reconciled_since_start":true,"telemetry_degraded":false,"model_error":null,"backends":[{"backend":"opnsense","reachable":true,"blocked_sources":[],"waf_denied_sources":null,"rate_limited":null,"contracts":null,"revision":null,"geo_inbound":[],"geo_outbound":[],"error":null},{"backend":"waf","reachable":true,"blocked_sources":null,"waf_denied_sources":[],"rate_limited":{},"contracts":[],"revision":"33","geo_inbound":null,"geo_outbound":null,"error":null}],"last_reconcile":"2026-10-28T19:40:34.052739+00:00"}
+[{"version":"robust_stats-p4-20261028073850","detector":"robust_stats","status":"candidate"},{"version":"isolation_forest-p4-20261028073850","detector":"isolation_forest","status":"candidate"},{"version":"half_space_trees-p4-20261028073850","detector":"half_space_trees","status":"candidate"},{"version":"robust_stats-p3-20261028073845","detector":"robust_stats","status":"candidate"},{"version":"isolation_forest-p3-20261028073845","detector":"isolation_forest","status":"candidate"},{"version":"half_space_trees-p3-20261028073845","detector":"half_space_trees","status":"candidate"},{"version":"robust_stats-p2-20261017190622","detector":"robust_stats","status":"active"},{"version":"isolation_forest-p2-20261017190622","detector":"isolation_forest","status":"active"}]
+11
+{"learned":null,"checkpoint":null,"version":null}
+1296
+shadow: champion half_space_trees-p2-20261017190622; challenger n_learned 607, counter 68, warm, l_mass 18700, r_mass 49500; last checkpoint ckpt-3446685f242e seq 16 (607 learned)
+policies enforced: 11 watch (no traffic-affecting); profiles: v2 trusted, v1 retired, v3/v4 candidate
+network detector calibrated_on 1296

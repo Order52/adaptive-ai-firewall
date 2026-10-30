@@ -7,6 +7,7 @@ ingest ─► correlate ─► windows ─► inference ─► correlation/risk 
 
 from __future__ import annotations
 
+import json
 import queue
 import threading
 import time
@@ -15,43 +16,68 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from ipaddress import IPv4Address
+from pathlib import Path
+from typing import Any
 
 import structlog
 
 from afw.config import LabConfig
+from afw.correlation.auth import AuthTracker
 from afw.correlation.engine import CorrelationEngine
 from afw.domain.common import utcnow
-from afw.domain.detection import DetectionResult
+from afw.domain.detection import DetectionResult, DetectorKind
 from afw.domain.events import HttpObservation
 from afw.domain.features import FeatureVector
+from afw.domain.network import BlockedConnection, NetworkEvent
 from afw.domain.policy import Policy, PolicyKind, SourceTarget
 from afw.domain.risk import EvidenceCategory, RiskAssessment, RiskBand
 from afw.features.extract import EndpointCatalog
+from afw.features.network import NetworkWindows
 from afw.features.windows import SlidingWindows
 from afw.ml.inference import InferenceEngine, Strategy
+from afw.ml.network_detector import NetworkNovelty, NetworkVerdict
 from afw.persistence.repositories import (
     SqlAdaptationRepository,
     SqlAnalysisRepository,
     SqlEventRepository,
 )
-from afw.policy.decision import DecisionEngine
+from afw.policy.decision import DecisionEngine, LoginContext
+from afw.policy.response import accounts_behind
 from afw.policy.service import PolicyService
-from afw.profiling.adaptation import DriftMonitor, SourceReputation
+from afw.profiling.adaptation import DriftMonitor, PersistentReputation, SourceReputation
+from afw.services.challenger import ChallengerLifecycle
 from afw.services.learning import LearningService
+from afw.services.shadow import ShadowLearner
 from afw.telemetry.correlator import RequestCorrelator, to_ids_alert
 from afw.telemetry.parsers.lines import (
     ParseError,
     classify,
+    is_network_event,
     parse_app,
+    parse_filterlog,
     parse_suricata,
+    parse_suricata_net,
     parse_waf_access,
     parse_waf_audit,
 )
+from afw.telemetry.receiver import Line
 from afw.telemetry.routes import RouteMatcher
 from afw.telemetry.stats import TelemetryStats
 
 log = structlog.get_logger(__name__)
+NET_PENDING_MAX = 50_000  # network events buffered between ticks (~1 s of a busy feed x 100)
+IDS_ONLY_EVERY = timedelta(seconds=60)
+HEARTBEAT_STALE_S = (
+    150  # sensors send one every 30 s  # re-assess an IDS-only source at most this often
+)
 WATCH_RETENTION = timedelta(days=7)
+_ROLE_OF_KIND = {
+    "afw-waf-access": "waf",
+    "afw-waf-audit": "waf",
+    "afw-app": "app",
+    "suricata": "ids",
+    "filterlog": "ids",  # FW01's pf log, on the IDS sensor's channel
+}
 
 
 @dataclass
@@ -75,6 +101,9 @@ class Controller:
         learning: LearningService,
         policies: PolicyService,
         clock: Callable[[], datetime] = utcnow,
+        reputation: PersistentReputation | SourceReputation | None = None,
+        shadow: ShadowLearner | None = None,
+        lifecycle: ChallengerLifecycle | None = None,
     ) -> None:
         self.cfg = cfg
         self.stats = stats
@@ -93,26 +122,67 @@ class Controller:
             join_wait_s=cfg.telemetry.join_wait_s,
         )
         self.inference = InferenceEngine()
-        self.correlation = CorrelationEngine(cfg.risk)
+        # A3: account-aware login evidence over the observation stream
+        self.auth = AuthTracker(cfg.application(self.app_id).login_routes())
+        self.correlation = CorrelationEngine(cfg.risk, auth=self.auth)
         self.decisions = DecisionEngine(cfg)
-        self.reputation = SourceReputation()
+        self.reputation = reputation or SourceReputation()
+        self.shadow = shadow
+        self.lifecycle = lifecycle
         self.windows = SlidingWindows(
             cfg.window, EndpointCatalog(frozenset(), frozenset(), frozenset())
         )
         self.drift: DriftMonitor | None = None
         self.live: dict[IPv4Address, LiveSource] = {}
         self.timeline: deque[dict[str, object]] = deque(maxlen=720)
-        self.lines: queue.Queue[tuple[IPv4Address, str]] | None = None
+        self.lines: queue.Queue[Line] | None = None
         self._stop = threading.Event()
         self._threads: list[threading.Thread] = []
         self.policies.on_enforced = self._on_enforced
         self.last_tick: datetime | None = None
         self.tick_ms: deque[float] = deque(maxlen=120)
+        # N1: network events are buffered and stored once per tick (one transaction)
+        self._net_pending: list[NetworkEvent] = []
+        # N2: residual network behaviour, assessed in SHADOW (recorded and shown, not
+        # used by any decision until validated on real benign and attack data)
+        self.net_windows = NetworkWindows((s.address, s.port) for s in cfg.services)
+        self.net_detector = NetworkNovelty()
+        self.net_verdicts: deque[NetworkVerdict] = deque(maxlen=500)
+        # pf blocks of protected (server/management) sources: shadow evidence only
+        self.protected_blocks: deque[BlockedConnection] = deque(maxlen=500)
         self._drop_samples: deque[tuple[float, int]] = deque(maxlen=1000)
+        self._ids_only_at: dict[IPv4Address, datetime] = {}
+        self._started_at: float | None = None  # set by start(): heartbeats expected
+        self.model_error: str | None = None  # trusted models could not be loaded
+        self.net_calibration_error: str | None = None
 
     # ------------------------------------------------------------ model state
+    def load_net_calibration(self, path: Path) -> None:
+        """Calibrated network-novelty levels (shadow). Missing: ceilings only. Unreadable
+        or for another schema: ceilings only, and the reason is shown in /api/network."""
+        if not path.exists():
+            return
+        try:
+            self.net_detector.load(json.loads(path.read_text()))
+            self.net_calibration_error = None
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            self.net_calibration_error = str(exc)
+            log.error("net_calibration_load_failed", path=str(path), error=str(exc))
+
     def reload(self) -> bool:
-        loaded = self.learning.load_active(self.app_id)
+        try:
+            loaded = self.learning.load_active(self.app_id)
+        except (OSError, ValueError, TypeError) as exc:
+            # A trusted model that fails its integrity check is never used, and the
+            # previous in-memory models are dropped too (the registry no longer trusts
+            # them): detection runs without behavioural models, evidence is degraded so
+            # automation pauses, and health shows why. The controller itself keeps
+            # running (telemetry, reconciliation, API) instead of crash-looping.
+            self.model_error = str(exc)
+            self.inference.load_nothing()
+            log.error("model_load_failed", app=self.app_id, error=self.model_error)
+            return False
+        self.model_error = None
         if loaded is None:
             log.warning("no_trusted_profile", app=self.app_id)
             return False
@@ -121,6 +191,11 @@ class Controller:
         self.windows.set_catalog(self.learning.catalog(self.app_id, profile))
         for m in models:
             self.correlation.set_score_span(m.record.detector, m.record.benign_score_quantiles)
+        if self.shadow is not None:
+            hst = next(
+                (m for m in models if m.record.detector is DetectorKind.HALF_SPACE_TREES), None
+            )
+            self.shadow.reload(profile, hst)
         if self.drift is None:
             self.drift = DriftMonitor(profile)
         else:
@@ -134,39 +209,110 @@ class Controller:
         self.inference.strategy = strategy
 
     # ---------------------------------------------------------------- ingest
-    def ingest_line(self, sender: IPv4Address, line: str) -> None:
+    def ingest_line(self, sender: IPv4Address, line: str, role: str | None = None) -> None:
+        """``role`` is the mTLS-authenticated sensor role of the channel, if any."""
         try:
             kind, payload = classify(line)
+            if kind == "afw-heartbeat":
+                # Liveness only counts on an authenticated channel (M5).
+                if role is None:
+                    self.stats.inc("heartbeat_unauthenticated")
+                else:
+                    self.stats.seen(f"heartbeat:{role}")
+                return
+            if role is not None and _ROLE_OF_KIND.get(kind) != role:
+                # An authenticated sensor may only speak for itself (ADR-029).
+                self.stats.inc("role_mismatch")
+                return
+            authed = {"authenticated": role is not None}
             match kind:
                 case "afw-waf-access":
-                    self.correlator.add_access(parse_waf_access(payload, sender))
+                    rec = parse_waf_access(payload, sender).model_copy(
+                        update={**authed, "received_at": self.clock()}
+                    )
+                    self.correlator.add_access(rec)
                     self.stats.seen("waf")
                 case "afw-waf-audit":
-                    self.correlator.add_audit(parse_waf_audit(payload))
+                    self.correlator.add_audit(parse_waf_audit(payload).model_copy(update=authed))
                     self.stats.seen("waf_audit")
                 case "afw-app":
-                    self.correlator.add_app(parse_app(payload))
+                    self.correlator.add_app(parse_app(payload).model_copy(update=authed))
                     self.stats.seen("app")
+                case "suricata" if is_network_event(payload):
+                    ev = parse_suricata_net(payload, sensor_id=str(sender)).model_copy(
+                        update={"received_at": self.clock()}
+                    )
+                    self.stats.seen("ids_net")
+                    self.stats.inc(f"net_{ev.kind.value}")
+                    if len(self._net_pending) < NET_PENDING_MAX:
+                        self._net_pending.append(ev)
+                    else:
+                        self.stats.inc("net_overflow")  # bounded memory; counted, not silent
                 case "suricata":
-                    alert = to_ids_alert(parse_suricata(payload, sensor_id=str(sender)))
-                    self.events.add_ids_alerts([alert])
+                    alert = to_ids_alert(
+                        parse_suricata(payload, sensor_id=str(sender)), self.clock()
+                    )
+                    self.stats.seen("ids")
+                    self.stats.inc("ids_authenticated" if role else "ids_unauthenticated")
+                    if not self.events.add_ids_alerts([alert]):
+                        self.stats.inc("duplicate_ids_event")  # replayed line: count once
+                        return
                     self.correlation.add_ids(alert)
                     self.reputation.taint(alert.src_ip, alert.observed_at, "ids_alert")
-                    self.stats.seen("ids")
+                case "filterlog":
+                    self._pf_block(payload, sender)
                 case _:
                     self.stats.inc("ignored")
         except ParseError as exc:
             self.stats.inc(f"parse_error:{exc.reason}")
 
+    def _pf_block(self, payload: dict[str, Any], sender: IPv4Address) -> None:
+        blk = parse_filterlog(payload, str(sender), self.clock())
+        if blk is None:
+            self.stats.inc("pf_other")  # passes, outbound, IPv6: not used
+            return
+        reason = next(
+            (p.reason for p in self.cfg.safety.protected if blk.src_ip in p.network), None
+        )
+        if reason is None:
+            # a client's blocked attempt: Suricata already sees it as a failed flow
+            self.stats.inc("pf_block_client")
+            return
+        self.stats.inc("pf_block_protected")
+        self.protected_blocks.append(blk.model_copy(update={"source_reason": reason}))
+        log.warning(
+            "protected_source_blocked",
+            src=str(blk.src_ip),
+            dst=str(blk.dst_ip),
+            proto=blk.proto,
+            dst_port=blk.dst_port,
+            iface=blk.iface,
+            source=reason,
+        )
+
+    def _flush_net(self) -> list[NetworkEvent]:
+        if not self._net_pending:
+            return []
+        batch, self._net_pending = self._net_pending, []
+        added = self.events.add_net_events(batch)
+        if len(added) < len(batch):
+            self.stats.inc("duplicate_net_event", len(batch) - len(added))
+        return added
+
     def ingest_observations(self, obs: list[HttpObservation]) -> None:
         """Feed already-normalized observations (offline replay of recorded runs)."""
-        self.events.add_observations(obs)
-        for o in obs:
-            self.windows.add(o)
+        for o in self.events.add_observations(obs):
+            self._accept(o)
+
+    def _accept(self, o: HttpObservation) -> None:
+        """Every stored observation reaches the windows and the login tracker."""
+        self.windows.add(o)
+        self.auth.add(o)
 
     def degraded(self) -> bool:
-        """Evidence is degraded if lines were dropped in the last 60 s or the WAF
-        sensor has gone silent while sources are still being tracked."""
+        """Evidence is degraded if lines were dropped in the last 60 s, the WAF sensor
+        has gone silent while sources are still being tracked, a sensor is stale, or the
+        trusted models failed to load."""
         counts = self.stats.snapshot()["counts"]
         assert isinstance(counts, dict)
         drops = int(counts.get("queue_drop", 0)) + int(counts.get("join_overflow", 0))
@@ -177,7 +323,30 @@ class Controller:
         recent_drop = drops > self._drop_samples[0][1]
         waf_age = self.stats.age("waf")
         silent = waf_age is not None and waf_age > 120 and self.windows.tracked_sources > 0
-        return recent_drop or silent
+        return (
+            recent_drop
+            or silent
+            or self.model_error is not None
+            or any(h["stale"] for h in self.sensor_health().values())
+        )
+
+    def sensor_health(self) -> dict[str, dict[str, object]]:
+        """Heartbeat liveness of each mTLS sensor role, once the receiver is running.
+        A sensor that never (re)connected since start is stale too: after a restart,
+        a stuck sender is otherwise indistinguishable from an idle one (M5 finding)."""
+        if self._started_at is None:
+            return {}
+        uptime = time.monotonic() - self._started_at
+        out: dict[str, dict[str, object]] = {}
+        # FW01 (role "ids") heartbeats from its watchdog only while Suricata runs, so a
+        # stale "ids" entry means a dead IDS or a dead feed, not merely no alerts.
+        for role in sorted(set(self.cfg.telemetry.tls_identities.values())):
+            age = self.stats.age(f"heartbeat:{role}")
+            stale = (age is None and uptime > HEARTBEAT_STALE_S) or (
+                age is not None and age > HEARTBEAT_STALE_S
+            )
+            out[role] = {"heartbeat_age_s": None if age is None else round(age, 1), "stale": stale}
+        return out
 
     # ------------------------------------------------------------- processing
     def tick(self, now: datetime | None = None) -> list[RiskAssessment]:
@@ -185,6 +354,19 @@ class Controller:
         t0 = time.perf_counter()
         now = now or self.clock()
         obs = self.correlator.flush()
+        protected = [p.network for p in self.cfg.safety.protected]
+        for e in self._flush_net():
+            if any(e.client_ip in n for n in protected):
+                # stored as evidence, but never assessed: a protected (management)
+                # source can never be acted on, and its admin traffic is not behaviour
+                self.stats.inc("net_protected_source")
+                continue
+            self.net_windows.add(e)
+        for v in self.net_windows.emit(now):
+            verdict = self.net_detector.assess(v)
+            self.net_verdicts.append(verdict)
+            if verdict.unfamiliar:
+                self.stats.inc("net_strong" if verdict.strong else "net_unfamiliar")
         sensors = set(self.cfg.telemetry.waf_sensor_ips)
         if sensors and obs:
             own = [o for o in obs if o.client_ip in sensors]
@@ -192,9 +374,13 @@ class Controller:
                 self.stats.inc("sensor_self", len(own))
                 obs = [o for o in obs if o.client_ip not in sensors]
         if obs:
-            self.events.add_observations(obs)
-            for o in obs:
-                self.windows.add(o)
+            # Only observations the store accepted (request_id is UNIQUE): a
+            # replayed request id must not be windowed twice.
+            accepted = self.events.add_observations(obs)
+            if len(accepted) < len(obs):
+                self.stats.inc("duplicate_request_id", len(obs) - len(accepted))
+            for o in accepted:
+                self._accept(o)
         out: list[RiskAssessment] = []
         if (
             self.last_tick is None
@@ -206,12 +392,20 @@ class Controller:
             for fv in vectors:
                 out.append(self._process_window(fv, now, degraded))
             self._record_timeline(now, vectors, out)
+            http_sources = {fv.source_ip for fv in vectors}
+            out += self._ids_only(now, http_sources, degraded)
+            out += self._auth_only(now, http_sources, degraded)
+            self.auth.prune(now)
+            if self.lifecycle is not None and self.lifecycle.check(self.app_id, now):
+                self.reload()  # probation breached: the parent champion is active again
         self.tick_ms.append((time.perf_counter() - t0) * 1000)
         return out
 
     def _process_window(self, fv: FeatureVector, now: datetime, degraded: bool) -> RiskAssessment:
         detections = self.inference.score(fv)
         ra = self.correlation.assess(fv, detections, now, degraded=degraded)
+        if self.lifecycle is not None:
+            self.lifecycle.observe(fv.app_id, detections)  # probation counts only
         watched = self.policies.has_active(fv.source_ip, {PolicyKind.WATCH})
         self.analysis.add_features([fv], dataset_id=None)
         for d in detections:
@@ -238,25 +432,95 @@ class Controller:
             routes = {o for o in self._routes_of(fv)}
             self.drift.observe(fv, ra, routes, self.reputation.is_tainted(fv.source_ip, now))
         self._decide(ra, now, degraded)
+        if self.shadow is not None:
+            self.shadow.submit(fv, ra)  # shadow only: never influences the decision above
         return ra
+
+    def _ids_only(
+        self, now: datetime, http_sources: set[IPv4Address], degraded: bool
+    ) -> list[RiskAssessment]:
+        """IDS-only view (M5): sources the IDS reports but with no HTTP window now."""
+        out = []
+        stale = [s for s, at in self._ids_only_at.items() if now - at > 10 * IDS_ONLY_EVERY]
+        for s in stale:
+            del self._ids_only_at[s]
+        protected = [p.network for p in self.cfg.safety.protected]
+        for src in self.correlation.ids_sources(now) - http_sources:
+            last = self._ids_only_at.get(src)
+            if (last and now - last < IDS_ONLY_EVERY) or any(src in n for n in protected):
+                continue
+            ra = self.correlation.assess_ids_only(self.app_id, src, now)
+            if ra is None:
+                continue
+            self._ids_only_at[src] = now
+            self.stats.inc("ids_only_assessment")
+            if ra.score > 0:
+                self.analysis.add_assessment(ra)
+            self._decide(ra, now, degraded)
+            out.append(ra)
+        return out
+
+    def _auth_only(
+        self, now: datetime, http_sources: set[IPv4Address], degraded: bool
+    ) -> list[RiskAssessment]:
+        """AUTH-only view (A3): login activity from a source with no HTTP window now
+        (a slow guesser sends too few requests for one)."""
+        out = []
+        protected = [p.network for p in self.cfg.safety.protected]
+        for src in self.auth.active_sources(now) - http_sources:
+            if any(src in n for n in protected):
+                continue
+            ra = self.correlation.assess_auth_only(self.app_id, src, now)
+            if ra is None:
+                continue
+            self.stats.inc("auth_only_assessment")
+            self.analysis.add_assessment(ra)
+            self._decide(ra, now, degraded)
+            out.append(ra)
+        return out
 
     def _routes_of(self, fv: FeatureVector) -> set[str]:
         recent = self.events.recent_observations(limit=60, source_ip=fv.source_ip)
         return {o.route for o in recent if o.observed_at >= fv.window_start}
 
     def _decide(self, ra: RiskAssessment, now: datetime, degraded: bool) -> None:
-        if ra.band is RiskBand.NONE or self.inference.strategy is Strategy.STATIC:
+        if self.inference.strategy is Strategy.STATIC:
+            return
+        # account-aware login evidence acts below the score bands (A3 §2.2)
+        if ra.band is RiskBand.NONE and EvidenceCategory.AUTH not in ra.corroborating_categories:
             return
         if self.policies.has_active(ra.source_ip, {PolicyKind.SOURCE_BLOCK}):
             return  # already maximally contained for this service
         prior = self.correlation.prior_enforcements(ra.source_ip, timedelta(hours=6), now)
-        intent = self.decisions.decide(ra, prior, now)
+        accounts = 0
+        if ra.score >= self.cfg.risk.block:  # only a block can be downgraded
+            accounts = accounts_behind(
+                self.events.recent_observations(limit=5000, source_ip=ra.source_ip),
+                now,
+                timedelta(seconds=self.cfg.safety.shared_address_window_s),
+            )
+        active, since, repeats = self.policies.login_controls_of(ra.source_ip, now)
+        login = LoginContext(
+            active=active,
+            failures_since=self.auth.failures_since(ra.source_ip, since, now) if since else 0,
+            recent_repeats=repeats,
+        )
+        if EvidenceCategory.AUTH in ra.corroborating_categories and not accounts:
+            accounts = accounts_behind(  # shared addresses never get an automatic login deny
+                self.events.recent_observations(limit=5000, source_ip=ra.source_ip),
+                now,
+                timedelta(seconds=self.cfg.safety.shared_address_window_s),
+            )
+        intent = self.decisions.decide(ra, prior, now, accounts, login)
         if intent is None:
             return
-        if intent.kind is not PolicyKind.SOURCE_BLOCK and self.policies.has_active(
-            ra.source_ip, {intent.kind}
-        ):
+        if intent.kind not in (
+            PolicyKind.SOURCE_BLOCK,
+            PolicyKind.LOGIN_CONTROL,  # the ladder itself decides about active controls
+        ) and self.policies.has_active(ra.source_ip, {intent.kind}):
             return
+        if intent.kind is not PolicyKind.WATCH:  # observe-only is not suspicion
+            self.reputation.taint(ra.source_ip, now, f"policy:{intent.kind.value}")
         self.policies.submit(intent, degraded=degraded or not self.policies.reconciled_since_start)
 
     def _on_enforced(self, p: Policy) -> None:
@@ -291,12 +555,16 @@ class Controller:
             log.info("drift_report", signals=report.signals, assessment=report.assessment)
 
     # --------------------------------------------------------------- threads
-    def start(self, lines: queue.Queue[tuple[IPv4Address, str]] | None) -> None:
+    def start(self, lines: queue.Queue[Line] | None) -> None:
         self.lines = lines
+        if lines is not None:  # a live receiver: mTLS sensors must heartbeat
+            self._started_at = time.monotonic()
         self._spawn("processor", self._process_loop, 1.0)
         self._spawn("reconciler", self.policies.reconcile, 5.0)
         self._spawn("drift", self.check_drift, 30.0)
         self._spawn("retention", self._retention, 3600.0)
+        if self.shadow is not None:
+            self.shadow.start()
 
     def _spawn(self, name: str, fn: Callable[[], object], every: float) -> None:
         def loop() -> None:
@@ -315,10 +583,10 @@ class Controller:
         if self.lines is not None:
             for _ in range(5000):
                 try:
-                    sender, line = self.lines.get_nowait()
+                    sender, line, role = self.lines.get_nowait()
                 except queue.Empty:
                     break
-                self.ingest_line(sender, line)
+                self.ingest_line(sender, line, role)
         self.tick()
 
     def _retention(self) -> None:
@@ -326,3 +594,5 @@ class Controller:
 
     def stop(self) -> None:
         self._stop.set()
+        if self.shadow is not None:
+            self.shadow.stop()

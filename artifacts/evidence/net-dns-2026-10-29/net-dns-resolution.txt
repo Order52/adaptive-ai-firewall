@@ -1,0 +1,16 @@
+net_dns telemetry observation — RESOLVED (not a fault), 2026-10-29 ~23:20Z
+
+Observation: after FW01 reboots, /api/network showed net_dns=0 while net_flow/ssh/tls flowed.
+Investigation:
+- FW01 afw-netflow.yaml syslog eve-log INCLUDES `- dns` (line 67), alongside flow/tls/ssh. Config correct.
+- app-layer dns parser enabled (tcp+udp). Correct.
+- The NV2 capture dataset (nv2-train) CONTAINS 12,330 dns events (89,329 flow, 86,114 tls) -> the
+  DNS metadata path demonstrably WORKS.
+- USR01 can reach 1.1.1.1 (ping ok). USR01's resolver is 127.0.0.53 (systemd-resolved stub), so
+  `nslookup host 1.1.1.1` probes were served/cached locally and did NOT cross FW01 as UDP/53
+  (tcpdump vtnet3 udp53 = 0 during those probes).
+- Sending DNS DIRECTLY to 1.1.1.1 (raw UDP socket, bypassing the stub) from USR01 -> net_dns rose
+  from 0 to 16 within one emission window.
+Conclusion: net_dns=0 was simply the ABSENCE of qualifying DNS traffic (no benign generator
+running; manual probes used the local stub), NOT a telemetry regression. When real DNS crosses
+FW01 (benign generator, or direct queries), DNS metadata is logged and delivered correctly.

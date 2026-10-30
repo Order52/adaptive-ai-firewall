@@ -1,9 +1,18 @@
 # Managed by Ansible (AFW): WAF access + ModSecurity audit -> CTRL01 telemetry receiver
 module(load="imfile")
-input(type="imfile" File="/var/log/afw/waf-access.log" Tag="afw-waf-access:" Ruleset="afw_fwd")
-input(type="imfile" File="/var/log/afw/waf-audit.log" Tag="afw-waf-audit:" Ruleset="afw_fwd")
+input(type="imfile" File="/var/log/afw/waf-access.log" Tag="afw-waf-access:" Ruleset="afw_fwd" reopenOnTruncate="on")
+input(type="imfile" File="/var/log/afw/waf-audit.log" Tag="afw-waf-audit:" Ruleset="afw_fwd" reopenOnTruncate="on")
 ruleset(name="afw_fwd") {
-  action(type="omfwd" target="{{ ctrl_ip }}" port="{{ telemetry_port }}" protocol="tcp"
+  # RELP over mutually authenticated TLS to CTRL01 (server identity pinned by name,
+  # ADR-038): CTRL01 acknowledges each line once queued; unacknowledged lines are
+  # resent after a reconnect, so a dead session loses nothing.
+  # Disk-assisted queue: buffered lines survive a sender restart.
+  action(type="omrelp" target="{{ ctrl_ip }}" port="{{ telemetry_relp_port }}"
+         tls="on" tls.authMode="name" tls.permittedPeer=["ctrl01.lab.afw"]
+         tls.caCert="/etc/afw/telemetry/ca.pem" tls.myCert="/etc/afw/telemetry/client.pem"
+         tls.myPrivKey="/etc/afw/telemetry/client.key"
          template="RSYSLOG_TraditionalForwardFormat"
-         queue.type="LinkedList" queue.size="20000" action.resumeRetryCount="-1")
+         queue.type="LinkedList" queue.size="20000" queue.filename="afw_waf_fwd"
+         queue.saveOnShutdown="on" queue.maxDiskSpace="100m"
+         action.resumeRetryCount="-1" action.resumeInterval="10")
 }

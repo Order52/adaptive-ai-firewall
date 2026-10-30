@@ -394,8 +394,9 @@ class LearningService:
                 [c.name for c in evals[0].checks if not c.passed] if evals else ["no evaluation"]
             )
             raise GateFailed(f"profile v{version} has not passed the evaluation gate: {failed}")
-        prof = self.profiles.set_status(app_id, version, ProfileStatus.TRUSTED, reviewer, note)
-        self._activate_models(app_id, version)
+        prof = self.profiles.switch(
+            app_id, version, ProfileStatus.TRUSTED, reviewer, note, self._verified(app_id, version)
+        )
         self.audit.record(reviewer, "profile.promote", f"{app_id}:v{version}", {"note": note})
         return prof
 
@@ -403,8 +404,9 @@ class LearningService:
         prof = self.profiles.get(app_id, version)
         if prof is None or prof.status not in (ProfileStatus.RETIRED, ProfileStatus.TRUSTED):
             raise ValueError("can only roll back to a previously trusted profile")
-        prof = self.profiles.set_status(app_id, version, ProfileStatus.TRUSTED, reviewer, note)
-        self._activate_models(app_id, version)
+        prof = self.profiles.switch(
+            app_id, version, ProfileStatus.TRUSTED, reviewer, note, self._verified(app_id, version)
+        )
         self.audit.record(reviewer, "profile.rollback", f"{app_id}:v{version}", {"note": note})
         return prof
 
@@ -415,13 +417,27 @@ class LearningService:
                 self.models.set_status(r.model_id, ModelStatus.REJECTED)
         return prof
 
-    def _activate_models(self, app_id: str, version: int) -> None:
+    def _verified(self, app_id: str, version: int) -> list[ModelRecord]:
+        """The models a switch to ``version`` would activate, each artifact checked
+        (sha256) BEFORE anything changes: a switch never trusts a profile no controller
+        could load (found 2026-10-28)."""
+        models = self._models_of(app_id, version)
+        if not models:
+            raise ValueError(f"profile v{version} has no models")
+        for r in models:
+            try:
+                self.artifacts.load(r)
+            except (OSError, ValueError, TypeError) as exc:
+                raise ValueError(f"profile v{version}: artifact rejected: {exc}") from exc
+        return models
+
+    def _models_of(self, app_id: str, version: int) -> list[ModelRecord]:
+        """The newest model per detector trained for profile ``version``."""
         latest: dict[DetectorKind, ModelRecord] = {}
         for r in self.models.list(app_id):  # newest first
             if r.profile_version == version and r.detector not in latest:
                 latest[r.detector] = r
-        for r in latest.values():
-            self.models.set_status(r.model_id, ModelStatus.ACTIVE)
+        return list(latest.values())
 
     def load_active(self, app_id: str) -> tuple[BehaviorProfile, list[LoadedModel]] | None:
         prof = self.profiles.trusted(app_id)
@@ -431,6 +447,19 @@ class LearningService:
             LoadedModel(record=r, detector=self.artifacts.load(r))
             for r in self.models.active(app_id)
             if r.profile_version == prof.version
+        ]
+        return prof, loaded
+
+    def load_version(self, app_id: str, version: int) -> tuple[BehaviorProfile, list[LoadedModel]]:
+        """Any stored profile version and its models, whatever their status (read-only
+        evaluation of candidates; loading never activates anything)."""
+        prof = self.profiles.get(app_id, version)
+        if prof is None:
+            raise ValueError(f"no profile v{version} for {app_id}")
+        loaded = [
+            LoadedModel(record=r, detector=self.artifacts.load(r))
+            for r in self.models.list(app_id)
+            if r.profile_version == version
         ]
         return prof, loaded
 

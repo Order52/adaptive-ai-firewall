@@ -104,6 +104,9 @@ def test_replay_arms_and_confusion_invariants(trained):
     # Legitimate traffic must stay essentially unaffected under the ML arm.
     assert by_arm["M2"].benign_sources_flagged == 0
     assert by_arm["M2"].legit_request_success == 1.0
+    # Requests are counted once each, not once per overlapping window (P1).
+    n_benign = sum(1 for o in test_obs if str(o.client_ip) in BENIGN)
+    assert all(a.benign_requests == n_benign for a in report.arms)
 
     # A contained attacker gets a finite detection latency recorded.
     assert ATTACKER in by_arm["M2"].detection_latency_s
@@ -152,3 +155,72 @@ def test_report_is_json_serializable_and_persistable(trained):
     assert len(stored) == 3
     assert {r["strategy"].split()[0] for r in stored} == {"M0", "M1", "M2"}
     assert all(r["datasets"] == ["syn-benign-only"] for r in stored)
+
+
+def test_streaming_and_hybrid_arms_learn_through_the_gate(trained):
+    """Item 6 plumbing: S-ML and HYB replay with an online HST that learns only what
+    the live admission gate admits, never from labels; the M0-M2 arms are unchanged."""
+    from afw.domain.events import Provenance
+    from afw.ml.streaming_arms import streaming_arms
+
+    c, (profile, models) = trained
+    raw = traffic(7, T0 + timedelta(hours=4), 900, BENIGN, attack={ATTACKER: "bruteforce"})
+    # as live telemetry over mTLS; the gate refuses UNVERIFIED observations
+    test_obs = [o.model_copy(update={"provenance": Provenance.AUTHENTICATED}) for o in raw]
+    man = _manifest("syn-test", Purpose.TEST, test_obs, BENIGN, {ATTACKER: "bruteforce"})
+    warm = [
+        o.model_copy(update={"provenance": Provenance.AUTHENTICATED})
+        for o in traffic(5, T0 + timedelta(hours=3), 1800, BENIGN)
+    ]
+    # short gate timings: plumbing only (the live gate needs 30 min tenure)
+    fast = c.cfg.learning.model_copy(update={"admission_delay_s": 60, "min_source_tenure_s": 300})
+    plain = run_experiment(
+        cfg=c.cfg, profile=profile, models=models, manifest=man, observations=test_obs
+    )
+    report = run_experiment(
+        cfg=c.cfg,
+        profile=profile,
+        models=models,
+        manifest=man,
+        observations=test_obs,
+        extra_arms=streaming_arms(c.cfg, profile, models, learning=fast, warmup=warm),
+    )
+    assert [a.arm for a in report.arms] == ["M0", "M1", "M2", "S-ML", "HYB"]
+    for a, b in zip(plain.arms, report.arms[:3], strict=True):
+        assert (a.tp, a.fp, a.fn, a.tn) == (b.tp, b.fp, b.fn, b.tn)
+    sml, hyb = report.arms[3], report.arms[4]
+    assert (sml.strategy, hyb.strategy) == ("streaming", "hybrid")
+    for arm in (sml, hyb):
+        assert arm.learning["gate"]["windows"] == arm.n_windows + arm.learning["warmup_windows"]
+        assert arm.learning["learned_in_warmup"] > 0, arm.learning
+        assert arm.learning["learned_windows"] > 0, arm.learning
+        assert arm.tp + arm.fp + arm.fn + arm.tn == arm.n_attack_windows + arm.n_benign_windows
+    # the attacker's windows are tainted by its own AUTH evidence: never learned
+    assert sml.learning["excluded"]
+
+
+def test_ids_alerts_travel_with_the_dataset(tmp_path):
+    from afw.domain.events import IdsAlert
+    from afw.ml.datasets import DatasetStore
+
+    obs = traffic(7, T0, 60, BENIGN[:1])
+    alert = IdsAlert(
+        event_id="ids-1",
+        observed_at=T0 + timedelta(seconds=5),
+        sensor_id="fw01",
+        src_ip=IPv4Address(ATTACKER),
+        dst_ip=IPv4Address("10.77.30.10"),
+        proto="TCP",
+        signature_id=2001219,
+        signature="ET SCAN test",
+        severity=2,
+    )
+    store = DatasetStore(tmp_path)
+    store.write(_manifest("syn-ids", Purpose.TEST, obs, BENIGN[:1]), obs, [alert])
+    assert store.manifest("syn-ids").n_ids_alerts == 1
+    assert store.ids_alerts("syn-ids") == [alert]
+    store.write(_manifest("syn-none", Purpose.TEST, obs, BENIGN[:1]), obs)
+    assert store.ids_alerts("syn-none") == []
+    (tmp_path / "syn-ids" / "ids_alerts.jsonl.gz").write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="IDS alerts failed integrity"):
+        store.ids_alerts("syn-ids")

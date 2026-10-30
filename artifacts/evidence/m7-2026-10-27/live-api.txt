@@ -1,0 +1,26 @@
+== GET /api/geo/status
+{"loaded": true, "ranges": 362122, "release": "2026-10", "age_days": 26, "stale": false, "sha256": "097426b8ddae89157d444a59ac1847e873f7943c32d52becc4371c8b0273af80", "source": "https://download.db-ip.com/free/dbip-country-lite-2026-10.csv.gz", "license": "IP Geolocation by DB-IP (https://db-ip.com), CC BY 4.0"}
+[HTTP 200]
+== GET /api/geo/lookup/8.8.8.8
+{"ip": "8.8.8.8", "country": "US", "database": {"loaded": true, "ranges": 362122, "release": "2026-10", "age_days": 26, "stale": false, "sha256": "097426b8ddae89157d444a59ac1847e873f7943c32d52becc4371c8b0273af80", "source": "https://download.db-ip.com/free/dbip-country-lite-2026-10.csv.gz", "license": "IP Geolocation by DB-IP (https://db-ip.com), CC BY 4.0"}}
+[HTTP 200]
+== GET /api/geo/lookup/10.77.10.10
+{"ip": "10.77.10.10", "country": null, "database": {"loaded": true, "ranges": 362122, "release": "2026-10", "age_days": 26, "stale": false, "sha256": "097426b8ddae89157d444a59ac1847e873f7943c32d52becc4371c8b0273af80", "source": "https://download.db-ip.com/free/dbip-country-lite-2026-10.csv.gz", "license": "IP Geolocation by DB-IP (https://db-ip.com), CC BY 4.0"}}
+[HTTP 200]
+== GET /api/geo/preview/CN?direction=inbound
+{"country_code": "CN", "direction": "inbound", "direction_meaning": "connections initiated from CN toward the protected services", "networks": 8331, "addresses": 352062115, "sample_networks": ["1.0.1.0/24", "1.0.2.0/23", "1.0.8.0/21", "1.0.32.0/19", "1.1.0.0/24", "1.1.2.0/23", "1.1.4.0/22", "1.1.8.0/21", "1.1.16.0/20", "1.1.32.0/19"], "observed_sources_in_country": [], "observed_sources_checked": 10, "lab_effect": "none: every lab client address is RFC 1918 and has no country", "enforcement": "preview only: real-country enforcement is not implemented (ADR-033)"}
+[HTTP 200]
+== GET /api/geo/preview/IQ?direction=outbound
+{"country_code": "IQ", "direction": "outbound", "direction_meaning": "connections initiated from lab networks toward IQ", "networks": 512, "addresses": 850842, "sample_networks": ["2.56.36.0/23", "2.56.38.0/24", "5.1.104.0/21", "5.8.240.0/21", "5.10.224.0/21", "5.11.16.0/21", "5.11.24.0/22", "5.62.128.0/20", "5.62.144.0/21", "5.149.96.0/20"], "observed_sources_in_country": [], "observed_sources_checked": 10, "lab_effect": "none: every lab client address is RFC 1918 and has no country", "enforcement": "preview only: real-country enforcement is not implemented (ADR-033)"}
+[HTTP 200]
+== GET /api/geo/preview/XX
+{"detail": "XX is not a country in the GeoIP database"}
+[HTTP 404]
+== GET /api/geo/status without token
+[HTTP 401]
+== POST real-country geo_block (operator token)
+{"policy_id":"pol-79ebc5efe602","idempotency_key":"9667a08197b78b83a76f0cfd9ee92282","intent":{"kind":"geo_block","app_id":"rental","service":"rental_https","target":{"type":"country","country_code":"CN","direction":"inbound","simulated":false},"duration_s":600,"rate_profile":null,"origin":"operator","requested_by":"operator","reason_codes":["M7 live check: must be refused"],"risk_assessment_id":null,"evidence_refs":[],"escalation_level":0},"state":"rejected","mode_at_creation":"monitor","created_at":"2026-10-27T20:49:03.083035Z","updated_at":"2026-10-27T20:49:03.083035Z","effective_at":null,"expires_at":null,"approved_by":null,"validation_notes":["real-country enforcement is not implemented; use the GeoIP preview (ADR-033)"],"enforcement_backend":null,"verification":{},"history":[{"at":"2026-10-27T20:49:03.083035Z","from_state":"proposed","to_state":"rejected","actor":"validator","note"
+# after outbound-semantics fix, 2026-10-27T21:08:28Z
+inbound | inbound: none, every observed source is RFC 1918 and has no country
+outbound | outbound: lab hosts' Internet egress (NAT via FW01) to IQ would be affected; the controller does not observe egress flows
+both | inbound: none, every observed source is RFC 1918 and has no country; outbound: lab hosts' Internet egress (NAT via FW01) to IQ would be affected; the controller does not observe egress flows

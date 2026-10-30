@@ -1,0 +1,8 @@
+started CTRL01
+started WAF01
+started APP01
+started DB01
+started USR01
+started ATK01
+started FW01
+started DESK01

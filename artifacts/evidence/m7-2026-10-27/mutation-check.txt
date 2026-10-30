@@ -1,0 +1,7 @@
+skip integrity check => KILLED
+private space gets a country => KILLED
+ZZ treated as a country => KILLED
+never stale => KILLED
+accept overlapping ranges => KILLED
+accept partial database => KILLED
+accept real-country enforcement => KILLED

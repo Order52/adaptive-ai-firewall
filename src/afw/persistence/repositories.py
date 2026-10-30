@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from ipaddress import IPv4Address
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
-from sqlalchemy import Engine, Table, delete, desc, insert, select, update
+from sqlalchemy import Connection, Engine, Table, delete, desc, insert, select, union, update
 from sqlalchemy.exc import IntegrityError
 
 from afw.domain.adaptation import CandidateEvaluation, DriftReport, Feedback
@@ -17,6 +17,17 @@ from afw.domain.common import utcnow
 from afw.domain.detection import DetectionResult, ModelRecord, ModelStatus
 from afw.domain.events import HttpObservation, IdsAlert
 from afw.domain.features import FeatureVector
+from afw.domain.learning import (
+    ChallengerCheckpoint,
+    ChallengerEvaluation,
+    CheckpointStatus,
+    LearnedWindow,
+    Probation,
+    ProbationStatus,
+    ShadowScore,
+    SourceRecord,
+)
+from afw.domain.network import NetworkEvent
 from afw.domain.policy import OperatingMode, Policy, PolicyState
 from afw.domain.profiles import BehaviorProfile, ProfileStatus
 from afw.domain.risk import RiskAssessment
@@ -42,8 +53,9 @@ class _Repo:
 
 
 class SqlEventRepository(_Repo):
-    def add_observations(self, items: Sequence[HttpObservation]) -> int:
-        added = 0
+    def add_observations(self, items: Sequence[HttpObservation]) -> list[HttpObservation]:
+        """Insert observations; return only the ones accepted (new request ids)."""
+        added: list[HttpObservation] = []
         with self.engine.begin() as c:
             for o in items:
                 try:
@@ -58,23 +70,65 @@ class SqlEventRepository(_Repo):
                                 body=o.model_dump_json(),
                             )
                         )
-                    added += 1
+                    added.append(o)
                 except IntegrityError:
                     continue  # duplicate request id: idempotent replay
         return added
 
-    def add_ids_alerts(self, items: Sequence[IdsAlert]) -> int:
+    def add_ids_alerts(self, items: Sequence[IdsAlert]) -> list[IdsAlert]:
+        """Insert alerts; return only the new ones (content-derived ids, idempotent)."""
+        added: list[IdsAlert] = []
         with self.engine.begin() as c:
             for a in items:
-                c.execute(
-                    insert(t.ids_alerts).values(
-                        event_id=a.event_id,
-                        observed_at=utc_naive(a.observed_at),
-                        src_ip=str(a.src_ip),
-                        body=a.model_dump_json(),
-                    )
-                )
-        return len(items)
+                try:
+                    with c.begin_nested():
+                        c.execute(
+                            insert(t.ids_alerts).values(
+                                event_id=a.event_id,
+                                observed_at=utc_naive(a.observed_at),
+                                src_ip=str(a.src_ip),
+                                body=a.model_dump_json(),
+                            )
+                        )
+                    added.append(a)
+                except IntegrityError:
+                    continue  # duplicate alert line: already stored and counted
+        return added
+
+    def add_net_events(self, items: Sequence[NetworkEvent]) -> list[NetworkEvent]:
+        """Insert network events; return only the new ones (content-derived ids)."""
+        added: list[NetworkEvent] = []
+        with self.engine.begin() as c:
+            for e in items:
+                try:
+                    with c.begin_nested():
+                        c.execute(
+                            insert(t.net_events).values(
+                                event_id=e.event_id,
+                                observed_at=utc_naive(e.observed_at),
+                                src_ip=str(e.client_ip),
+                                kind=e.kind.value,
+                                body=e.model_dump_json(),
+                            )
+                        )
+                    added.append(e)
+                except IntegrityError:
+                    continue  # duplicate line: already stored
+        return added
+
+    def net_events_between(
+        self, start: datetime, end: datetime, sources: Sequence[IPv4Address] | None = None
+    ) -> list[NetworkEvent]:
+        q = (
+            select(t.net_events.c.body)
+            .where(t.net_events.c.observed_at >= utc_naive(start))
+            .where(t.net_events.c.observed_at <= utc_naive(end))
+            .order_by(t.net_events.c.observed_at)
+        )
+        if sources is not None:
+            q = q.where(t.net_events.c.src_ip.in_([str(s) for s in sources]))
+        with self.engine.connect() as c:
+            return _load(NetworkEvent, c.execute(q).all())
 
     def recent_observations(
         self, limit: int = 100, source_ip: IPv4Address | None = None
@@ -98,6 +152,28 @@ class SqlEventRepository(_Repo):
         with self.engine.connect() as c:
             return _load(HttpObservation, c.execute(q).all())
 
+    def recent_sources(self, since: datetime) -> list[IPv4Address]:
+        """Distinct HTTP client and IDS source addresses seen since ``since``."""
+        cut = utc_naive(since)
+        q = union(
+            select(t.observations.c.client_ip.label("ip")).where(
+                t.observations.c.observed_at >= cut
+            ),
+            select(t.ids_alerts.c.src_ip.label("ip")).where(t.ids_alerts.c.observed_at >= cut),
+        )
+        with self.engine.connect() as c:
+            return [IPv4Address(r[0]) for r in c.execute(q).all()]
+
+    def ids_alerts_between(self, start: datetime, end: datetime) -> list[IdsAlert]:
+        q = (
+            select(t.ids_alerts.c.body)
+            .where(t.ids_alerts.c.observed_at >= utc_naive(start))
+            .where(t.ids_alerts.c.observed_at <= utc_naive(end))
+            .order_by(t.ids_alerts.c.observed_at)
+        )
+        with self.engine.connect() as c:
+            return _load(IdsAlert, c.execute(q).all())
+
     def recent_ids_alerts(self, since: datetime) -> list[IdsAlert]:
         q = select(t.ids_alerts.c.body).where(t.ids_alerts.c.observed_at >= utc_naive(since))
         with self.engine.connect() as c:
@@ -115,6 +191,7 @@ class SqlEventRepository(_Repo):
             c.execute(delete(t.features).where(t.features.c.window_end < utc_naive(cutoff)))
             c.execute(delete(t.detections).where(t.detections.c.window_end < utc_naive(cutoff)))
             c.execute(delete(t.ids_alerts).where(t.ids_alerts.c.observed_at < utc_naive(cutoff)))
+            c.execute(delete(t.net_events).where(t.net_events.c.observed_at < utc_naive(cutoff)))
         return int(n)
 
 
@@ -251,13 +328,28 @@ class SqlProfileRepository(_Repo):
     def set_status(
         self, app_id: str, version: int, status: ProfileStatus, reviewer: str | None, note: str
     ) -> BehaviorProfile:
+        return self.switch(app_id, version, status, reviewer, note, ())
+
+    def switch(
+        self,
+        app_id: str,
+        version: int,
+        status: ProfileStatus,
+        reviewer: str | None,
+        note: str,
+        activate: Sequence[ModelRecord],
+    ) -> BehaviorProfile:
+        """Set a profile's status and activate ``activate`` in ONE transaction (ADR-040).
+        Trusting a profile retires the previously trusted one; activating a model retires
+        the other active models of its detector. Nothing changes if any write fails."""
         prof = self.get(app_id, version)
         if prof is None:
             raise KeyError(f"profile {app_id} v{version} not found")
+        profiles = []
         if status is ProfileStatus.TRUSTED:
             current = self.trusted(app_id)
             if current and current.version != version:
-                self.save(current.model_copy(update={"status": ProfileStatus.RETIRED}))
+                profiles.append(current.model_copy(update={"status": ProfileStatus.RETIRED}))
         updated = prof.model_copy(
             update={
                 "status": status,
@@ -266,7 +358,17 @@ class SqlProfileRepository(_Repo):
                 "review_note": note,
             }
         )
-        self.save(updated)
+        profiles.append(updated)
+        models = SqlModelRepository(self.engine)
+        changes = models.status_changes([(m.model_id, ModelStatus.ACTIVE) for m in activate])
+        with self.engine.begin() as c:
+            for p in profiles:
+                c.execute(
+                    update(t.profiles)
+                    .where(t.profiles.c.profile_id == p.profile_id)
+                    .values(status=p.status.value, body=p.model_dump_json())
+                )
+            models.write_statuses(c, changes)
         return updated
 
     def next_version(self, app_id: str) -> int:
@@ -314,14 +416,40 @@ class SqlModelRepository(_Repo):
             return _load(ModelRecord, c.execute(q).all())
 
     def set_status(self, model_id: str, status: ModelStatus) -> None:
-        rec = self.get(model_id)
-        if rec is None:
-            raise KeyError(model_id)
-        if status is ModelStatus.ACTIVE:
-            for other in self.active(rec.app_id, rec.detector.value):
-                if other.model_id != model_id:
-                    self.save(other.model_copy(update={"status": ModelStatus.RETIRED}))
-        self.save(rec.model_copy(update={"status": status}))
+        self.set_statuses([(model_id, status)])
+
+    def set_statuses(self, changes: Sequence[tuple[str, ModelStatus]]) -> None:
+        """Apply several status changes atomically (one transaction). Activating a model
+        retires the other active models of its detector, unless ``changes`` sets them."""
+        recs = self.status_changes(changes)
+        with self.engine.begin() as c:
+            self.write_statuses(c, recs)
+
+    def status_changes(self, changes: Sequence[tuple[str, ModelStatus]]) -> Sequence[ModelRecord]:
+        recs = []
+        for model_id, status in changes:
+            rec = self.get(model_id)
+            if rec is None:
+                raise KeyError(model_id)
+            recs.append(rec.model_copy(update={"status": status}))
+        named = {r.model_id for r in recs}
+        for r in list(recs):
+            if r.status is ModelStatus.ACTIVE:
+                recs += [
+                    o.model_copy(update={"status": ModelStatus.RETIRED})
+                    for o in self.active(r.app_id, r.detector.value)
+                    if o.model_id not in named
+                ]
+        return recs
+
+    @staticmethod
+    def write_statuses(c: Connection, recs: Sequence[ModelRecord]) -> None:
+        for r in recs:
+            c.execute(
+                update(t.models)
+                .where(t.models.c.model_id == r.model_id)
+                .values(status=r.status.value, body=r.model_dump_json())
+            )
 
 
 class SqlPolicyRepository(_Repo):
@@ -502,3 +630,258 @@ class SqlExperimentRepository(_Repo):
                 }
                 for r in c.execute(q).all()
             ]
+
+
+class SqlLearningRepository(_Repo):
+    """Persistence for the online shadow learner (ADR-028)."""
+
+    # ---------------------------------------------------------- reputation
+    def source(self, ip: IPv4Address) -> SourceRecord | None:
+        q = select(t.source_reputation).where(t.source_reputation.c.source_ip == str(ip))
+        with self.engine.connect() as c:
+            row = c.execute(q).first()
+        return None if row is None else _source(row)
+
+    def touch(self, ip: IPv4Address, at: datetime) -> SourceRecord:
+        """Record that ``ip`` was seen; ``first_seen`` is never moved forward."""
+        with self.engine.begin() as c:
+            row = c.execute(
+                select(t.source_reputation).where(t.source_reputation.c.source_ip == str(ip))
+            ).first()
+            if row is None:
+                c.execute(
+                    insert(t.source_reputation).values(
+                        source_ip=str(ip), first_seen=utc_naive(at), last_seen=utc_naive(at)
+                    )
+                )
+                return SourceRecord(source_ip=ip, first_seen=at, last_seen=at)
+            rec = _source(row)
+            if at > rec.last_seen:
+                c.execute(
+                    update(t.source_reputation)
+                    .where(t.source_reputation.c.source_ip == str(ip))
+                    .values(last_seen=utc_naive(at))
+                )
+                rec = rec.model_copy(update={"last_seen": at})
+            return rec
+
+    def taint(self, ip: IPv4Address, at: datetime, until: datetime, reason: str) -> None:
+        """Taint for learning until ``until``; an existing longer taint is kept."""
+        rec = self.touch(ip, at)
+        if rec.taint_until is not None and rec.taint_until >= until:
+            return
+        with self.engine.begin() as c:
+            c.execute(
+                update(t.source_reputation)
+                .where(t.source_reputation.c.source_ip == str(ip))
+                .values(taint_until=utc_naive(until), taint_reason=reason[:64])
+            )
+
+    def tainted_sources(self, now: datetime) -> set[IPv4Address]:
+        q = select(t.source_reputation.c.source_ip).where(
+            t.source_reputation.c.taint_until > utc_naive(now)
+        )
+        with self.engine.connect() as c:
+            return {IPv4Address(r.source_ip) for r in c.execute(q)}
+
+    def purge_sources(self, idle_before: datetime, now: datetime) -> int:
+        """Bounded retention: forget idle sources whose taint has expired."""
+        tbl = t.source_reputation
+        q = delete(tbl).where(
+            tbl.c.last_seen < utc_naive(idle_before),
+            (tbl.c.taint_until.is_(None)) | (tbl.c.taint_until <= utc_naive(now)),
+        )
+        with self.engine.begin() as c:
+            return int(c.execute(q).rowcount or 0)
+
+    # --------------------------------------------------- checkpoints/ledger
+    def commit_checkpoint(
+        self, ckpt: ChallengerCheckpoint, learned: Sequence[LearnedWindow]
+    ) -> None:
+        """Checkpoint row and the windows learned since the previous one, atomically."""
+        with self.engine.begin() as c:
+            c.execute(
+                insert(t.challenger_checkpoints).values(
+                    checkpoint_id=ckpt.checkpoint_id,
+                    app_id=ckpt.app_id,
+                    seq=ckpt.seq,
+                    status=ckpt.status.value,
+                    created_at=utc_naive(ckpt.created_at),
+                    body=ckpt.model_dump_json(),
+                )
+            )
+            for w in learned:
+                c.execute(
+                    insert(t.learned_windows).values(
+                        fingerprint=w.fingerprint,
+                        app_id=w.app_id,
+                        source_ip=str(w.source_ip),
+                        window_end=utc_naive(w.window_end),
+                        checkpoint_id=ckpt.checkpoint_id,
+                        body=w.model_dump_json(),
+                    )
+                )
+
+    def checkpoints(self, app_id: str) -> list[ChallengerCheckpoint]:
+        """Newest first."""
+        q = (
+            select(t.challenger_checkpoints.c.body)
+            .where(t.challenger_checkpoints.c.app_id == app_id)
+            .order_by(desc(t.challenger_checkpoints.c.seq))
+        )
+        with self.engine.connect() as c:
+            return _load(ChallengerCheckpoint, c.execute(q).all())
+
+    def mark_checkpoint(self, ckpt: ChallengerCheckpoint, status: CheckpointStatus) -> None:
+        body = ckpt.model_copy(update={"status": status})
+        with self.engine.begin() as c:
+            c.execute(
+                update(t.challenger_checkpoints)
+                .where(t.challenger_checkpoints.c.checkpoint_id == ckpt.checkpoint_id)
+                .values(status=status.value, body=body.model_dump_json())
+            )
+
+    def drop_checkpoints(self, ids: Sequence[str]) -> None:
+        """Remove superseded checkpoint rows (their ledger rows are kept)."""
+        if not ids:
+            return
+        with self.engine.begin() as c:
+            c.execute(
+                delete(t.challenger_checkpoints).where(
+                    t.challenger_checkpoints.c.checkpoint_id.in_(list(ids))
+                )
+            )
+
+    def is_learned(self, fingerprint: str) -> bool:
+        q = select(t.learned_windows.c.fingerprint).where(
+            t.learned_windows.c.fingerprint == fingerprint
+        )
+        with self.engine.connect() as c:
+            return c.execute(q).first() is not None
+
+    def learned(self, app_id: str, limit: int = 1000) -> list[LearnedWindow]:
+        """Ledger entries, newest first."""
+        q = (
+            select(t.learned_windows.c.body)
+            .where(t.learned_windows.c.app_id == app_id)
+            .order_by(desc(t.learned_windows.c.window_end))
+            .limit(limit)
+        )
+        with self.engine.connect() as c:
+            return _load(LearnedWindow, c.execute(q).all())
+
+    def lineage(self, app_id: str, parent_model_id: str, n_learned: int) -> list[LearnedWindow]:
+        """Every window learned into a challenger of ``parent_model_id`` up to ``n_learned``."""
+        q = select(t.learned_windows.c.body).where(t.learned_windows.c.app_id == app_id)
+        with self.engine.connect() as c:
+            rows = _load(LearnedWindow, c.execute(q).all())
+        return [
+            w
+            for w in rows
+            if w.parent_model_id == parent_model_id and w.n_learned_after <= n_learned
+        ]
+
+    # ------------------------------------------------- promotion lifecycle
+    def add_evaluation(self, ev: ChallengerEvaluation) -> None:
+        with self.engine.begin() as c:
+            c.execute(
+                insert(t.challenger_evaluations).values(
+                    evaluation_id=ev.evaluation_id,
+                    app_id=ev.app_id,
+                    evaluated_at=utc_naive(ev.evaluated_at),
+                    body=ev.model_dump_json(),
+                )
+            )
+
+    def evaluation(self, evaluation_id: str) -> ChallengerEvaluation | None:
+        q = select(t.challenger_evaluations.c.body).where(
+            t.challenger_evaluations.c.evaluation_id == evaluation_id
+        )
+        with self.engine.connect() as c:
+            rows = _load(ChallengerEvaluation, c.execute(q).all())
+        return rows[0] if rows else None
+
+    def evaluations(self, app_id: str, limit: int = 20) -> list[ChallengerEvaluation]:
+        """Newest first."""
+        q = (
+            select(t.challenger_evaluations.c.body)
+            .where(t.challenger_evaluations.c.app_id == app_id)
+            .order_by(desc(t.challenger_evaluations.c.evaluated_at))
+            .limit(limit)
+        )
+        with self.engine.connect() as c:
+            return _load(ChallengerEvaluation, c.execute(q).all())
+
+    def save_probation(self, p: Probation) -> None:
+        tbl = t.model_probations
+        with self.engine.begin() as c:
+            exists = c.execute(
+                select(tbl.c.probation_id).where(tbl.c.probation_id == p.probation_id)
+            ).first()
+            values = {"status": p.status.value, "body": p.model_dump_json()}
+            if exists:
+                c.execute(update(tbl).where(tbl.c.probation_id == p.probation_id).values(**values))
+            else:
+                c.execute(
+                    insert(tbl).values(
+                        probation_id=p.probation_id,
+                        app_id=p.app_id,
+                        started_at=utc_naive(p.started_at),
+                        **values,
+                    )
+                )
+
+    def probations(self, app_id: str, active_only: bool = False) -> list[Probation]:
+        """Newest first."""
+        tbl = t.model_probations
+        q = select(tbl.c.body).where(tbl.c.app_id == app_id).order_by(desc(tbl.c.started_at))
+        if active_only:
+            q = q.where(tbl.c.status == ProbationStatus.ACTIVE.value)
+        with self.engine.connect() as c:
+            return _load(Probation, c.execute(q).all())
+
+    # ---------------------------------------------------------- shadow
+    def add_shadow(self, items: Sequence[ShadowScore]) -> None:
+        if not items:
+            return
+        with self.engine.begin() as c:
+            c.execute(
+                insert(t.shadow_scores),
+                [
+                    {
+                        "app_id": s.app_id,
+                        "window_end": utc_naive(s.window_end),
+                        "body": s.model_dump_json(),
+                    }
+                    for s in items
+                ],
+            )
+
+    def shadow(self, app_id: str, limit: int = 500) -> list[ShadowScore]:
+        q = (
+            select(t.shadow_scores.c.body)
+            .where(t.shadow_scores.c.app_id == app_id)
+            .order_by(desc(t.shadow_scores.c.window_end))
+            .limit(limit)
+        )
+        with self.engine.connect() as c:
+            return _load(ShadowScore, c.execute(q).all())
+
+    def purge_shadow(self, before: datetime) -> int:
+        q = delete(t.shadow_scores).where(t.shadow_scores.c.window_end < utc_naive(before))
+        with self.engine.begin() as c:
+            return int(c.execute(q).rowcount or 0)
+
+
+def _source(row: Any) -> SourceRecord:
+    return SourceRecord(
+        source_ip=IPv4Address(row.source_ip),
+        first_seen=_aware(row.first_seen),
+        last_seen=_aware(row.last_seen),
+        taint_until=_aware(row.taint_until) if row.taint_until else None,
+        taint_reason=row.taint_reason,
+    )
+
+
+def _aware(dt: datetime) -> datetime:
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)

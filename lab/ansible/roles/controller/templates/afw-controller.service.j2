@@ -9,8 +9,13 @@ Group=afwctl
 Environment=AFW_CONFIG=/etc/afw/lab.yaml
 Environment=AFW_DATA_DIR=/var/lib/afw
 Environment=AFW_API_TOKENS_FILE=/etc/afw/secrets/api_tokens.yaml
+{% if controller_tls | default(true) %}
+# HTTPS by default (ADR-023, revised 2026-10-28). The lab-CA leaf carries
+# 10.77.50.10, ctrl01.lab.afw, localhost and 127.0.0.1, so direct MGMT access and
+# the operator's SSH tunnel both verify against the lab CA.
 Environment=AFW_TLS_CERT=/etc/afw/secrets/ctrl01.pem
 Environment=AFW_TLS_KEY=/etc/afw/secrets/ctrl01.key
+{% endif %}
 WorkingDirectory=/var/lib/afw
 ExecStartPre=/opt/afw/venv/bin/afw db upgrade
 ExecStart=/opt/afw/venv/bin/afw serve --host {{ ctrl_ip }} --port 8080

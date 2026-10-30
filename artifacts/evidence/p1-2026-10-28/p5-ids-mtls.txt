@@ -1,0 +1,20 @@
+P5 FW01 IDS feed over mTLS, 2026-10-28T07:41:37Z
+afw lab provision-ids --feed-only -> syslog destination CTRL01:5514 (tls4, suricata only); lab CA + FW01-telemetry client cert (CN fw01-telemetry.lab.afw) imported into FW01 trust store
+trigger: afw lab verify (37/37), whose isolation probes from ATK01 match ET SCAN rules
+controller telemetry counters:
+{
+ "tls_session:app": 4,
+ "tls_session:waf": 4,
+ "tls_session:ids": 1,
+ "ids_authenticated": 4,
+ "ids_only_assessment": 1
+}
+Recv-Q Send-Q Local Address:Port Peer Address:Port Process
+0      0        10.77.50.10:5514  10.77.40.10:37454       
+0      0        10.77.50.10:5514  10.77.30.10:57802       
+0      0        10.77.50.10:5514   10.77.50.1:40996       
+--- after P5 deploy 2026-10-28T08:19:30Z: listening sockets on CTRL01
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      100      10.77.50.10:5514      0.0.0.0:*          
+		ip saddr { 10.77.30.10, 10.77.40.10, 10.77.50.1 } tcp dport 5514 ct state invalid reject with tcp reset
+		ip saddr { 10.77.30.10, 10.77.40.10, 10.77.50.1 } tcp dport 5514 accept

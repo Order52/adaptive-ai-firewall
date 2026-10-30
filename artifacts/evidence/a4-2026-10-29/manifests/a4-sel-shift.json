@@ -1,0 +1,31 @@
+{
+ "app_id": "rental",
+ "start": "2026-10-29T11:54:10+00:00",
+ "end": "2026-10-29T12:41:00+00:00",
+ "scenario": "A4 selection, shared addresses: 5 addresses, shared accounts",
+ "seed": 1003,
+ "generator": "traffic/benign_personas.py AFW_MODE=shared; A4",
+ "notes": "seed 1003, from 2026-10-29T11:54:10+00:00",
+ "sources": [
+  {
+   "ip": "10.77.20.162",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.163",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.164",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.165",
+   "role": "benign"
+  },
+  {
+   "ip": "10.77.20.166",
+   "role": "benign"
+  }
+ ]
+}

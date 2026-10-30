@@ -6,6 +6,13 @@ table inet afw {
     type filter hook input priority 0; policy drop;
     iif lo accept
     ct state established,related accept
+{% for r in nft_allow | default([]) if r.reset_stale | default(false) %}
+    # Long-lived stream from a known sender whose session this host forgot (e.g. the
+    # receiver restarted): answer with a reset so the sender reconnects at once instead
+    # of retransmitting into a silent drop. Only helps when the packets reach this
+    # host; FW01 may drop the stale flow first (sensor-side bound: sensor_tls role).
+    ip saddr { {{ r.src | join(', ') if r.src is not string else r.src }} } tcp dport {{ r.port }} ct state invalid reject with tcp reset
+{% endfor %}
     ct state invalid drop
     ip protocol icmp icmp type { echo-request, destination-unreachable, time-exceeded } accept
     ip saddr {{ mgmt_net }} tcp dport 22 accept

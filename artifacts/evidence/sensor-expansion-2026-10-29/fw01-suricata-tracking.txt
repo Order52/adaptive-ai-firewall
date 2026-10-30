@@ -1,0 +1,21 @@
+FW01 read-only check, 2026-10-29 10:08:18Z (fw_livedev.py, serial console; no configuration change).
+
+$ suricata -V
+This is Suricata version 8.0.6 RELEASE
+$ grep -n -A3 '^livedev' /usr/local/etc/suricata/suricata.yaml
+271:livedev:
+272-  use-for-tracking: false
+
+Meaning: flows are keyed without the capture interface. A connection captured on two
+interfaces (e.g. client -> WAF01:443 entering on vtnet3 and leaving on vtnet4) is one
+flow fed every packet twice.
+
+Repo facts used with this (commit at time of writing):
+- config/lab.yaml safety.protected: 10.77.30.0/24 (DMZ), 10.77.40.0/24 (APP),
+  10.77.60.0/24 (DB) are protected; services/runtime.py tick(): protected sources'
+  network events are stored but never assessed.
+- waf/templates/conf.d/upstream.conf.template: keepalive 16 (WAF01 -> APP01 reuses a few
+  long connections: high packet count, few flow events).
+- telemetry/parsers/lines.py recognises the filterlog syslog tag; pf log lines are not
+  parsed into events.
+- FW01 load during the A3/NV1 capture: fw01-load-during-a3-capture.txt (nv1 evidence).

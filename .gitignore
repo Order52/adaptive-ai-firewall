@@ -13,7 +13,11 @@ __pycache__/
 !*.env.example
 secrets/
 var/
-artifacts/
+artifacts/*
+!artifacts/evidence/
+artifacts/evidence/*.png
+artifacts/evidence/*.pcap
+artifacts/evidence/*.gz
 *.sqlite3
 *.sqlite3-*
 *.db
@@ -24,3 +28,4 @@ artifacts/
 lab/build/
 models/store/
 datasets/raw/
+artifacts/evidence/a4-2026-10-29/select/*.pkl

@@ -1,0 +1,5 @@
+IDS general settings saved
+enabled 7 ET Open categories
+syslog destination CTRL01:5515 (suricata only) applied
+rule download started
+suricata status: running; installed rules: 11570

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from typing import ClassVar
 
 import numpy as np
@@ -49,6 +50,14 @@ class Detector(ABC):
     def robust_z(self, row: np.ndarray) -> np.ndarray:
         z: np.ndarray = (row - self.medians) / self.scales
         return z
+
+    def anomalous_without(self, row: np.ndarray, features: Iterable[str], threshold: float) -> bool:
+        """Counterfactual: still >= threshold with ``features`` set to the profile median?"""
+        occluded = np.array(row, dtype=float, copy=True)
+        for name in features:
+            i = FEATURE_NAMES.index(name)
+            occluded[i] = self.medians[i]
+        return bool(self.score(occluded[None, :])[0] >= threshold)
 
     def explain(self, row: np.ndarray, top_k: int = 5) -> tuple[FeatureContribution, ...]:
         """Occlusion attribution: score drop when a feature is set to its profile median."""

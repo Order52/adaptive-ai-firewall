@@ -6,7 +6,8 @@ through exactly the same validator / enforcement path as AI decisions. There is
 no tool that accepts free-form firewall or WAF text.
 
 Run (stdio, for a local MCP client):
-    AFW_API_URL=http://127.0.0.1:8080 AFW_MCP_TOKEN_FILE=secrets/mcp.token afw-mcp
+    AFW_API_URL=https://10.77.50.10:8080 AFW_API_CA=lab-ca.pem \\
+    AFW_MCP_TOKEN_FILE=secrets/mcp.token afw-mcp
 """
 
 from __future__ import annotations
@@ -25,8 +26,10 @@ server = MCPServer(
     instructions=(
         "Inspect and operate the AI-Adaptive-Firewall lab. Risk scores are evidence scores, "
         "not probabilities. Mutations are validated server-side; protected/management "
-        "addresses are always refused. Country policies on lab addresses are SIMULATED unless "
-        "a real GeoIP database is configured. Direction semantics: 'inbound' = connections "
+        "addresses are always refused. Country policies are either SIMULATED (lab addresses "
+        "mapped synthetically) or REAL (simulated=false: DB-IP networks enforced on FW01; "
+        "inbound verified by read-back only, outbound also by an egress probe; client zones "
+        "only). Direction semantics: 'inbound' = connections "
         "initiated from the country toward protected services; 'outbound' = connections "
         "initiated from lab networks toward the country."
     ),
@@ -143,6 +146,22 @@ def application_profiles() -> list[dict[str, Any]]:
 def adaptation_status() -> dict[str, Any]:
     """Shadow learning, drift reports and candidate evaluation gates."""
     return _obj(_get("/api/adaptation"))
+
+
+@server.tool()
+def shadow_learning() -> dict[str, Any]:
+    """Online challenger (shadow only): learning state, why windows were excluded,
+    checkpoints, and champion-vs-challenger agreement. Read-only; the challenger
+    never affects enforcement."""
+    return _obj(_get("/api/learning/shadow"))
+
+
+@server.tool()
+def challenger_lifecycle() -> dict[str, Any]:
+    """Promotion-gate evaluations of the online challenger and the probation of any
+    promoted one. Read-only: evaluation, promotion and rollback are admin REST
+    actions reserved for a human reviewer."""
+    return _obj(_get("/api/learning/challenger"))
 
 
 @server.tool()
@@ -265,9 +284,11 @@ def country_policy(
     duration_s: int = 3600,
     simulated: bool = True,
 ) -> dict[str, Any]:
-    """OPTIONAL EXTENSION: country-scoped policy, e.g. 'block incoming traffic from China'
-    -> country_code='CN', direction='inbound'. Real geography requires a configured GeoIP
-    database; otherwise only clearly-labelled simulated lab mappings are accepted."""
+    """Country-scoped policy, e.g. 'block outgoing traffic to Australia' -> country_code='AU',
+    direction='outbound', simulated=False. simulated=True uses the labelled lab mapping.
+    Real policies need a fresh GeoIP database and a human request (this tool); check
+    geo_preview first. Inbound real policies can only be verified by table read-back,
+    because no real-country traffic reaches the lab."""
     return _post(
         "/api/policies",
         {
@@ -282,6 +303,21 @@ def country_policy(
             "reason": f"mcp country policy {direction}",
         },
     )
+
+
+@server.tool()
+def geo_preview(
+    country_code: str, direction: Literal["inbound", "outbound", "both"] = "inbound"
+) -> dict[str, Any]:
+    """Read-only: what a REAL country policy would cover (networks, addresses, observed
+    lab sources in that country) from the installed DB-IP database, with its age."""
+    return _obj(_get(f"/api/geo/preview/{country_code}", direction=direction))
+
+
+@server.tool()
+def geo_lookup(ip: IPv4Address) -> dict[str, Any]:
+    """Read-only: country of an IPv4 address (None for private/lab space)."""
+    return _obj(_get(f"/api/geo/lookup/{ip}"))
 
 
 @server.tool()

@@ -4,7 +4,7 @@ The AI-Adaptive-Firewall lab is manageable from Claude Code (or any MCP client)
 through the **`afw` MCP server** — a thin, typed façade over the controller REST
 API (AI / policy / OPNsense enforcement) and the host-side GNS3 API (lab
 infrastructure). It was verified end-to-end with a real MCP client on
-2026-10-17: **26 tools**, real GNS3 topology, real AI data over HTTPS, and the
+2026-10-17: **26 tools** (30 since 2026-10-27: added `shadow_learning`, `challenger_lifecycle`, `geo_preview`, `geo_lookup`), real GNS3 topology, real AI data over HTTPS, and the
 safety guards below.
 
 ## Design
@@ -12,10 +12,12 @@ safety guards below.
 - **No raw shell / no free-form firewall text.** Every tool is a typed,
   documented operation. There is no "run this command" tool.
 - **Two backends, one server.** AI/policy/OPNsense/WAF tools call the controller
-  REST API (`AFW_API_URL`, HTTPS, lab-CA verified) with a `channel=mcp` token, so
-  every mutation flows through the *same* policy validator, enforcement and audit
-  path as autonomous AI decisions. GNS3 infrastructure tools call the GNS3 API on
-  the host (`~/.config/afw/gns3.env`).
+  REST API (`AFW_API_URL`) with a `channel=mcp` token, so every mutation flows
+  through the *same* policy validator, enforcement and audit path as autonomous
+  AI decisions. GNS3 infrastructure tools call the GNS3 API on the host
+  (`~/.config/afw/gns3.env`). The control plane is on the host-only MGMT zone,
+  reached locally or over SSH; it serves HTTPS with a lab-CA certificate, which the
+  MCP server verifies via `AFW_API_CA` (never `verify=False`).
 - **Separation of concerns.** Read-only tools, operational tools (node power) and
   policy mutations are distinct. A policy mutation can never bypass the validator;
   protected/management addresses are always refused.
@@ -83,7 +85,7 @@ block/unblock/approve; `admin` can change mode and promote profiles.
 - `block_source` / `unblock` — expiring source block + rollback (read-back verified).
 - `approve_policy` / `reject_policy` — act on a pending AI proposal (assisted mode).
 - `set_mode(monitor|assisted|auto)` — operating mode (admin).
-- `country_policy` — simulated geo policy (optional extension).
+- `country_policy` — country policy: `simulated=true` (labelled lab mapping) or `simulated=false` (real DB-IP networks on FW01, ADR-036).
 - `feedback` — analyst label feeding drift/candidate learning.
 
 ## Example natural-language commands

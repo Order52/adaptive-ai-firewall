@@ -1,0 +1,26 @@
+Wed Oct 28 09:04:56 AM UTC 2026
+# CTRL01 leaf SANs
+subject=CN = ctrl01.lab.afw
+X509v3 Subject Alternative Name: 
+    IP Address:10.77.50.10, IP Address:127.0.0.1, DNS:ctrl01.lab.afw, DNS:localhost
+notAfter=Nov 29 09:01:24 2027 GMT
+# HTTPS verified with lab CA
+200 0
+# plain HTTP on 8080
+000
+curl exit 52
+# public CA bundle only
+[correction: the line above used --cacert alone, and curl also reads the system CA
+ directory, where this host has the lab CA; it is not a valid check. Re-run with
+ --capath /nonexistent:]
+curl exit 60 (certificate not trusted)
+# telemetry mTLS sessions after cert reissue
+{}  [wrong key path in the first capture; re-read:]
+tls_session:app 4, tls_session:waf 3, tls_session:ids 1, ids_authenticated 6
+# DESK01
+system trust 200
+{"policies": {"Certificates": {"Install": ["/etc/firefox/policies/afw-lab-ca.pem"]}}}
+MCP connected. tools: 26
+Firefox headless screenshot: p5-desk01-firefox-https.png (dashboard loaded, no certificate warning)
+# AFW_LAB=1 pytest tests/lab
+12 passed, 9 warnings in 27.34s

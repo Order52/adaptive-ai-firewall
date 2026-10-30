@@ -1,0 +1,47 @@
+P5 hardening: FW01 IDS-feed heartbeat (2026-10-28)
+
+Before: FW01 (role "ids") sent no heartbeat, so a dead Suricata or a dead FW01 syslog
+feed was not observable (THREAT_MODEL "Forged sensor lines" row, PROJECT_STATUS gap 5).
+
+Change: FW01's watchdog (cron, every 30 s) logs one line under the "suricata" program
+tag (OPNsense forwards only listed programs; arbitrary tags cannot be selected) with
+event_type "afw_heartbeat", ONLY while `pgrep -x suricata` succeeds. The controller
+classifies that event type as a heartbeat (Suricata never emits it); it counts only on
+the mTLS channel with role "ids". The "ids" role is now included in sensor health, so
+150 s silence marks evidence degraded (pauses automation), as for WAF and APP.
+
+FW01 process check via serial console:
+  pgrep -lx suricata  ->  51800 suricata ; pgrep -qx suricata -> PGREP_OK
+
+Deploy: afw lab deploy --limit ctrl01 (deploy-ctrl01-ids-heartbeat.txt, failed=0);
+watchdog installed by afw lab provision-geo (p5-ids-heartbeat-provision.txt).
+
+First heartbeat (API /api/overview, telemetry.sensors):
+11:22:00Z sensors {"app": {"heartbeat_age_s": 7.9, "stale": false}, "ids": {"heartbeat_age_s": null, "stale": false}, "waf": {"heartbeat_age_s": 11.9, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:22:15Z sensors {"app": {"heartbeat_age_s": 22.9, "stale": false}, "ids": {"heartbeat_age_s": 14.9, "stale": false}, "waf": {"heartbeat_age_s": 26.9, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+
+Failure test: Suricata stopped / started through the provisioner API
+== baseline
+11:22:33Z sensors {"app": {"heartbeat_age_s": 10.7, "stale": false}, "ids": {"heartbeat_age_s": 2.7, "stale": false}, "waf": {"heartbeat_age_s": 13.7, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:22:33Z stopping suricata
+stop {'response': 'OK'} stopped
+11:22:34Z sensors {"app": {"heartbeat_age_s": 12.4, "stale": false}, "ids": {"heartbeat_age_s": 4.4, "stale": false}, "waf": {"heartbeat_age_s": 15.4, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:22:49Z sensors {"app": {"heartbeat_age_s": 27.5, "stale": false}, "ids": {"heartbeat_age_s": 19.4, "stale": false}, "waf": {"heartbeat_age_s": 30.5, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:23:04Z sensors {"app": {"heartbeat_age_s": 11.5, "stale": false}, "ids": {"heartbeat_age_s": 34.5, "stale": false}, "waf": {"heartbeat_age_s": 14.5, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:23:20Z sensors {"app": {"heartbeat_age_s": 26.5, "stale": false}, "ids": {"heartbeat_age_s": 49.6, "stale": false}, "waf": {"heartbeat_age_s": 29.5, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:23:35Z sensors {"app": {"heartbeat_age_s": 10.6, "stale": false}, "ids": {"heartbeat_age_s": 64.6, "stale": false}, "waf": {"heartbeat_age_s": 13.6, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:23:50Z sensors {"app": {"heartbeat_age_s": 25.6, "stale": false}, "ids": {"heartbeat_age_s": 79.7, "stale": false}, "waf": {"heartbeat_age_s": 28.6, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:24:05Z sensors {"app": {"heartbeat_age_s": 9.7, "stale": false}, "ids": {"heartbeat_age_s": 94.7, "stale": false}, "waf": {"heartbeat_age_s": 12.7, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:24:20Z sensors {"app": {"heartbeat_age_s": 24.7, "stale": false}, "ids": {"heartbeat_age_s": 109.7, "stale": false}, "waf": {"heartbeat_age_s": 27.7, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:24:35Z sensors {"app": {"heartbeat_age_s": 8.7, "stale": false}, "ids": {"heartbeat_age_s": 124.8, "stale": false}, "waf": {"heartbeat_age_s": 11.7, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:24:50Z sensors {"app": {"heartbeat_age_s": 23.8, "stale": false}, "ids": {"heartbeat_age_s": 139.8, "stale": false}, "waf": {"heartbeat_age_s": 26.8, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+11:25:05Z sensors {"app": {"heartbeat_age_s": 7.8, "stale": false}, "ids": {"heartbeat_age_s": 154.9, "stale": true}, "waf": {"heartbeat_age_s": 10.8, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded True
+== stale reached
+11:25:05Z sensors {"app": {"heartbeat_age_s": 7.9, "stale": false}, "ids": {"heartbeat_age_s": 154.9, "stale": true}, "waf": {"heartbeat_age_s": 10.9, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded True
+11:25:05Z starting suricata
+start {'response': 'OK'} running
+11:25:05Z sensors {"app": {"heartbeat_age_s": 8.1, "stale": false}, "ids": {"heartbeat_age_s": 155.1, "stale": true}, "waf": {"heartbeat_age_s": 11.1, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded True
+11:25:20Z sensors {"app": {"heartbeat_age_s": 23.1, "stale": false}, "ids": {"heartbeat_age_s": 170.2, "stale": true}, "waf": {"heartbeat_age_s": 26.1, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded True
+11:25:35Z sensors {"app": {"heartbeat_age_s": 7.1, "stale": false}, "ids": {"heartbeat_age_s": 5.1, "stale": false}, "waf": {"heartbeat_age_s": 10.1, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False
+== recovered
+11:25:35Z sensors {"app": {"heartbeat_age_s": 7.2, "stale": false}, "ids": {"heartbeat_age_s": 5.2, "stale": false}, "waf": {"heartbeat_age_s": 10.2, "stale": false}} | hb_unauth None | ids_alerts_auth None | degraded False

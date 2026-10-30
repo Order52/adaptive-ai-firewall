@@ -1,0 +1,10 @@
+CIC-IDS2017 Thursday-WorkingHours — external-dataset provenance (third independent capture)
+Source: HF mirror bvsam/cic-ids-2017 (pcap/Thursday-WorkingHours.pcap); CIC-IDS2017 (UNB),
+Sharafaldin, Lashkari, Ghorbani, ICISSP 2018. https://www.unb.ca/cic/datasets/ids-2017.html
+File: Thursday-WorkingHours.pcap, 8,302,500,180 bytes (equals the server-reported size).
+sha256: 38f8b1bb276849bf1721f7c4de22bebfa7f59a74e52286d4c0a37edbb118fe01
+Downloaded 2026-10-30 ~07:27-07:47Z. capinfos: 9.3 M packets, 2017-07-06 11:58:58 - 20:04:44.
+Suricata offline (-r): ET Open 2026 rules, FAIR config (HOME_NET = 192.168.10.0/24), 334,424 flows.
+Labels: attack = 172.16.0.1 (post-NAT attacker) windows; 192.168.10.8 and 192.168.10.25
+(documented infiltration victims) EXCLUDED, see label-audit.md. Not in Git: pcap + eve.json
+(~/afw-external-datasets/, 24 GB; re-downloadable).

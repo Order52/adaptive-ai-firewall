@@ -4,17 +4,44 @@
   ansible.builtin.user: {name: afwapp, system: true, shell: /usr/sbin/nologin, create_home: false}
 - name: App code
   ansible.builtin.copy:
-    src: "{{ repo_root }}/apps/rental/rental_app.py"
-    dest: /opt/afw/rental/rental_app.py
+    src: "{{ repo_root }}/apps/rental/{{ item }}"
+    dest: "/opt/afw/rental/{{ item }}"
     mode: "0644"
+  loop: [rental_app.py, store.py]
+  notify: restart app
+- name: App DB connection (DATABASE_URL -> DB tier; password from host secrets)
+  ansible.builtin.template: {src: rental.env.j2, dest: /etc/afw/rental.env, owner: afwapp, mode: "0600"}
   notify: restart app
 - name: Event log ownership
   ansible.builtin.file: {path: /var/log/afw, state: directory, owner: afwapp, mode: "0755"}
 - name: App unit
   ansible.builtin.template: {src: afw-rental.service.j2, dest: /etc/systemd/system/afw-rental.service, mode: "0644"}
   notify: restart app
+- name: Telemetry TLS (sensor client certificate)
+  ansible.builtin.include_role: {name: sensor_tls}
+  vars: {sensor_cert: APP01-telemetry}
 - name: Ship app events to CTRL01
   ansible.builtin.template: {src: 30-afw-app.conf.j2, dest: /etc/rsyslog.d/30-afw-app.conf, mode: "0644"}
   notify: restart rsyslog
 - name: App running
   ansible.builtin.systemd: {name: afw-rental, enabled: true, state: started, daemon_reload: true}
+- name: Rotate the telemetry source logs
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/afw-app
+    mode: "0644"
+    content: |
+      # Managed by Ansible (AFW): copytruncate keeps the file rsyslog's imfile follows
+      # (reopenOnTruncate). Rotated files keep the run-completeness evidence:
+      # dataset checks read the rotated files too (zcat).
+      /var/log/afw/app-events.log {
+        daily
+        maxsize 200M
+        rotate 30
+        dateext
+        dateformat -%Y%m%d-%s
+        missingok
+        notifempty
+        copytruncate
+        compress
+        delaycompress
+      }

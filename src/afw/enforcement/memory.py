@@ -22,6 +22,7 @@ class MemoryBackend:
             PolicyKind.WAF_DENY,
             PolicyKind.RATE_LIMIT,
             PolicyKind.HTTP_CONTRACT,
+            PolicyKind.LOGIN_CONTROL,
         }
     )
     state: DesiredState = field(default_factory=DesiredState)
@@ -42,7 +43,10 @@ class MemoryBackend:
             blocked_sources=self.state.blocked_sources,
             waf_denied_sources=self.state.waf_denied_sources,
             rate_limited=dict(self.state.rate_limited),
+            login_controls=dict(self.state.login_controls),
             contracts=self.state.contracts,
+            geo_inbound=self.state.geo_inbound,
+            geo_outbound=self.state.geo_outbound,
         )
 
     def reconcile(self, desired: DesiredState) -> ApplyReport:
@@ -78,6 +82,8 @@ class MemoryBackend:
 class MemoryProbe:
     backend: MemoryBackend
     service_up: bool = True
+    internet_up: bool = True
+    egress: dict[str, str] = field(default_factory=dict)
 
     def legitimate_ok(self) -> bool | None:
         return self.service_up
@@ -86,3 +92,11 @@ class MemoryProbe:
         if not self.service_up:
             return True
         return source in self.backend.state.blocked_sources
+
+    def egress_connects(self, source: IPv4Address, target: str) -> bool | None:
+        """Unknown targets are unverifiable (None); others connect unless their
+        country (``egress``: target name -> country) is blocked outbound."""
+        cc = self.egress.get(target)
+        if cc is None:
+            return None
+        return self.internet_up and cc not in self.backend.state.geo_outbound

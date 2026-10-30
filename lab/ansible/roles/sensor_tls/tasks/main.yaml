@@ -1,0 +1,109 @@
+# Mutually authenticated telemetry channel to CTRL01 (ADR-029).
+# Expects: sensor_cert (e.g. WAF01-telemetry), a "restart rsyslog" handler.
+- name: rsyslog TLS driver and RELP output (ADR-038)
+  ansible.builtin.apt: {name: [rsyslog-gnutls, rsyslog-relp], state: present, update_cache: true, cache_valid_time: 86400}
+  notify: restart rsyslog
+- name: Telemetry TLS directory
+  ansible.builtin.file: {path: /etc/afw/telemetry, state: directory, owner: root, group: syslog, mode: "0750"}
+- name: Lab CA and sensor client certificate
+  ansible.builtin.copy: {src: "{{ afw_home }}/pki/{{ item.s }}", dest: "/etc/afw/telemetry/{{ item.d }}", owner: root, group: syslog, mode: "{{ item.m }}"}
+  loop:
+    - {s: lab-ca.pem, d: ca.pem, m: "0644"}
+    - {s: "{{ sensor_cert }}.pem", d: client.pem, m: "0644"}
+    - {s: "{{ sensor_cert }}.key", d: client.key, m: "0640"}
+  notify: restart rsyslog
+- name: AppArmor - let rsyslogd read (only) the telemetry TLS material
+  ansible.builtin.copy:
+    dest: /etc/apparmor.d/rsyslog.d/afw-telemetry
+    mode: "0644"
+    content: |
+      # Managed by Ansible (AFW): read-only access to the telemetry TLS files.
+      /etc/afw/telemetry/ r,
+      /etc/afw/telemetry/* r,
+  register: afw_apparmor
+- name: Reload the rsyslogd AppArmor profile
+  ansible.builtin.command: apparmor_parser -r /etc/apparmor.d/usr.sbin.rsyslogd
+  when: afw_apparmor.changed
+  changed_when: true
+  notify: restart rsyslog
+- name: rsyslog TLS defaults
+  ansible.builtin.template: {src: 10-afw-tls.conf.j2, dest: /etc/rsyslog.d/10-afw-tls.conf, mode: "0644"}
+  notify: restart rsyslog
+- name: Bound how long a dead telemetry session can absorb data (M5 finding)
+  # rsyslog's gtls driver does not notice the receiver's FIN, and FW01 silently drops
+  # the stale flow, so Linux would retransmit for ~15+ min before failing the send.
+  # 8 retries ~ 100 s, after which rsyslog suspends the action and reconnects.
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/60-afw-telemetry.conf
+    mode: "0644"
+    content: |
+      # Managed by Ansible (AFW): fail a dead telemetry session in ~100 s, not ~15 min.
+      net.ipv4.tcp_retries2 = 8
+  register: afw_sysctl
+- name: Apply the telemetry sysctl
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/60-afw-telemetry.conf
+  when: afw_sysctl.changed
+  changed_when: true
+- name: Heartbeat directory (liveness over the authenticated channel, M5)
+  ansible.builtin.file: {path: /var/log/afw-hb, state: directory, owner: root, group: root, mode: "0755"}
+- name: Heartbeat writer (a script, so systemd quoting cannot mangle the JSON)
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/afw-heartbeat
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (AFW): one JSON liveness line, forwarded by rsyslog over mTLS.
+      printf '{"hb":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> /var/log/afw-hb/heartbeat.log
+- name: Heartbeat service and 30 s timer
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.n }}"
+    mode: "0644"
+    content: "{{ item.c }}"
+  loop:
+    - n: afw-heartbeat.service
+      c: |
+        # Managed by Ansible (AFW): one liveness line, forwarded by rsyslog over mTLS.
+        [Unit]
+        Description=AFW telemetry heartbeat
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/sbin/afw-heartbeat
+    - n: afw-heartbeat.timer
+      c: |
+        # Managed by Ansible (AFW)
+        [Unit]
+        Description=AFW telemetry heartbeat every 30 s
+        [Timer]
+        OnBootSec=30
+        OnUnitActiveSec=30
+        AccuracySec=1
+        [Install]
+        WantedBy=timers.target
+  register: afw_hb_units
+- name: Enable the heartbeat timer
+  ansible.builtin.systemd: {name: afw-heartbeat.timer, enabled: true, state: started, daemon_reload: "{{ afw_hb_units.changed }}"}
+- name: Rotate the heartbeat log
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/afw-heartbeat
+    mode: "0644"
+    content: |
+      # Managed by Ansible (AFW): copytruncate keeps the file rsyslog's imfile follows.
+      # Renaming it stopped the heartbeat at the first midnight rotation (2026-10-29):
+      # imfile could not pick up the re-created file.
+      /var/log/afw-hb/heartbeat.log {
+        daily
+        rotate 2
+        missingok
+        notifempty
+        copytruncate
+        compress
+        delaycompress
+      }
+- name: Forward the heartbeat on the telemetry channel
+  ansible.builtin.copy:
+    dest: /etc/rsyslog.d/40-afw-heartbeat.conf
+    mode: "0644"
+    content: |
+      # Managed by Ansible (AFW): imfile is loaded by 30-afw-*.conf; afw_fwd is the mTLS action.
+      input(type="imfile" File="/var/log/afw-hb/heartbeat.log" Tag="afw-heartbeat:" Ruleset="afw_fwd" reopenOnTruncate="on")
+  notify: restart rsyslog

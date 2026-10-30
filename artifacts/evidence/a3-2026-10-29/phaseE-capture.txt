@@ -1,0 +1,55 @@
+wrote 19400 observations, 0 IDS alerts and 38570 network events to /var/lib/afw/datasets/p6-final
+wrote 2944 observations, 0 IDS alerts and 5855 network events to /var/lib/afw/datasets/p6-final-shift
+wrote 1670 observations, 0 IDS alerts and 3327 network events to /var/lib/afw/datasets/p6-final-v1
+p6-final: test, P6 Phase E final: 16 v2 persona users, 19400 observations
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 19400 observations, manifest 19400
+PASS time_range: 0 observations outside 2026-10-29 05:42:35+00:00..2026-10-29 06:29:00+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 3/19400 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+PASS benign_users_unseen: benign addresses also in training/validation datasets (address count): none; results on them are 'unseen users' only for models not fitted on those datasets
+p6-final-shift: test, P6 Phase E final, workload shift: 6 addresses, shared accounts, 2944 observations
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 2944 observations, manifest 2944
+PASS time_range: 0 observations outside 2026-10-29 05:42:35+00:00..2026-10-29 06:29:00+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/2944 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+PASS benign_users_unseen: benign addresses also in training/validation datasets (address count): none; results on them are 'unseen users' only for models not fitted on those datasets
+p6-final-v1: test, P6 Phase E final: 6 v1 persona users, 1670 observations
+PASS integrity: sha256 matches the manifest (0 IDS alerts)
+PASS count: 1670 observations, manifest 1670
+PASS time_range: 0 observations outside 2026-10-29 05:42:35+00:00..2026-10-29 06:29:00+00:00
+PASS request_ids_unique: 0 repeated request ids
+PASS app_id: app ids ['rental'], manifest rental
+PASS roles_exclusive: benign and attack on one address: none
+PASS observations_labelled: unlabelled sources: none
+PASS labelled_sources_observed: labelled sources with no HTTP observation: none (an attack stopped before the application, e.g. by FW01, leaves none: say so in the report)
+PASS attack_type_set: attack sources without attack_type: none
+PASS attackers_in_attack_zone: attackers outside 10.77.10.0/24: none
+PASS benign_outside_attack_zone: benign sources in 10.77.10.0/24: none
+PASS provenance: 0/1670 observations unverified or not joined to the application
+PASS not_synthetic: synthetic data cannot be used as test or holdout evidence
+PASS no_cross_split_overlap: same sources and overlapping time in another split: none
+PASS no_same_split_overlap: same traffic as none (e.g. a predeclared subset): never combine them
+PASS benign_users_unseen: benign addresses also in training/validation datasets (address count): none; results on them are 'unseen users' only for models not fitted on those datasets
+# Completeness: WAF01 access-log lines for the same sources and period: {'p6-final': 19400, 'p6-final-shift': 2944, 'p6-final-v1': 1670}

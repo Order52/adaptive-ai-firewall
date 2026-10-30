@@ -87,6 +87,14 @@ class FeatureVector(DomainModel):
     app_versions: tuple[str, ...] = ()
     evidence: dict[str, float] = Field(default_factory=dict)
     request_ids: tuple[str, ...] = ()
+    # SV-1: the window's ``values`` recomputed WITHOUT the requests behind a piece of
+    # non-behaviour evidence, keyed like ``independence_key`` ("auth", "waf",
+    # "auth+waf"); a residual is None when nothing would remain. Keys exist only for
+    # categories the window has requests for. None for vectors recorded before
+    # residuals existed: such a vector is never treated as independent evidence.
+    # A behaviour anomaly is independent of that evidence only if the residual
+    # window is anomalous on its own.
+    residuals: dict[str, dict[str, float] | None] | None = None
 
     def as_row(self) -> list[float]:
         return [self.values[name] for name in FEATURE_NAMES]

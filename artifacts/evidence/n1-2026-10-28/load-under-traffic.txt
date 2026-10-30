@@ -1,0 +1,79 @@
+N1 load with flow export on, during N2 benign run (36 persona users) 19:07:35Z-19:37:35Z
+19:12:37
+ 7:12PM  up 12:32, 1 user, load averages: 0.35, 0.28, 0.21
+  0.0  10572 syslog-ng
+  0.0  17380 syslog-ng
+  0.1 483212 suricata
+2026-10-28T19:12:37Z
+{"mode":"shadow (not used for decisions)","events":{"net_ssh":1,"net_tls":4324,"net_protected_source":2,"net_flow":3430},"windows":{"tracked_sources":2,"too_late":0,"dropped":0},"calibrated_on":0,"calibration_error":null,"recent":8,"strong":0,"unfamiliar":0}
+{"counts":{"tls_session:ids":1,"net_ssh":1,"net_tls":4324,"net_protected_source":2,"net_flow":3430},"sensors":{"app":{"heartbeat_age_s":6.6,"stale":false},"ids":{"heartbeat_age_s":7.6,"stale":false},"waf":{"heartbeat_age_s":21.6,"stale":false}}}
+
+{"status":"ok","telemetry_degraded":false,"model_error":null,"version":"0.1.0"}
+13.9 274376 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw 
+13.9 274376 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw serve --host 10.77.5
+
+19:17:28
+ 7:17PM  up 12:37, 1 user, load averages: 0.10, 0.18, 0.17
+  0.0  10572 syslog-ng
+  0.0  17380 syslog-ng
+  0.1 483912 suricata
+2026-10-28T19:17:28Z
+{"mode":"shadow (not used for decisions)","events":{"net_ssh":1,"net_tls":8250,"net_protected_source":2,"net_flow":7401},"windows":{"tracked_sources":1,"too_late":0,"dropped":0},"calibrated_on":0,"calibration_error":null,"recent":15,"strong":0,"unfamiliar":0}
+{"counts":{"tls_session:ids":1,"net_ssh":1,"net_tls":8250,"net_protected_source":2,"net_flow":7401},"sensors":{"app":{"heartbeat_age_s":18.3,"stale":false},"ids":{"heartbeat_age_s":27.9,"stale":false},"waf":{"heartbeat_age_s":1.8,"stale":false}}}
+
+{"status":"ok","telemetry_degraded":false,"model_error":null,"version":"0.1.0"}
+14.1 275464 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw 
+14.1 275464 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw serve --host 10.77.5
+
+19:22:18
+ 7:22PM  up 12:42, 1 user, load averages: 0.44, 0.22, 0.18
+  0.0  10572 syslog-ng
+  0.0  17380 syslog-ng
+  0.0 484348 suricata
+2026-10-28T19:22:19Z
+{"mode":"shadow (not used for decisions)","events":{"net_ssh":1,"net_tls":12079,"net_protected_source":2,"net_flow":11343},"windows":{"tracked_sources":1,"too_late":0,"dropped":0},"calibrated_on":0,"calibration_error":null,"recent":24,"strong":0,"unfamiliar":0}
+{"counts":{"tls_session:ids":1,"net_ssh":1,"net_tls":12079,"net_protected_source":2,"net_flow":11343},"sensors":{"app":{"heartbeat_age_s":30.3,"stale":false},"ids":{"heartbeat_age_s":18.5,"stale":false},"waf":{"heartbeat_age_s":13.9,"stale":false}}}
+
+{"status":"ok","telemetry_degraded":false,"model_error":null,"version":"0.1.0"}
+14.3 276764 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw 
+14.3 276764 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw serve --host 10.77.5
+
+19:27:09
+ 7:27PM  up 12:47, 1 user, load averages: 0.23, 0.22, 0.18
+  0.0  10572 syslog-ng
+  0.0  17380 syslog-ng
+  0.2 484372 suricata
+2026-10-28T19:27:09Z
+{"mode":"shadow (not used for decisions)","events":{"net_ssh":1,"net_tls":15729,"net_protected_source":2,"net_flow":14844},"windows":{"tracked_sources":0,"too_late":0,"dropped":0},"calibrated_on":0,"calibration_error":null,"recent":30,"strong":0,"unfamiliar":0}
+{"counts":{"tls_session:ids":1,"net_ssh":1,"net_tls":15729,"net_protected_source":2,"net_flow":14844},"sensors":{"app":{"heartbeat_age_s":11.2,"stale":false},"ids":{"heartbeat_age_s":9.1,"stale":false},"waf":{"heartbeat_age_s":24.2,"stale":false}}}
+
+{"status":"ok","telemetry_degraded":false,"model_error":null,"version":"0.1.0"}
+14.2 277732 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw 
+14.2 277732 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw serve --host 10.77.5
+
+19:32:00
+ 7:32PM  up 12:52, 1 user, load averages: 0.17, 0.17, 0.16
+  0.0  10572 syslog-ng
+  0.0  17380 syslog-ng
+  0.1 484964 suricata
+2026-10-28T19:32:00Z
+{"mode":"shadow (not used for decisions)","events":{"net_ssh":1,"net_tls":19784,"net_protected_source":2,"net_flow":18947},"windows":{"tracked_sources":1,"too_late":0,"dropped":0},"calibrated_on":0,"calibration_error":null,"recent":38,"strong":0,"unfamiliar":0}
+{"counts":{"tls_session:ids":1,"net_ssh":1,"net_tls":19784,"net_protected_source":2,"net_flow":18947},"sensors":{"app":{"heartbeat_age_s":22.7,"stale":false},"ids":{"heartbeat_age_s":0.1,"stale":false},"waf":{"heartbeat_age_s":5.9,"stale":false}}}
+
+{"status":"ok","telemetry_degraded":false,"model_error":null,"version":"0.1.0"}
+14.4 279224 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw 
+14.4 279224 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw serve --host 10.77.5
+
+19:36:50
+ 7:36PM  up 12:56, 1 user, load averages: 0.10, 0.13, 0.14
+  0.0  10572 syslog-ng
+  0.0  17380 syslog-ng
+  0.1 484964 suricata
+2026-10-28T19:36:50Z
+{"mode":"shadow (not used for decisions)","events":{"net_ssh":1,"net_tls":23659,"net_protected_source":2,"net_flow":22914},"windows":{"tracked_sources":1,"too_late":0,"dropped":0},"calibrated_on":0,"calibration_error":null,"recent":46,"strong":0,"unfamiliar":0}
+{"counts":{"tls_session:ids":1,"net_ssh":1,"net_tls":23659,"net_protected_source":2,"net_flow":22914},"sensors":{"app":{"heartbeat_age_s":2.7,"stale":false},"ids":{"heartbeat_age_s":19.8,"stale":false},"waf":{"heartbeat_age_s":17.7,"stale":false}}}
+
+{"status":"ok","telemetry_degraded":false,"model_error":null,"version":"0.1.0"}
+14.5 280316 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw 
+14.5 280316 /opt/afw/venv/bin/python3 /opt/afw/venv/bin/afw serve --host 10.77.5
+

@@ -17,6 +17,8 @@ dependencies = [
     "psutil>=7.2.2",
     "pydantic>=2",
     "pydantic-settings>=2.16.0",
+    "psycopg[binary]>=3.2.3",
+    "psycopg-pool>=3.2.4",
     "pyyaml>=6.0.3",
     "river>=0.26.1",
     "scikit-learn>=1.9.1",
@@ -48,6 +50,7 @@ afw-mcp = "afw.mcp.server:main"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["artifacts"]  # evidence scripts are kept exactly as they were run
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "N", "S", "PTH", "TID"]

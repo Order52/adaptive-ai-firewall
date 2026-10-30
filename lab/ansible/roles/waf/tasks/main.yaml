@@ -37,6 +37,9 @@
   ansible.builtin.template: {src: "{{ item }}.j2", dest: "/etc/systemd/system/{{ item }}", mode: "0644"}
   loop: [afw-waf.service, afw-waf-helper.service]
   notify: [restart waf, restart helper]
+- name: Telemetry TLS (sensor client certificate)
+  ansible.builtin.include_role: {name: sensor_tls}
+  vars: {sensor_cert: WAF01-telemetry}
 - name: Ship WAF logs to CTRL01
   ansible.builtin.template: {src: 30-afw-waf.conf.j2, dest: /etc/rsyslog.d/30-afw-waf.conf, mode: "0644"}
   notify: restart rsyslog
@@ -45,3 +48,23 @@
 - name: WAF and helper running
   ansible.builtin.systemd: {name: "{{ item }}", enabled: true, state: started, daemon_reload: true}
   loop: [afw-waf, afw-waf-helper]
+- name: Rotate the telemetry source logs
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/afw-waf
+    mode: "0644"
+    content: |
+      # Managed by Ansible (AFW): copytruncate keeps the file rsyslog's imfile follows
+      # (reopenOnTruncate). Rotated files keep the run-completeness evidence:
+      # dataset checks read the rotated files too (zcat).
+      /var/log/afw/waf-access.log /var/log/afw/waf-audit.log {
+        daily
+        maxsize 200M
+        rotate 30
+        dateext
+        dateformat -%Y%m%d-%s
+        missingok
+        notifempty
+        copytruncate
+        compress
+        delaycompress
+      }

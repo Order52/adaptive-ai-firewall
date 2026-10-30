@@ -33,27 +33,45 @@ CHECKS: list[Check] = [
     Check("atk01", "10.77.30.10", 22, False, "ATTACK to WAF SSH"),
     Check("atk01", "10.77.50.10", 22, False, "ATTACK to CTRL01"),
     Check("atk01", "10.77.50.10", 5514, False, "ATTACK forging telemetry"),
+    Check("atk01", "10.77.50.10", 5516, False, "ATTACK forging RELP telemetry"),
     Check("atk01", "10.77.10.1", 443, False, "ATTACK to FW web GUI"),
     Check("atk01", "10.77.20.10", 22, False, "ATTACK to USERS"),
     Check("usr01", "10.77.10.10", 22, False, "USERS to ATTACK"),
     Check("atk01", "10.77.10.1", None, True, "ATTACK ping own gateway"),
-    Check("atk01", "1.1.1.1", 443, False, "ATTACK to Internet"),
+    Check("atk01", "1.1.1.1", 443, True, "ATTACK to Internet (egress allowed)"),
     Check("atk01", "10.77.30.10", None, False, "ATTACK ping WAF (only HTTPS allowed)"),
     # DMZ
     Check("waf01", "10.77.40.10", 8000, True, "WAF to APP"),
     Check("waf01", "10.77.50.10", 5514, True, "WAF telemetry to CTRL01"),
+    Check("waf01", "10.77.50.10", 5516, True, "WAF RELP telemetry to CTRL01"),
     Check("waf01", "10.77.50.10", 22, False, "WAF to CTRL01 SSH"),
     Check("waf01", "10.77.20.10", 22, False, "WAF to USERS"),
-    Check("waf01", "1.1.1.1", 443, False, "WAF to Internet"),
+    Check("waf01", "1.1.1.1", 443, True, "WAF to Internet (egress allowed)"),
     # APP
     Check("app01", "10.77.50.10", 5514, True, "APP telemetry to CTRL01"),
+    Check("app01", "10.77.50.10", 5516, True, "APP RELP telemetry to CTRL01"),
+    # Sensors must use the authenticated channel only (ADR-029): plaintext 5515
+    # accepts FW01 alone.
+    Check("waf01", "10.77.50.10", 5515, False, "WAF plaintext telemetry (mTLS only)"),
+    Check("app01", "10.77.50.10", 5515, False, "APP plaintext telemetry (mTLS only)"),
     Check("app01", "10.77.30.10", 443, False, "APP to WAF"),
     Check("app01", "10.77.50.10", 22, False, "APP to CTRL01 SSH"),
-    Check("app01", "1.1.1.1", 443, False, "APP to Internet"),
+    Check("app01", "1.1.1.1", 443, True, "APP to Internet (egress allowed)"),
+    Check("app01", "10.77.60.10", 5432, True, "APP to DB (only path to the database)"),
+    # DB tier — reachable only from APP, initiates nothing
+    Check("usr01", "10.77.60.10", 5432, False, "USERS bypassing app to DB"),
+    Check("atk01", "10.77.60.10", 5432, False, "ATTACK bypassing app to DB"),
+    Check("waf01", "10.77.60.10", 5432, False, "WAF bypassing app to DB"),
+    Check("db01", "10.77.40.10", 8000, False, "DB back-connecting to APP"),
+    Check("db01", "10.77.50.10", 5514, False, "DB forging telemetry"),
+    Check("db01", "10.77.50.10", 5516, False, "DB forging RELP telemetry"),
+    Check("db01", "1.1.1.1", 443, True, "DB to Internet (egress allowed)"),
+    Check("db01", "10.77.60.1", None, True, "DB ping own gateway"),
     # MGMT reaches everything it manages
     Check("ctrl01", "10.77.30.10", 22, True, "CTRL01 to WAF SSH"),
     Check("ctrl01", "10.77.40.10", 22, True, "CTRL01 to APP SSH"),
     Check("ctrl01", "10.77.20.10", 22, True, "CTRL01 to USERS (probe agent path)"),
+    Check("ctrl01", "10.77.60.10", 22, True, "CTRL01 to DB SSH (management)"),
     Check("ctrl01", "10.77.50.1", 443, True, "CTRL01 to FW API"),
 ]
 

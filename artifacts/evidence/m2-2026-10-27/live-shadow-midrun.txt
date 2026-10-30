@@ -1,0 +1,39 @@
+2026-10-27T18:15:10Z
+{
+ "status": {
+  "enabled": true,
+  "mode": "shadow (no influence on enforcement; promotion requires M3)",
+  "champion_model": "half_space_trees-p2-20261017190622",
+  "challenger": {
+   "n_learned": 0,
+   "counter": 1,
+   "warm": true,
+   "window_size": 180,
+   "l_mass_total": 275.0,
+   "r_mass_total": 49500.0
+  },
+  "last_checkpoint": null,
+  "quarantine": 26,
+  "unflushed_learned": 0,
+  "counts": {
+   "windows": 166,
+   "quarantined": 26
+  },
+  "excluded": {
+   "sensitive_range": 37,
+   "overlap": 40,
+   "tainted": 63
+  }
+ },
+ "agreement": {
+  "windows": 200,
+  "both_normal": 114,
+  "champion_only_anomalous": 0,
+  "challenger_only_anomalous": 0,
+  "both_anomalous": 86,
+  "note": "challenger flags use the champion threshold; calibration is M3"
+ },
+ "checkpoints": []
+}
+## live-run policies (monitor mode, not enforced)
+16 {('10.77.20.13', 'watch', 'monitor'): 2, ('10.77.20.14', 'watch', 'monitor'): 1, ('10.77.20.11', 'rate_limit', 'monitor'): 3, ('10.77.20.11', 'watch', 'monitor'): 2, ('10.77.20.16', 'watch', 'monitor'): 1, ('10.77.20.12', 'watch', 'monitor'): 2, ('10.77.20.14', 'rate_limit', 'monitor'): 1, ('10.77.20.15', 'watch', 'monitor'): 1, ('10.77.20.15', 'rate_limit', 'monitor'): 1, ('10.77.20.16', 'rate_limit', 'monitor'): 2}

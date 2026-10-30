@@ -1,0 +1,78 @@
+Wed Oct 28 09:27:39 AM UTC 2026
+plugins: anyio-4.15.1, asyncio-1.4.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 2 items
+
+tests/lab/test_geo_enforcement_lab.py::test_outbound_country_block_is_real_scoped_and_reversible PASSED [ 50%]
+tests/lab/test_geo_enforcement_lab.py::test_inbound_country_block_is_read_back_but_never_claimed_enforced PASSED [100%]
+
+=============================== warnings summary ===============================
+tests/lab/test_geo_enforcement_lab.py::test_outbound_country_block_is_real_scoped_and_reversible
+tests/lab/test_geo_enforcement_lab.py::test_inbound_country_block_is_read_back_but_never_claimed_enforced
+  /home/gns3/uot/ai-adaptive-firewall/.venv/lib/python3.12/site-packages/httpx/_config.py:51: DeprecationWarning: `verify=<str>` is deprecated. Use `verify=ssl.create_default_context(cafile=...)` or `verify=ssl.create_default_context(capath=...)` instead.
+    warnings.warn(message, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================== 2 passed, 2 warnings in 143.58s (0:02:23) ===================
+
+# policy records (API)
+pol-a0023477cf73 KP inbound rolled_back
+  verification {"readback": true, "traffic_inbound": "n/a: no real-country inbound traffic reaches the lab", "traffic": "read-back only"}
+    09:29:01 proposed -> validated | 
+    09:29:01 validated -> applying | operator-requested
+    09:29:01 applying -> applied_unverified | applied
+    09:29:33 applied_unverified -> rollback_pending | lab acceptance cleanup
+    09:30:02 rollback_pending -> rolled_back | removal confirmed by read-back
+pol-0054a6d72fcd AU outbound rolled_back
+  verification {"readback": true, "traffic_outbound": "blocked: cloudflare-dns; control google-dns connected", "traffic": "blocked (outbound egress probe)"}
+    09:27:40 proposed -> validated | 
+    09:27:40 validated -> applying | operator-requested
+    09:27:40 applying -> applied_unverified | applied
+    09:28:29 applied_unverified -> enforced | read-back + egress probe
+    09:28:30 enforced -> rollback_pending | lab acceptance cleanup
+    09:29:00 rollback_pending -> rolled_back | removal confirmed by read-back
+
+# FW01 syslog (afw-geo / afw-watchdog)
+2026-10-28T09:30:00 afw-geo  AFW_GEO_IN replaced: 0 networks sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+2026-10-28T09:29:30 afw-geo  AFW_GEO_IN replaced: 14 networks sha256=fca16fedd9bcfba9747271e366f788b6cbd6d88cbc0890e862d939363b73612e
+2026-10-28T09:29:00 afw-geo  AFW_GEO_OUT replaced: 0 networks sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+2026-10-28T09:28:00 afw-geo  AFW_GEO_OUT replaced: 12265 networks sha256=e1e17f3576e624b833512e938571a836c5d5fd2694ad02c9efe89e7393d72e48
+2026-10-28T09:27:00 afw-geo  AFW_GEO_OUT replaced: 0 networks sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+2026-10-28T09:27:00 afw-geo  AFW_GEO_IN replaced: 0 networks sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+# Read-back defect found live and fixed (2026-10-28 ~09:36Z)
+OPNsense alias_util/list returns a malformed chunked body for pages of ~5000 rows+:
+gzip default  rowCount=  500 ok=3 fail=0 avg=0.04s rows=0
+gzip default  rowCount= 2000 ok=3 fail=0 avg=0.04s rows=0
+identity      rowCount=  500 ok=3 fail=0 avg=0.03s rows=0
+identity      rowCount= 2000 ok=3 fail=0 avg=0.04s rows=0
+identity      rowCount= 5000 ok=3 fail=0 avg=0.04s rows=0
+identity      rowCount=20000 ok=3 fail=0 avg=0.04s rows=0
+Symptom: AU outbound policy flapped enforced -> unknown ('backend unreachable'). Fix: PAGE=1000.
+Policy pol-2f844893c6d5 history (redeploy with the fix ~09:37:35Z):
+   09:35:03 proposed -> validated | 
+   09:35:03 validated -> applying | operator-requested
+   09:35:04 applying -> applied_unverified | applied
+   09:36:25 applied_unverified -> enforced | read-back + egress probe
+   09:36:36 enforced -> unknown | backend unreachable
+   09:37:17 unknown -> enforced | read-back + egress probe
+   09:37:33 enforced -> unknown | backend unreachable
+   09:37:40 unknown -> enforced | read-back + egress probe
+   09:40:06 enforced -> expiring | duration elapsed
+   09:40:29 expiring -> expired | removal confirmed by read-back
+State polled every 10 s after the fix:
+09:37:46 enforced 8
+09:37:56 enforced 8
+09:38:06 enforced 8
+09:38:16 enforced 8
+09:38:26 enforced 8
+09:38:36 enforced 8
+09:38:47 enforced 8
+09:38:57 enforced 8
+09:39:07 enforced 8
+09:39:17 enforced 8
+09:39:27 enforced 8
+09:39:37 enforced 8
+09:39:47 enforced 8
+09:39:57 enforced 8
+09:40:07 expiring 9

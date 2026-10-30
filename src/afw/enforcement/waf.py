@@ -14,10 +14,20 @@ from afw.config import WafHelperConfig
 from afw.domain.policy import ContractTarget, PolicyKind, RateProfile
 from afw.ports.enforcement import ApplyReport, DesiredState, ObservedState
 
+_LOGIN = {"throttle": RateProfile.LOGIN_THROTTLE, "deny": RateProfile.LOGIN_DENY}
+_LOGIN_NAME = {v: k for k, v in _LOGIN.items()}
+
 
 class WafHelperBackend:
     name = "waf"
-    handles = frozenset({PolicyKind.WAF_DENY, PolicyKind.RATE_LIMIT, PolicyKind.HTTP_CONTRACT})
+    handles = frozenset(
+        {
+            PolicyKind.WAF_DENY,
+            PolicyKind.RATE_LIMIT,
+            PolicyKind.HTTP_CONTRACT,
+            PolicyKind.LOGIN_CONTROL,
+        }
+    )
 
     def __init__(self, cfg: WafHelperConfig) -> None:
         verify: bool | str = str(cfg.ca_file) if cfg.ca_file and cfg.verify_tls else cfg.verify_tls
@@ -46,6 +56,9 @@ class WafHelperBackend:
                 reachable=True,
                 waf_denied_sources=frozenset(IPv4Address(i) for i in d["denied_sources"]),
                 rate_limited={IPv4Address(k): RateProfile(v) for k, v in d["rate_limited"].items()},
+                login_controls={
+                    IPv4Address(k): _LOGIN[v] for k, v in d.get("login_controls", {}).items()
+                },
                 contracts=tuple(ContractTarget.model_validate(c) for c in d["contracts"]),
                 revision=str(d.get("revision")),
             )
@@ -56,6 +69,9 @@ class WafHelperBackend:
         body = {
             "denied_sources": sorted(map(str, desired.waf_denied_sources)),
             "rate_limited": {str(k): v.value for k, v in sorted(desired.rate_limited.items())},
+            "login_controls": {
+                str(k): _LOGIN_NAME[v] for k, v in sorted(desired.login_controls.items())
+            },
             "contracts": [c.model_dump(mode="json") for c in desired.contracts],
         }
         try:

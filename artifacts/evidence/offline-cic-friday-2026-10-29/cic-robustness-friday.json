@@ -1,0 +1,233 @@
+{
+ "label": "friday",
+ "windows": 9879,
+ "attack_windows": 79,
+ "independent_attack_bursts_total": 4,
+ "independent_attack_bursts_in_test": 3,
+ "note": "effective sample size = independent bursts, not windows; every family here is one attacker session, so run-level n is 1 per family",
+ "split": {
+  "train": 5927,
+  "gap_dropped": 138,
+  "test": 3814
+ },
+ "all_features": {
+  "recall": 0.2667,
+  "fp": 2,
+  "tn": 3752,
+  "fpr": 0.000533,
+  "tp": 16,
+  "fn": 44,
+  "recall_ci95_block": [
+   0.0,
+   0.5858
+  ],
+  "fpr_ci95_block": [
+   0.0,
+   0.0017
+  ],
+  "n_blocks": 15,
+  "n_blocks_with_attack": 8
+ },
+ "behaviour_only": {
+  "recall": 0.2667,
+  "fp": 2,
+  "tn": 3752,
+  "fpr": 0.000533,
+  "tp": 16,
+  "fn": 44,
+  "recall_ci95_block": [
+   0.0,
+   0.5858
+  ],
+  "fpr_ci95_block": [
+   0.0,
+   0.0017
+  ],
+  "n_blocks": 15,
+  "n_blocks_with_attack": 8
+ },
+ "single_group_only": {
+  "timing": {
+   "recall": 0.2,
+   "fp": 3,
+   "tn": 3751,
+   "fpr": 0.000799,
+   "tp": 12,
+   "fn": 48,
+   "recall_ci95_block": [
+    0.0,
+    0.4556
+   ],
+   "fpr_ci95_block": [
+    0.0,
+    0.0016
+   ],
+   "n_blocks": 15,
+   "n_blocks_with_attack": 8
+  },
+  "dns": {
+   "recall": 1.0,
+   "fp": 579,
+   "tn": 3175,
+   "fpr": 0.154235,
+   "tp": 60,
+   "fn": 0,
+   "recall_ci95_block": [
+    1.0,
+    1.0
+   ],
+   "fpr_ci95_block": [
+    0.1012,
+    0.2162
+   ],
+   "n_blocks": 15,
+   "n_blocks_with_attack": 8
+  },
+  "volume": {
+   "recall": 0.0833,
+   "fp": 0,
+   "tn": 3754,
+   "fpr": 0.0,
+   "tp": 5,
+   "fn": 55,
+   "recall_ci95_block": [
+    0.0,
+    0.2128
+   ],
+   "fpr_ci95_block": [
+    0.0,
+    0.0
+   ],
+   "n_blocks": 15,
+   "n_blocks_with_attack": 8
+  },
+  "failures": {
+   "recall": 0.9833,
+   "fp": 1831,
+   "tn": 1923,
+   "fpr": 0.487746,
+   "tp": 59,
+   "fn": 1,
+   "recall_ci95_block": [
+    0.9189,
+    1.0
+   ],
+   "fpr_ci95_block": [
+    0.4543,
+    0.5245
+   ],
+   "n_blocks": 15,
+   "n_blocks_with_attack": 8
+  },
+  "identity(port/host/fanout)": {
+   "recall": 0.3167,
+   "fp": 158,
+   "tn": 3596,
+   "fpr": 0.042088,
+   "tp": 19,
+   "fn": 41,
+   "recall_ci95_block": [
+    0.0781,
+    0.6774
+   ],
+   "fpr_ci95_block": [
+    0.0159,
+    0.0814
+   ],
+   "n_blocks": 15,
+   "n_blocks_with_attack": 8
+  }
+ },
+ "leave_one_group_out": {
+  "timing": {
+   "recall": 0.3167,
+   "fp": 3,
+   "tn": 3751,
+   "fpr": 0.000799,
+   "tp": 19,
+   "fn": 41,
+   "recall_ci95_block": [
+    0.0781,
+    0.6774
+   ],
+   "fpr_ci95_block": [
+    0.0,
+    0.002
+   ],
+   "n_blocks": 15,
+   "n_blocks_with_attack": 8
+  },
+  "dns": {
+   "recall": 0.2667,
+   "fp": 5,
+   "tn": 3749,
+   "fpr": 0.001332,
+   "tp": 16,
+   "fn": 44,
+   "recall_ci95_block": [
+    0.0,
+    0.5858
+   ],
+   "fpr_ci95_block": [
+    0.0,
+    0.0043
+   ],
+   "n_blocks": 15,
+   "n_blocks_with_attack": 8
+  },
+  "volume": {
+   "recall": 0.2667,
+   "fp": 2,
+   "tn": 3752,
+   "fpr": 0.000533,
+   "tp": 16,
+   "fn": 44,
+   "recall_ci95_block": [
+    0.0,
+    0.5858
+   ],
+   "fpr_ci95_block": [
+    0.0,
+    0.0017
+   ],
+   "n_blocks": 15,
+   "n_blocks_with_attack": 8
+  },
+  "failures": {
+   "recall": 0.2667,
+   "fp": 2,
+   "tn": 3752,
+   "fpr": 0.000533,
+   "tp": 16,
+   "fn": 44,
+   "recall_ci95_block": [
+    0.0,
+    0.5858
+   ],
+   "fpr_ci95_block": [
+    0.0,
+    0.0017
+   ],
+   "n_blocks": 15,
+   "n_blocks_with_attack": 8
+  },
+  "identity(port/host/fanout)": {
+   "recall": 0.2667,
+   "fp": 2,
+   "tn": 3752,
+   "fpr": 0.000533,
+   "tp": 16,
+   "fn": 44,
+   "recall_ci95_block": [
+    0.0,
+    0.5858
+   ],
+   "fpr_ci95_block": [
+    0.0,
+    0.0017
+   ],
+   "n_blocks": 15,
+   "n_blocks_with_attack": 8
+  }
+ }
+}
