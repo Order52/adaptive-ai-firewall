@@ -122,8 +122,10 @@ Botnet / DDoS (independent day, families and tool). Provenance + sha256 recorded
 | RF, brute force (time-split) | recall **0.846** [0.78, 0.90], **0 FP / 13,499 benign** |
 | Tuesday-trained model → Friday attacks | recall **0.114** [0.06, 0.20] — **family-specific** |
 | Trained *and* tested on Friday | recall **0.267** [0.17, 0.39] — hard families |
-| Static Suricata (ET Open) on brute force | recall **0.0**, alerts on 960 benign sources |
-| Supervised ML vs static | ML catches **128** attack windows static misses; static catches **0** ML misses |
+| Static Suricata (ET Open, **fair** `HOME_NET`) on brute force | recall **0.43**, 3.2 % FP windows (the first baseline, 0.0, was misconfigured — `ERRATUM_STATIC_BASELINE.md`) |
+| Supervised ML vs static | ML 0.90 vs static 0.43 (Tuesday); 0.88 vs 0.28 on Thursday web attacks (ML never saw Thursday); ML catches 68 / 102 windows static misses, static catches 2 / 5 ML misses — **complementary** |
+| Third independent capture (Thursday), ML trained on Tue+Fri | recall **0.54** [block CI 0.36–0.71] at 0 FP; 7 independent attack bursts |
+| Third-family self-learning (Thursday, 10 seeds) | new family 0.53 → **0.88 / 0.92 / 0.86** (no rehearsal / rehearsal / batch); batch has FPR 0.0007 vs 0.011 and 15× less compute — see `OFFLINE_THIRD_CAPTURE.md` |
 | Hybrid (ML ∪ novelty) | recall 0.93 but precision 0.44 — **novelty false-strongs hurt** |
 | Incremental ARF vs periodic batch RF | ARF recall 0.94 / precision 0.77; batch recall 0.89 / precision 0.90, slightly cheaper — **no winner** |
 | Self-learning, Friday (novel family) | **0.0 → 0.72** (23/32, CI [0.55, 0.84]; ≈0.68 over 10 seeds); old family retained only **with rehearsal** (erratum) |
@@ -202,7 +204,7 @@ An offline result never advances the live gate.
 |---|---|
 | Learns useful behavioural patterns | **Yes** — benign (lab, proven); brute force (offline, audited); **family-specific** |
 | Improves from independently verified new evidence | **Yes, offline, for novel families**; not universal; not shown live |
-| Value beyond static rules | **Yes, decisively on brute force (0.90 vs 0.0); marginal on harder families**; not shown live |
+| Value beyond static rules | **Yes on brute-force-style activity (0.90 vs 0.43; 0.88 vs 0.28), complementary to static, marginal on harder families**; not shown live |
 | Network-wide coverage of attack categories | **Partial** — brute force good; scan threshold needs tuning; slow/distributed weak |
 | Safe model governance | **Yes** — gate refuses live; nothing promoted |
 | Real network enforcement | **Yes** (gate D MET) |

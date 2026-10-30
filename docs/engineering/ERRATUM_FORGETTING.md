@@ -54,6 +54,8 @@ incremental with rehearsal 1.79 s, batch RF 0.29 s; ARF 3.0 MB, batch RF 0.44 MB
   held-out windows from one Friday session, i.e. a handful of independent bursts.
 
 ## 4. What the production system already does
+**Third capture confirms it** (`OFFLINE_THIRD_CAPTURE.md`, 10 seeds, new family = Thursday, 130 held-out windows): without rehearsal the Friday family falls 0.375 → 0.097; with rehearsal 0.572; batch RF 0.406. New-family recall 0.88 / 0.92 / 0.86 (no rehearsal / rehearsal / batch); benign FPR 0.0092 / 0.0112 / 0.0007; learn time 1.9 / 3.6 / 0.24 s.
+
 
 `src/afw/ml/incremental.py` already implements the safeguard this measurement justifies:
 a bounded per-family **rehearsal reservoir is on by default** (`Rehearsal`), and the

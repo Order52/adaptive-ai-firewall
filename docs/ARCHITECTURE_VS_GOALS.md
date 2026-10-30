@@ -42,12 +42,14 @@ Evidence: `engineering/OFFLINE_CIC_AUDIT.md`, `OFFLINE_INDEPENDENCE.md`,
 
 ### Goal C — Measurable value beyond static rules
 
-- **Demonstrated decisively on brute force (new, #3).** Static Suricata (ET Open rules)
-  detects **0.0** of the brute force (the attacker never triggers an attack-category rule;
-  only STREAM protocol noise) while alerting on **960 benign source IPs**. The supervised ML
-  detects **0.895 at 0 FP**. **The AI catches 128 attack windows Suricata misses; Suricata
-  catches 0 the ML misses.** This is clear, measurable, independent AI value.
-- **Failure/uncertainty:** on the **harder Friday families both are weak** (static 0.0, ML
+- **Demonstrated on brute-force-style activity, but smaller than first reported (#3).**
+  **Correction (`engineering/ERRATUM_STATIC_BASELINE.md`):** the first static baseline put the attacker inside `HOME_NET`
+  and could not match external-source rules. With a fair baseline, static Suricata (ET Open)
+  detects **0.43** of the Tuesday brute force at 3.2 % false-positive windows; the supervised ML
+  detects **0.895 at 0 FP**. On Thursday web attacks, with an ML model that never saw Thursday:
+  static **0.28** vs ML **0.88**. ML catches 68 / 102 windows static misses, and static catches a
+  few ML misses (2 / 5), so the two are **complementary** (union 0.91 on Thursday morning).
+- **Failure/uncertainty:** on the **harder Friday families both are weak** (static 0.13, ML
   0.27, hybrid 0.32), so the AI's advantage is **family-dependent**. The **hybrid (ML OR
   novelty) hurts precision** (novelty false-strongs); the **supervised ML alone is the best
   single method**. Caveat: ET Open is generic/untuned.
@@ -67,7 +69,7 @@ Evidence: `engineering/OFFLINE_CIC_AUDIT.md`, `OFFLINE_INDEPENDENCE.md`,
 
 | Method | Brute-force recall | Brute-force FPR | Friday recall | Note |
 |---|---|---|---|---|
-| Static Suricata (ET Open) | **0.00** | 0.03 (attack-cat) | 0.00 | misses the attacks; alerts on benign |
+| Static Suricata (ET Open, fair `HOME_NET`) | **0.43** | 0.03 (attack-cat) | 0.13 | catches about half of brute force; alerts on many benign sources; complementary to ML |
 | Supervised ML (RF) | **0.895** | **0.00** | 0.27 | best single method |
 | Novelty (ceilings) | 0.92 | 0.03 | 0.05 | high recall, poor precision |
 | Hybrid (ML∪novelty) | 0.93 | 0.03 | 0.32 | novelty FPs hurt precision |
@@ -123,8 +125,9 @@ declared complete.**
 - **Improves from independently-verified new evidence:** **yes, offline, on independent
   data** (0 → ≈0.68 over 10 seeds, old family retained at 0.999 *only with rehearsal*) — but
   **only for genuinely novel families**.
-- **Measurable value beyond static rules:** **yes, decisively, on brute force** (ML 0.90 vs
-  static 0.0); **marginal on harder families**.
+- **Measurable value beyond static rules:** **yes on brute-force-style activity** (ML 0.90 vs
+  static 0.43; Thursday web attacks 0.88 vs 0.28), **complementary** to static (union is
+  best), **marginal on harder families** — see `engineering/ERRATUM_STATIC_BASELINE.md`.
 - **Reliable network protection + governance:** **yes, fully** (verified enforcement, guards,
   live governed refusal, recovery, OOM fix persistent across reboots).
 - **Live attack effectiveness:** **unproven, blocked** by the one safety-gated step.
