@@ -32,6 +32,7 @@ GitHub. Repository: `~/uot/ai-adaptive-firewall` on the lab host. Lab is healthy
 - **What nobody has proven yet is that it detects attacks *in our own lab*.** That needs attack
   traffic run inside the lab, and **the team has to run it.** It is about one afternoon of work, and
   it is the single thing standing between "very good engineering project" and "evaluated system".
+- Unfamiliar names (P6, A4, NV2, ADR, "predeclared", "Phase E")? They are decoded in §14.1; the datasets, the traffic generator, rebuilding the lab and a reading order are in §14.
 - **Please do not turn on blocking (enforce mode) casually.** The model currently in charge flags far
   too many normal users (§8, limitation 1).
 
@@ -449,3 +450,110 @@ have a login on the lab host, read `~/.config/afw/LAB_ACCESS.md`. The kinds of l
 | **mTLS / RELP** | Mutually authenticated TLS / a reliable logging protocol |
 | **Protected address** | An address the system may never block (management, DB, firewall, WAF/APP networks) |
 | **Gate A–G** | The seven acceptance gates (infrastructure, detection, adaptation, enforcement, independent value, security/ops, academic defensibility) |
+
+---
+
+## 14. Appendix: the names you will meet, the data, the generator, rebuilding, and what to read
+
+### 14.1 Decoder for the milestone and experiment names
+
+You will see these codes in file names, commit messages and older documents. They are the project's
+history; you do not need them to run the attack series, but you need them to read the evidence.
+
+| Code | Plain meaning | Result in one line | Detail |
+|---|---|---|---|
+| **M0–M9** (27 Oct) | Ten engineering milestones: audit, evidence correlation, online learning, champion/challenger lifecycle, adaptation experiments, telemetry v2, attack-evaluation harness, GeoIP, dashboard panels, documentation | All built; each found and fixed real defects (a data-poisoning flaw in M4, telemetry stalls in M5) | `PROJECT_REPORT_2026-10-28.md` §3.1 |
+| **P1–P5** (28 Oct) | Five priorities set by the owner: benign generalisation, sensitivity invariance, independent attack evaluation, real online adaptation, hardening | P1 negative (model flagged 13 of 16 new normal users); P3 blocked on attack runs; P5 hardening done | same, §3.2 |
+| **P6 / P7 / A2** | Choose among seven candidate models that stop flagging new normal users without becoming blind. P7 is the same test on clean data after A2 fixed a generator/app mismatch (`/reviews` returned 404) | No candidate eligible: one forgetful user kept tripping the brute-force rule | `P6_GENERALIZATION_AND_SENSITIVITY.md`, `RESULTS.md` §3b–3c |
+| **A3 → A4** | Make login protection per-account and graduated (throttle, then deny, only on the login page). A3's final test failed (shared-household users); A4 fixed it by making "many accounts from one address" a ceiling only | A4 passed on fresh data: 0 of 2,791 legitimate logins refused | `A3_AUTH_CONTROLS.md`, `A4_AUTH_HOUSEHOLD_REVALIDATION.md` |
+| **NV1 → NV2** | Same idea for ordinary non-web network use (DNS, NTP, ping, HTTPS). NV1 exposed a sweep rule firing on normal behaviour; NV2 revalidated on new users | See `RESULTS.md` §3e–3f | `NV1_…`, `NV2_…` |
+| **N1/N2** | The network-novelty detector (port/host scan behaviour) | Fixed ceiling misses slow scans | `PROJECT_SUMMARY_AND_READINESS.md` §4.3 |
+| **ADR-001…044** | 44 architecture decision records: what we chose, why, what we rejected, how it was verified | Read an ADR before changing the thing it covers | `docs/ARCHITECTURE_DECISIONS.md` |
+| **Phase E / "final"** | A test set used exactly once, after the protocol was committed. It cannot be reused | Never tune on a `*-final` dataset | each protocol document |
+| **Predeclared** | The pass/fail criteria were written and committed before the data was looked at | This is how we avoid fooling ourselves | any `engineering/*` protocol |
+| **SYNTHETIC** | Feature-level test cases (e.g. "add 12 failed logins to a normal window"). They contain no traffic and are **never** described as attack detection | Regression checks only | `TEAM_ATTACK_QUICKSTART.md` §0 |
+
+### 14.2 The recorded datasets (on CTRL01, `/var/lib/afw/datasets/`, 40 of them)
+
+A dataset is a folder with three files: `manifest.json` (id, purpose, seed, start/end, which source
+address played which role, counts, and sha256 of the data), `observations.jsonl.gz` (web/WAF/app
+events) and `net_events.jsonl.gz` (network events). The manifest is the ground truth: if a source is
+listed as `benign` or as an attacker with an attack type and time range, that is the label. A dataset
+is only usable for evaluation if its manifest is complete.
+
+| Prefix | What it is |
+|---|---|
+| `real-benign-*`, `real-drift-*` | First real lab recordings: baseline users and the "drift" used in the online-learning experiments (27 Oct) |
+| `demo-*` | Small sets for the demonstration |
+| `p1-*`, `p6-*`, `p7-*` | Benign users for P1/P6/P7: `-train`, `-val` (calibration), `-sel` (selection, once), `-final` (final, once), `-shift` (an unusual population) |
+| `a3-*`, `a4-*` | Login-protection sets; `-hh` = multi-account households, `-shift` = shared addresses |
+| `n2-*`, `nv1-*`, `nv2-*` | Ordinary network-use users (DNS/NTP/ping) |
+
+**All of these are benign.** There is no recorded attack dataset from the lab yet; that is exactly
+what your attack runs will create (§9). The public CIC-IDS2017 evidence is separate and lives under
+`artifacts/evidence/offline-cic-*` (large PCAPs are not in Git; each folder has a `provenance.txt`
+with the file's sha256 and source).
+
+Capture a dataset from CTRL01 with `afw dataset capture <id> --manifest <manifest.json> --purpose
+train|validation|test`. Never reuse an ID, a source address range or a seed that a training set used
+(this once leaked and had to be recaptured; the check is `benign_users_unseen`).
+
+### 14.3 The benign traffic generator (`traffic/benign_personas.py`)
+
+Stdlib-only Python that runs **on a client VM** (USR01) and plays ordinary customers of the rental
+app: browse cars, read reviews, log in, book, occasionally mistype a password and correct it. It is
+**not** an attack tool: only valid routes and valid credentials.
+
+| Setting (environment variable) | Meaning |
+|---|---|
+| `AFW_SOURCES` | Source addresses to use, one simulated user per address (earlier experiments used addresses up to about `.199`; `.200–.249` are reserved for the team) |
+| `AFW_MODE` | `shared` (one loop) or `personas` (one concurrent user per source, each with its own habits) |
+| `AFW_PERSONA_SET` | `v1` (original) or `v2` (eight archetypes: casual, regular, forgetful, power, household, stale-link, slow reader, city searcher) |
+| `AFW_NET` / `AFW_NET_HABITS` | `1` adds DNS/NTP/ping/HTTPS activity; habit light/normal/heavy |
+| `AFW_SEED`, `AFW_DURATION` | Reproducibility seed; seconds to run |
+| `AFW_TARGET_IP`, `AFW_TARGET_NAME`, `AFW_LAB_CA`, `AFW_GATEWAY` | Where it points and which CA it trusts |
+
+You run it before each attack run so there is realistic normal traffic around the attack. The exact
+command is in `TEAM_ATTACK_QUICKSTART.md` §1.
+
+### 14.4 Rebuilding the lab from nothing
+
+You do **not** need this to run the attack series (the lab exists and starts on its own). You need it
+if the host is replaced or a VM is destroyed. Full text: `docs/DEPLOYMENT.md`.
+
+1. **Host:** Ubuntu 24.04, GNS3 2.2.61, QEMU/KVM, about 16 GB RAM, `uv`. Run `lab/host/bootstrap-host.sh`
+   (read it first; it needs sudo and creates the management interface `afw-mgmt0` 10.77.50.254 and the
+   route to `10.77.0.0/16`). Put GNS3 API credentials in `~/.config/afw/gns3.env`.
+2. `uv sync` in the repository.
+3. Bake the base images: `lab/images/bake-golden.sh` (and `bake-desktop.sh` for DESK01).
+4. `uv run afw lab build` (creates the GNS3 nodes and links from `lab/gns3/topology.yaml`; FW01 gets
+   2560 MB RAM, not 1536, or Suricata runs out of memory), then `uv run afw lab start`.
+5. `uv run afw lab provision-fw` (OPNsense zones, rules, API user, certificate, swap file and the boot
+   hook) then `provision-ids` (Suricata) then `deploy` (Ansible: app, WAF, controller, sensors, mTLS
+   certificates) then `layout`.
+6. `uv run afw lab verify` must say **41/41**. Then `scripts/final_verification.sh` runs everything
+   (tests, isolation, live tests).
+7. Secrets (PKI, tokens, passwords) are regenerated into `~/.config/afw/` by `deploy`; they never
+   enter Git. Back them up with `scripts/make_offhost_backup.sh` (encrypted).
+
+Treat steps 3–5 as "ask the owner first": they recreate machines. Use `afw` through `uv run` on the
+host; on CTRL01 the installed binary is `/opt/afw/venv/bin/afw` (see §9 for the alias).
+
+### 14.5 Reading order, if you want the depth
+
+1. This document (you have done it).
+2. `docs/TEAM_ATTACK_QUICKSTART.md`, the short exact attack-run procedure; `docs/engineering/P3_TEAM_ATTACK_RUNBOOK.md` for the reasons.
+3. `docs/ARCHITECTURE.md` and `docs/ARCHITECTURE_DECISIONS.md` (the 44 decisions).
+4. `docs/RESULTS.md` (every measured number, with its limits) and `docs/STATUS_LIMITATIONS_FIXES.md`.
+5. The three corrections, so you do not repeat our mistakes: `engineering/ERRATUM_FORGETTING.md`,
+   `engineering/ERRATUM_STATIC_BASELINE.md`, `engineering/OFFLINE_THIRD_CAPTURE.md`.
+6. `docs/OPERATOR_GUIDE.md`, `docs/SECURITY_AND_LIMITATIONS.md`, `docs/THREAT_MODEL.md`.
+7. `docs/engineering/GATE_STATES.md`, the authoritative state of the seven gates.
+
+### 14.6 What this handoff still does not cover
+
+- **ML internals line by line** (feature definitions, forest parameters): read `src/afw/ml/` and
+  `docs/ADAPTATION_DESIGN.md`.
+- **The OPNsense and Ansible internals**: read `lab/ansible/` and `src/afw/lab/provision_fw.py`.
+- **The host's own login password** is not stored anywhere; ask the owner.
+- **Credentials** are in the private copy of this document, not in Git.
