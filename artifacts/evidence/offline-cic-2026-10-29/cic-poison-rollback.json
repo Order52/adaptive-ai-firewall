@@ -1,0 +1,265 @@
+{
+ "provenance": "CIC-IDS2017 Tuesday(champion)+Friday(new family) offline; behaviour-only; separate gate",
+ "anchor_sha256": "37e34074f8d385bf",
+ "anchor_sizes": {
+  "benign_tue": 1500,
+  "benign_fri": 1500,
+  "known_tue_attack_test": 114,
+  "new_fri_attack_test": 32
+ },
+ "champion": {
+  "benign_fpr": 0.00067,
+  "benign_fp": 2,
+  "benign_n": 3000,
+  "known_recall": 0.9123,
+  "known_k": 104,
+  "known_n": 114,
+  "new_recall": 0.0,
+  "new_k": 0,
+  "new_n": 32
+ },
+ "persistence": {
+  "checkpoint_sha256": "a8577a33b73ffbf2",
+  "bytes": 3720156,
+  "reload_predictions_identical": true,
+  "probe_windows": 600
+ },
+ "challenger_isolation": {
+  "champion_unchanged_after_all_challengers": true
+ },
+ "scenarios": {
+  "clean": {
+   "naive_admit_all": {
+    "admitted": 517,
+    "dropped_by_provenance": 0,
+    "benign_fpr": 0.01867,
+    "benign_fp": 56,
+    "benign_n": 3000,
+    "known_recall": 0.1579,
+    "known_k": 18,
+    "known_n": 114,
+    "new_recall": 0.6562,
+    "new_k": 21,
+    "new_n": 32,
+    "gate": {
+     "passed": false,
+     "why": [
+      "benign_fpr worse than champion by > 0.01",
+      "known-family recall dropped 0.9123->0.1579"
+     ]
+    }
+   },
+   "with_provenance_gate": {
+    "admitted": 517,
+    "dropped_by_provenance": 0,
+    "benign_fpr": 0.01867,
+    "benign_fp": 56,
+    "benign_n": 3000,
+    "known_recall": 0.1579,
+    "known_k": 18,
+    "known_n": 114,
+    "new_recall": 0.6562,
+    "new_k": 21,
+    "new_n": 32,
+    "gate": {
+     "passed": false,
+     "why": [
+      "benign_fpr worse than champion by > 0.01",
+      "known-family recall dropped 0.9123->0.1579"
+     ]
+    }
+   }
+  },
+  "label_flip_30pct": {
+   "naive_admit_all": {
+    "admitted": 517,
+    "dropped_by_provenance": 0,
+    "benign_fpr": 0.012,
+    "benign_fp": 36,
+    "benign_n": 3000,
+    "known_recall": 1.0,
+    "known_k": 114,
+    "known_n": 114,
+    "new_recall": 0.5625,
+    "new_k": 18,
+    "new_n": 32,
+    "gate": {
+     "passed": false,
+     "why": [
+      "benign_fpr worse than champion by > 0.01"
+     ]
+    }
+   },
+   "with_provenance_gate": {
+    "admitted": 517,
+    "dropped_by_provenance": 0,
+    "benign_fpr": 0.012,
+    "benign_fp": 36,
+    "benign_n": 3000,
+    "known_recall": 1.0,
+    "known_k": 114,
+    "known_n": 114,
+    "new_recall": 0.5625,
+    "new_k": 18,
+    "new_n": 32,
+    "gate": {
+     "passed": false,
+     "why": [
+      "benign_fpr worse than champion by > 0.01"
+     ]
+    }
+   }
+  },
+  "label_flip_60pct": {
+   "naive_admit_all": {
+    "admitted": 517,
+    "dropped_by_provenance": 0,
+    "benign_fpr": 0.00533,
+    "benign_fp": 16,
+    "benign_n": 3000,
+    "known_recall": 0.1579,
+    "known_k": 18,
+    "known_n": 114,
+    "new_recall": 0.5312,
+    "new_k": 17,
+    "new_n": 32,
+    "gate": {
+     "passed": false,
+     "why": [
+      "known-family recall dropped 0.9123->0.1579"
+     ]
+    }
+   },
+   "with_provenance_gate": {
+    "admitted": 517,
+    "dropped_by_provenance": 0,
+    "benign_fpr": 0.00533,
+    "benign_fp": 16,
+    "benign_n": 3000,
+    "known_recall": 0.1579,
+    "known_k": 18,
+    "known_n": 114,
+    "new_recall": 0.5312,
+    "new_k": 17,
+    "new_n": 32,
+    "gate": {
+     "passed": false,
+     "why": [
+      "known-family recall dropped 0.9123->0.1579"
+     ]
+    }
+   }
+  },
+  "fp_injection_100": {
+   "naive_admit_all": {
+    "admitted": 617,
+    "dropped_by_provenance": 0,
+    "benign_fpr": 0.724,
+    "benign_fp": 2172,
+    "benign_n": 3000,
+    "known_recall": 0.9912,
+    "known_k": 113,
+    "known_n": 114,
+    "new_recall": 0.9062,
+    "new_k": 29,
+    "new_n": 32,
+    "gate": {
+     "passed": false,
+     "why": [
+      "benign_fpr 0.724 > 0.02",
+      "benign_fpr worse than champion by > 0.01"
+     ]
+    }
+   },
+   "with_provenance_gate": {
+    "admitted": 517,
+    "dropped_by_provenance": 100,
+    "benign_fpr": 0.01867,
+    "benign_fp": 56,
+    "benign_n": 3000,
+    "known_recall": 0.1579,
+    "known_k": 18,
+    "known_n": 114,
+    "new_recall": 0.6562,
+    "new_k": 21,
+    "new_n": 32,
+    "gate": {
+     "passed": false,
+     "why": [
+      "benign_fpr worse than champion by > 0.01",
+      "known-family recall dropped 0.9123->0.1579"
+     ]
+    }
+   }
+  },
+  "fp_injection_400": {
+   "naive_admit_all": {
+    "admitted": 917,
+    "dropped_by_provenance": 0,
+    "benign_fpr": 0.98367,
+    "benign_fp": 2951,
+    "benign_n": 3000,
+    "known_recall": 0.9298,
+    "known_k": 106,
+    "known_n": 114,
+    "new_recall": 1.0,
+    "new_k": 32,
+    "new_n": 32,
+    "gate": {
+     "passed": false,
+     "why": [
+      "benign_fpr 0.98367 > 0.02",
+      "benign_fpr worse than champion by > 0.01"
+     ]
+    }
+   },
+   "with_provenance_gate": {
+    "admitted": 517,
+    "dropped_by_provenance": 400,
+    "benign_fpr": 0.01867,
+    "benign_fp": 56,
+    "benign_n": 3000,
+    "known_recall": 0.1579,
+    "known_k": 18,
+    "known_n": 114,
+    "new_recall": 0.6562,
+    "new_k": 21,
+    "new_n": 32,
+    "gate": {
+     "passed": false,
+     "why": [
+      "benign_fpr worse than champion by > 0.01",
+      "known-family recall dropped 0.9123->0.1579"
+     ]
+    }
+   }
+  }
+ },
+ "rollback": {
+  "poisoned_challenger": {
+   "benign_fpr": 1.0,
+   "benign_fp": 3000,
+   "benign_n": 3000,
+   "known_recall": 1.0,
+   "known_k": 114,
+   "known_n": 114,
+   "new_recall": 1.0,
+   "new_k": 32,
+   "new_n": 32
+  },
+  "after_rollback": {
+   "benign_fpr": 0.00067,
+   "benign_fp": 2,
+   "benign_n": 3000,
+   "known_recall": 0.9123,
+   "known_k": 104,
+   "known_n": 114,
+   "new_recall": 0.0,
+   "new_k": 0,
+   "new_n": 32
+  },
+  "restored_equals_original_champion": true,
+  "checkpoint_sha256_verified": true
+ },
+ "gate_criteria": "benign_fpr<=0.02 and not worse than champion by >0.01; known-family recall drop <=0.05"
+}

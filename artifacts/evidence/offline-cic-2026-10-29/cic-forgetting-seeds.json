@@ -1,0 +1,310 @@
+{
+ "provenance": "CIC Tuesday(known)+Friday(new) offline; behaviour-only; held-out anchors; 10 seeds",
+ "anchor": {
+  "benign": 3000,
+  "known_heldout_attack": 114,
+  "new_heldout_attack": 32
+ },
+ "seeds": 10,
+ "memory_bytes": {
+  "incremental_arf_bytes": 3033418,
+  "batch_rf_bytes": 438312
+ },
+ "summary": {
+  "champion": {
+   "benign_fpr": {
+    "mean": 0.0002,
+    "sd": 0.0002,
+    "min": 0.0,
+    "max": 0.0007
+   },
+   "known_recall_heldout": {
+    "mean": 0.9254,
+    "sd": 0.0349,
+    "min": 0.886,
+    "max": 1.0
+   },
+   "new_recall_heldout": {
+    "mean": 0.0094,
+    "sd": 0.0296,
+    "min": 0.0,
+    "max": 0.0938
+   }
+  },
+  "incremental_no_rehearsal": {
+   "benign_fpr": {
+    "mean": 0.0075,
+    "sd": 0.0023,
+    "min": 0.005,
+    "max": 0.0127
+   },
+   "known_recall_heldout": {
+    "mean": 0.7763,
+    "sd": 0.357,
+    "min": 0.0789,
+    "max": 1.0
+   },
+   "new_recall_heldout": {
+    "mean": 0.6594,
+    "sd": 0.1447,
+    "min": 0.4375,
+    "max": 0.875
+   }
+  },
+  "incremental_with_rehearsal": {
+   "benign_fpr": {
+    "mean": 0.0084,
+    "sd": 0.0037,
+    "min": 0.0053,
+    "max": 0.0157
+   },
+   "known_recall_heldout": {
+    "mean": 0.9991,
+    "sd": 0.0028,
+    "min": 0.9912,
+    "max": 1.0
+   },
+   "new_recall_heldout": {
+    "mean": 0.6781,
+    "sd": 0.1318,
+    "min": 0.4375,
+    "max": 0.8438
+   }
+  },
+  "periodic_batch_rf": {
+   "benign_fpr": {
+    "mean": 0.0,
+    "sd": 0.0,
+    "min": 0.0,
+    "max": 0.0
+   },
+   "known_recall_heldout": {
+    "mean": 0.9167,
+    "sd": 0.0062,
+    "min": 0.9035,
+    "max": 0.9211
+   },
+   "new_recall_heldout": {
+    "mean": 0.45,
+    "sd": 0.047,
+    "min": 0.4062,
+    "max": 0.5312
+   }
+  }
+ },
+ "train_seconds_mean": {
+  "incremental_no_rehearsal": 0.472,
+  "incremental_with_rehearsal": 1.791,
+  "periodic_batch_rf": 0.286
+ },
+ "per_seed": {
+  "champion": [
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9210526315789473,
+    "new_recall_heldout": 0.0
+   },
+   {
+    "benign_fpr": 0.0003333333333333333,
+    "known_recall_heldout": 0.9210526315789473,
+    "new_recall_heldout": 0.0
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9210526315789473,
+    "new_recall_heldout": 0.09375
+   },
+   {
+    "benign_fpr": 0.0006666666666666666,
+    "known_recall_heldout": 0.8859649122807017,
+    "new_recall_heldout": 0.0
+   },
+   {
+    "benign_fpr": 0.0003333333333333333,
+    "known_recall_heldout": 0.9210526315789473,
+    "new_recall_heldout": 0.0
+   },
+   {
+    "benign_fpr": 0.0003333333333333333,
+    "known_recall_heldout": 0.9035087719298246,
+    "new_recall_heldout": 0.0
+   },
+   {
+    "benign_fpr": 0.0003333333333333333,
+    "known_recall_heldout": 0.9035087719298246,
+    "new_recall_heldout": 0.0
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9736842105263158,
+    "new_recall_heldout": 0.0
+   },
+   {
+    "benign_fpr": 0.0003333333333333333,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.0
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9035087719298246,
+    "new_recall_heldout": 0.0
+   }
+  ],
+  "incremental_no_rehearsal": [
+   {
+    "benign_fpr": 0.012666666666666666,
+    "known_recall_heldout": 0.9912280701754386,
+    "new_recall_heldout": 0.4375
+   },
+   {
+    "benign_fpr": 0.005,
+    "known_recall_heldout": 0.14912280701754385,
+    "new_recall_heldout": 0.8125
+   },
+   {
+    "benign_fpr": 0.007333333333333333,
+    "known_recall_heldout": 0.07894736842105263,
+    "new_recall_heldout": 0.8125
+   },
+   {
+    "benign_fpr": 0.005666666666666667,
+    "known_recall_heldout": 0.7719298245614035,
+    "new_recall_heldout": 0.875
+   },
+   {
+    "benign_fpr": 0.008333333333333333,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.75
+   },
+   {
+    "benign_fpr": 0.008,
+    "known_recall_heldout": 0.9824561403508771,
+    "new_recall_heldout": 0.5625
+   },
+   {
+    "benign_fpr": 0.005666666666666667,
+    "known_recall_heldout": 0.9824561403508771,
+    "new_recall_heldout": 0.53125
+   },
+   {
+    "benign_fpr": 0.01,
+    "known_recall_heldout": 0.9473684210526315,
+    "new_recall_heldout": 0.5625
+   },
+   {
+    "benign_fpr": 0.006333333333333333,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.625
+   },
+   {
+    "benign_fpr": 0.006333333333333333,
+    "known_recall_heldout": 0.8596491228070176,
+    "new_recall_heldout": 0.625
+   }
+  ],
+  "incremental_with_rehearsal": [
+   {
+    "benign_fpr": 0.006333333333333333,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.84375
+   },
+   {
+    "benign_fpr": 0.006,
+    "known_recall_heldout": 0.9912280701754386,
+    "new_recall_heldout": 0.75
+   },
+   {
+    "benign_fpr": 0.015666666666666666,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.65625
+   },
+   {
+    "benign_fpr": 0.007666666666666666,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.8125
+   },
+   {
+    "benign_fpr": 0.005333333333333333,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.78125
+   },
+   {
+    "benign_fpr": 0.007,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.53125
+   },
+   {
+    "benign_fpr": 0.009333333333333334,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.625
+   },
+   {
+    "benign_fpr": 0.006333333333333333,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.75
+   },
+   {
+    "benign_fpr": 0.006,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.4375
+   },
+   {
+    "benign_fpr": 0.014666666666666666,
+    "known_recall_heldout": 1.0,
+    "new_recall_heldout": 0.59375
+   }
+  ],
+  "periodic_batch_rf": [
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9122807017543859,
+    "new_recall_heldout": 0.40625
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9210526315789473,
+    "new_recall_heldout": 0.46875
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9210526315789473,
+    "new_recall_heldout": 0.40625
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9035087719298246,
+    "new_recall_heldout": 0.4375
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9210526315789473,
+    "new_recall_heldout": 0.4375
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9122807017543859,
+    "new_recall_heldout": 0.5
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9210526315789473,
+    "new_recall_heldout": 0.5
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9210526315789473,
+    "new_recall_heldout": 0.40625
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9122807017543859,
+    "new_recall_heldout": 0.40625
+   },
+   {
+    "benign_fpr": 0.0,
+    "known_recall_heldout": 0.9210526315789473,
+    "new_recall_heldout": 0.53125
+   }
+  ]
+ }
+}
