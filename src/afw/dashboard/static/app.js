@@ -453,6 +453,69 @@ function confirmDialog({ title, body, confirmLabel, danger }) {
   });
 }
 
+// ------------------------------------------------------------ connect an AI agent (MCP)
+// Builds a copy-paste MCP client config. It never embeds a token value: the
+// generated command points at a token *file path* on the lab host, which the
+// MCP server (started over ssh) reads there -- no secret ever appears on this page.
+// Whatever client connects still goes through the same role-checked, validated,
+// audited API as this dashboard; nothing here is a separate or wider channel.
+const MCP_ROLE_FILES = {
+  operator: { file: "mcp.token", note: "Full firewall actions: block, WAF deny, rate-limit, approve/reject/revoke. Cannot change mode or promote models. Recommended for the demo." },
+  admin: { file: "admin.token", note: "Everything operator can do, plus switching mode (monitor/assisted/auto). The current model flags most new legitimate users in auto mode -- only pick this if you intend to demonstrate that, and never leave it in auto mode unattended." },
+};
+function mcpSnippet(role, target) {
+  const home = "/home/" + (target.split("@")[0] || "gns3");
+  const tokenFile = `${home}/.config/afw/api/${MCP_ROLE_FILES[role].file}`;
+  const remote = `cd ~/uot/ai-adaptive-firewall && AFW_API_URL=https://10.77.50.10:8080 AFW_API_CA=${home}/.config/afw/pki/lab-ca.pem AFW_MCP_TOKEN_FILE=${tokenFile} uv run afw-mcp`;
+  const cli = `claude mcp add afw -- ssh ${target} ${JSON.stringify(remote)}`;
+  const json = JSON.stringify({ mcpServers: { afw: { command: "ssh", args: [target, remote] } } }, null, 2);
+  return { cli, json };
+}
+function openMcpConnect() {
+  const ov = document.createElement("div");
+  ov.className = "overlay";
+  ov.innerHTML = `<div class="dialog mcp-dialog" role="dialog" aria-modal="true" aria-label="Connect an AI agent">
+    <h3>Connect an AI agent (MCP)</h3>
+    <div class="dlg-body">
+      <p>Any MCP-capable AI assistant (Claude Code, Claude Desktop, others) can control this firewall through the same MCP server this project ships -- validated and audited exactly like the dashboard's own actions, with protected/management addresses always refused.</p>
+      <p class="hint">Nothing here reveals a token: the command below points at a token <em>file</em> on the lab host, which is read there when the SSH-launched server starts.</p>
+      <label>Role<br><select id="mcp-role"><option value="operator">Operator -- full firewall control (recommended)</option><option value="admin">Admin -- also mode switching</option></select></label>
+      <label>SSH target<br><input id="mcp-ssh" type="text" value="gns3@100.103.204.8" spellcheck="false"></label>
+      <p class="hint" id="mcp-warn"></p>
+      <label>Claude Code (one line)</label>
+      <pre class="mcp-code" id="mcp-cli"></pre>
+      <button type="button" class="seg" data-copy="mcp-cli">Copy command</button>
+      <label>claude_desktop_config.json / other MCP clients</label>
+      <pre class="mcp-code" id="mcp-json"></pre>
+      <button type="button" class="seg" data-copy="mcp-json">Copy JSON</button>
+    </div>
+    <div class="dlg-actions"><button type="button" data-no>Close</button></div>
+  </div>`;
+  const rebuild = () => {
+    const role = ov.querySelector("#mcp-role").value;
+    const target = ov.querySelector("#mcp-ssh").value.trim() || "gns3@100.103.204.8";
+    const { cli, json } = mcpSnippet(role, target);
+    ov.querySelector("#mcp-cli").textContent = cli;
+    ov.querySelector("#mcp-json").textContent = json;
+    ov.querySelector("#mcp-warn").textContent = role === "admin" ? MCP_ROLE_FILES.admin.note : MCP_ROLE_FILES.operator.note;
+    ov.querySelector("#mcp-warn").classList.toggle("warn-text", role === "admin");
+  };
+  ov.querySelector("#mcp-role").addEventListener("change", rebuild);
+  ov.querySelector("#mcp-ssh").addEventListener("input", rebuild);
+  ov.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(ov.querySelector("#" + b.dataset.copy).textContent); toast("Copied"); }
+    catch (_) { toast("Could not copy -- select and copy manually", true); }
+  }));
+  const close = () => { ov.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  ov.querySelector("[data-no]").addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(ov);
+  rebuild();
+}
+$("#mcp-btn").addEventListener("click", openMcpConnect);
+
 // ------------------------------------------------------------ role and controls
 let ROLE = "none";
 let statusReady = false, statusTick = 0;

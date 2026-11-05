@@ -395,6 +395,14 @@ monitor mode only the AI's own decisions are held back: manual actions are appli
 read-back and expire on their own. Management, database and firewall addresses are always
 refused. Use the demo address 10.77.20.198 for tests, never a team or attack-run address.
 
+**Connect an AI agent live (added 2026-11-05).** Click **Connect AI agent** in the dashboard
+header for a copy-paste MCP setup: pick a role (operator -- full firewall actions,
+recommended; admin -- also mode switching) and it generates a `claude mcp add` line /
+`claude_desktop_config.json` entry that spawns the MCP server over SSH on the lab host. The
+command only ever references a token *file path* on the host -- no token value is shown in the
+browser. Whatever agent connects goes through the same validated, role-checked, audited API as
+the dashboard itself; it is not a separate or looser channel.
+
 **Known gotchas**
 - **Host rebooted?** The lab usually restarts itself; if not, `uv run afw lab start`.
 - **IDS heartbeat goes stale** (dashboard → Telemetry health, or `/api/overview` → `telemetry.sensors.ids`):
