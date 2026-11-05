@@ -360,6 +360,14 @@ async function refresh() {
   } catch (e) {
     $("#tiles").innerHTML = `<div class="tile"><div class="label">Not connected</div><div class="value">–</div><div class="note">${esc(e.message)} — set an API token</div></div>`;
     $("#token-form").hidden = false;
+    const el = $("#status");
+    const denied = /^401/.test(e.message);
+    el.className = "status bad";
+    el.querySelector(".status-title").textContent = denied ? "Enter your API token to connect" : "Cannot reach the controller";
+    el.querySelector(".status-sub").textContent = denied
+      ? (TOKEN ? "That token was not accepted. Paste a valid viewer, operator or admin token in the box above and press Connect." : "The connection works; the page just needs a token. Paste a viewer token in the box above and press Connect.")
+      : "Check that the SSH tunnel is still running, then reload.";
+    $("#status-reasons").innerHTML = `<li>${esc(e.message)}</li>`;
     return;
   }
   renderTiles(overview);
