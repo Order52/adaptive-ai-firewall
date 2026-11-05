@@ -128,6 +128,24 @@ goes `pending → enforced` only after FW01's alias is read back and a probe fro
 address fails; *"unblock 10.77.20.198"* → removed and verified. Do this only on a demo
 address, never on a P6/P7 or team address.
 
+## 6b. Real country blocking, watched on a real desktop (2 min, added 2026-11-05)
+
+USR01 carries a live XFCE/Firefox desktop (not simulated -- `TEAM_HANDOFF.md` §15 has the full
+script and the two real-GeoIP limitations found while proving this). Open it with a VNC client
+at `127.0.0.1:15901` (§11.1's tunnel now forwards it).
+
+* Open Firefox, load `https://1.1.1.1/` -- works.
+* MCP *"block AU outbound for real"* (`country_policy`, `country_code=AU`,
+  `direction=outbound`, `simulated=false`) -- the dashboard's GeoIP card, or
+  `active_policies`, shows it reach `enforced` after FW01's ~30 s pull and its own
+  outbound egress probe.
+* Reload `1.1.1.1` in Firefox -- "Firefox can't connect to the server". `8.8.8.8` (the
+  control address) still loads.
+* Revoke it -- after the next pull, `1.1.1.1` loads again.
+* Say once: the **US itself is too large** for this mechanism (155,176 networks vs the
+  40,000-per-direction cap, ADR-036) -- the validator refuses it cleanly rather than doing
+  something unreliable. That refusal is worth showing too.
+
 ## 7. The adaptive lifecycle, honestly (3 min)
 
 * Dashboard "Controlled adaptation": real **drift reports** (new endpoints, feature

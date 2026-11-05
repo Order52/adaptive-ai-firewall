@@ -34,3 +34,7 @@ all:
       vars:
         nft_allow:
           - {proto: tcp, port: 9180, src: [10.77.50.10]}
+    # Optional GUI on top of USR01 (not ATK01): a live country-block showcase.
+    # Additive only -- usr01 stays in `probes` above and keeps `common` + `probe`.
+    probe_desktop:
+      hosts: {usr01: {}}

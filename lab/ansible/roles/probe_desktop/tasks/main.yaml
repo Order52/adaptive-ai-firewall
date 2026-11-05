@@ -1,0 +1,103 @@
+# Optional live GUI on USR01 (USERS zone): lets an operator open a real browser on
+# the one client machine real (non-simulated) country blocking actually covers
+# (ADR-036), watch a site fail when its country is blocked outbound, then watch it
+# work again on revoke. Viewed through GNS3's own VNC console (topology.yaml sets
+# `console: vnc` for USR01; no VNC server is installed in the guest -- QEMU exposes
+# the virtual display directly, same mechanism as DESK01's baked image).
+#
+# Deliberately NOT the `desktop` role/group: that role's tasks assume DESK01's
+# baked-image launcher files, which don't exist here, and group `desktop` is
+# excluded from `common` in site.yaml -- USR01 must keep `common` (host firewall,
+# CA trust, chrony) and `probe` (the benign-traffic/probe agent) exactly as is.
+- name: XFCE + lightdm (minimal graphical stack, no desktop-image dependency)
+  ansible.builtin.apt:
+    name:
+      - xserver-xorg
+      - xinit
+      - xfwm4
+      - xfce4-session
+      - xfce4-panel
+      - xfce4-terminal
+      - xfdesktop4
+      - xfce4-settings
+      - lightdm
+      - lightdm-gtk-greeter
+      - dbus-x11
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Keyrings directory
+  ansible.builtin.file: {path: /etc/apt/keyrings, state: directory, mode: "0755"}
+
+- name: Mozilla apt keyring
+  ansible.builtin.get_url:
+    url: https://packages.mozilla.org/apt/repo-signing-key.gpg
+    dest: /etc/apt/keyrings/packages.mozilla.org.asc
+    mode: "0644"
+  register: _moz_key
+
+- name: Mozilla apt repo (deb package, not the snap -- so the lab CA policy below applies)
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/mozilla.list
+    content: "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main\n"
+    mode: "0644"
+
+- name: Pin Mozilla's Firefox over any snap/distro package
+  ansible.builtin.copy:
+    dest: /etc/apt/preferences.d/mozilla
+    content: "Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n"
+    mode: "0644"
+
+- name: Install Firefox
+  ansible.builtin.apt:
+    name: firefox
+    state: present
+    update_cache: true
+  when: _moz_key is succeeded
+
+- name: Firefox policy directory
+  ansible.builtin.file: {path: /etc/firefox/policies, state: directory, mode: "0755"}
+- name: Lab CA for Firefox (its own certificate store, separate from the system one)
+  ansible.builtin.copy: {src: "{{ afw_home }}/pki/lab-ca.pem", dest: /etc/firefox/policies/afw-lab-ca.pem, mode: "0644"}
+- name: Firefox enterprise policy installing the lab CA
+  ansible.builtin.copy:
+    dest: /etc/firefox/policies/policies.json
+    mode: "0644"
+    content: '{"policies": {"Certificates": {"Install": ["/etc/firefox/policies/afw-lab-ca.pem"]}}}'
+
+- name: lightdm autologin as the existing afw user, into an XFCE session
+  ansible.builtin.copy:
+    dest: /etc/lightdm/lightdm.conf.d/10-afw-autologin.conf
+    mode: "0644"
+    content: |
+      [Seat:*]
+      autologin-user=afw
+      autologin-user-timeout=0
+      user-session=xfce
+
+- name: Desktop directory
+  ansible.builtin.file: {path: /home/afw/Desktop, state: directory, owner: afw, group: afw, mode: "0755"}
+
+- name: Firefox shortcut (operator picks the actual test site live -- a country's
+    traffic mix changes, a hardcoded one would not age well)
+  ansible.builtin.copy:
+    dest: /home/afw/Desktop/Firefox.desktop
+    mode: "0755"
+    content: |
+      [Desktop Entry]
+      Version=1.0
+      Type=Application
+      Name=Firefox
+      Exec=firefox
+      Icon=firefox
+      Terminal=false
+  notify: own the desktop icon
+
+- name: Boot to a graphical session
+  ansible.builtin.command: systemctl set-default graphical.target
+  changed_when: true
+- name: Enable lightdm
+  ansible.builtin.systemd:
+    name: lightdm
+    enabled: true

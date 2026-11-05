@@ -442,6 +442,7 @@ ssh -tt \
     -L 18443:10.77.50.1:443 \
     -L 13080:127.0.0.1:3080 \
     -L 18444:127.0.0.1:18444 \
+    -L 15901:127.0.0.1:5901 \
     gns3@100.103.204.8 \
     'ssh -F ~/.config/afw/ssh_config -N -L 127.0.0.1:18444:10.77.30.10:443 usr01'
 ```
@@ -454,6 +455,7 @@ It asks for the host login once, then everything below works. **Ctrl+C closes al
 | **FW01 OPNsense** | https://localhost:18443/ | The firewall: rules, aliases, Suricata alerts | user `root` + the FW01 password |
 | **GNS3 web interface** | http://localhost:13080/ | The lab canvas, start/stop VMs, consoles | the GNS3 user and password |
 | **Rental web app** (the protected site) | https://localhost:18444/ | The site as a customer sees it (reached through USR01) | `user1`…`user50`, password `pw-1`…`pw-50` |
+| **USR01 desktop** (country-block showcase, §15) | a VNC client at `127.0.0.1:15901`, not a browser | A real XFCE/Firefox desktop on the one machine real country blocking covers | auto-login as `afw` |
 
 Accept the browser's certificate warning (the lab has its own certificate authority).
 
@@ -468,6 +470,8 @@ Accept the browser's certificate warning (the lab has its own certificate author
   has passwordless `sudo`.
 - Not web pages, so not above: the FW01/VM consoles (telnet ports in section 11) and the database
   (port 5432, only from DB01/APP01).
+- The USR01 desktop needs an actual VNC client, not a browser tab (macOS: Finder → Go → Connect to
+  Server → `vnc://127.0.0.1:15901`; Linux/Windows: TigerVNC, RealVNC, etc.). See §15.
 
 ---
 
@@ -614,3 +618,45 @@ host; on CTRL01 the installed binary is `/opt/afw/venv/bin/afw` (see §9 for the
 - **The OPNsense and Ansible internals**: read `lab/ansible/` and `src/afw/lab/provision_fw.py`.
 - **The host's own login password** is not stored anywhere; ask the owner.
 - **Credentials** are in the private copy of this document, not in Git.
+
+## 15. Live demo: real country blocking, watched in a browser (added 2026-11-05)
+
+USR01 now carries a real desktop (XFCE, Firefox, auto-login as `afw`; `lab/ansible/roles/probe_desktop`,
+2048 MB / 2 vCPU, `lab/gns3/topology.yaml` `console: vnc`) on top of its existing probe-agent role, so
+the project's real (non-simulated) country blocking has somewhere to be *watched*, not just measured
+from the API. It is on **USR01, not DESK01**, because real `geo_block` enforcement only covers the
+client zones (ADR-036: "servers and MGMT deliberately not covered") -- DESK01 sits on MGMT and is never
+affected by one.
+
+**Reach it:** §11.1's one command now forwards `127.0.0.1:15901` to USR01's GNS3 VNC console. Open it
+with a VNC client (not a browser). It auto-logs in; double-click the Firefox icon.
+
+**The one real limitation found running this: the US itself cannot be used.** DB-IP lists 155,176
+networks for the US outbound, and ADR-036 caps a real country table at 40,000 networks per direction
+(keeps FW01's pf table reliable) -- the validator refuses it cleanly:
+`"US has 155176 networks, above the per-direction limit 40000"`. That is the system correctly declining
+to do something unreliable, and is worth showing on its own. **Australia is the proven stand-in**
+(12,265 networks, already the live-tested pairing in ADR-036's own evidence): `1.1.1.1` (Cloudflare) is
+DB-IP-attributed to AU; `8.8.8.8` (Google) is not, so it is the control address.
+
+**A second, separate real-GeoIP limitation found live:** a country's own well-known sites are not
+necessarily a good test target. `www.abc.net.au` resolves to an Akamai CDN edge IP
+(`e3161.b.akamaiedge.net`), which DB-IP geolocates to Akamai's infrastructure, not to Australia -- it
+stayed reachable through the block. GeoIP attributes an *address block's registration*, not a page's
+apparent origin or top-level domain. Use `1.1.1.1`/`8.8.8.8`, or check first with the `geo_lookup` MCP
+tool / `/api/geo/lookup/<ip>`.
+
+**Script, verified live end to end on 2026-11-05** (MCP `country_policy`, `AU`, `outbound`,
+`simulated=false`; FW01 pulls published tables on its own ~30 s cycle, so allow a short wait each way):
+
+1. Before: `curl https://1.1.1.1/` and `https://8.8.8.8/` both succeed from USR01.
+2. Apply the policy. It reaches `enforced` only after FW01's read-back **and** an outbound egress
+   probe independently confirm it: `"traffic_outbound": "blocked: cloudflare-dns; control
+   google-dns connected"`.
+3. During: `1.1.1.1` fails instantly (TCP refused); `8.8.8.8` still succeeds. In Firefox, 1.1.1.1 shows
+   "Firefox can't connect to the server" while other sites keep working.
+4. Revoke (`unblock` / the dashboard's Revoke button). After FW01's next pull, both addresses work
+   again -- fully reversible, nothing left active (`active_policies` empty, `geo_outbound: []`).
+
+Keep the duration short (the live test above used 300 s) and always revoke when done -- don't leave a
+country blocked for the team.

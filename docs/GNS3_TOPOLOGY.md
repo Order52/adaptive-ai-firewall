@@ -56,7 +56,7 @@ plus the 2 connectors); `lab/gns3/topology.yaml` and `afw lab status` are author
 | **WAF01** | qemu (guest) | OWASP CRS ModSecurity (nginx, host networking) + policy helper | 10.77.30.10 | DMZ |
 | **APP01** | qemu (guest) | Protected rental web app (uses the DB tier) | 10.77.40.10 | APP |
 | **DB01** | qemu (guest) | PostgreSQL 16 (container) — persistent business data | 10.77.60.10 | DB |
-| **USR01** | qemu (guest) | Legitimate user client + probe agent | 10.77.20.10 | USERS |
+| **USR01** | qemu (guest) | Legitimate user client + probe agent + live XFCE/Firefox desktop (`console: vnc`, added 2026-11-05) for a real-country-block showcase -- USERS is the one client zone real (non-simulated) `geo_block` enforcement covers (ADR-036) | 10.77.20.10 | USERS |
 | **ATK01** | qemu (guest) | Attack-scenario client + probe agent | 10.77.10.10 | ATTACK |
 | SW-MGMT / SW-ATTACK / SW-USERS / SW-DMZ / SW-APP / SW-DB | ethernet_switch | Per-zone L2 segments | — | infra |
 | HOST-MGMT | cloud | Host TAP `afw-mgmt0` (10.77.50.254) into the MGMT segment | — | infra |
