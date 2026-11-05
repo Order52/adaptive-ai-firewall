@@ -253,6 +253,49 @@ def block_source(source_ip: IPv4Address, duration_s: int = 300, reason: str = ""
     )
 
 
+RestrictAction = Literal["firewall_block", "waf_deny", "rate_limit_strict", "rate_limit_moderate"]
+
+
+def _restriction_body(
+    source_ip: IPv4Address, action: RestrictAction, duration_s: int, reason: str
+) -> dict[str, Any]:
+    kind, profile = {
+        "firewall_block": ("source_block", None),
+        "waf_deny": ("waf_deny", None),
+        "rate_limit_strict": ("rate_limit", "strict"),
+        "rate_limit_moderate": ("rate_limit", "moderate"),
+    }[action]
+    body = _source_intent(kind, source_ip, duration_s, reason)
+    if profile:
+        body["rate_profile"] = profile
+    return body
+
+
+@server.tool()
+def simulate_restriction(
+    source_ip: IPv4Address, action: RestrictAction = "firewall_block", duration_s: int = 300
+) -> dict[str, Any]:
+    """Dry-run any source restriction: firewall_block (FW01 alias), waf_deny (WAF),
+    rate_limit_strict or rate_limit_moderate (WAF). Reports validity and the reasons."""
+    return _post(
+        "/api/policies/simulate",
+        _restriction_body(source_ip, action, duration_s, "mcp simulate"),
+    )
+
+
+@server.tool()
+def restrict_source(
+    source_ip: IPv4Address,
+    action: RestrictAction = "firewall_block",
+    duration_s: int = 300,
+    reason: str = "",
+) -> dict[str, Any]:
+    """Restrict one source: firewall_block (FW01), waf_deny (WAF), or a WAF rate limit
+    (strict or moderate). Validated, expiring, verified by read-back; protected and
+    management addresses are always refused. Applied immediately, also in monitor mode."""
+    return _post("/api/policies", _restriction_body(source_ip, action, duration_s, reason or "mcp"))
+
+
 @server.tool()
 def unblock(policy_id: str, reason: str = "operator unblock") -> dict[str, Any]:
     """Revoke a policy; rollback is confirmed by device read-back."""

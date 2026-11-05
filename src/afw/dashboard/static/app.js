@@ -396,7 +396,7 @@ async function renderFirewall() {
     ${box("WAF01", `${dot(waf.reachable)}${waf.reachable ? "reachable" : "UNREACHABLE"}`, `rules revision ${esc(waf.revision ?? "–")}`)}
     ${box("WAF denies / rate limits", `${n(waf.waf_denied_sources)} / ${n(waf.rate_limited)}`, `login controls: ${n(waf.login_controls)}`)}
     ${box("Country blocks", `${gi.length} in · ${go.length} out`, gi.length + go.length ? esc([...gi, ...go].join(", ")) : "none active")}
-    ${box("Enforcement mode", esc(mode), mode === "monitor" ? "observe and propose only; nothing is applied" : "ENFORCING: decisions are applied")}
+    ${box("Enforcement mode", esc(mode), mode === "monitor" ? "AI decisions are recorded, not applied; manual actions are applied" : "ENFORCING: decisions are applied")}
   </div>
   <h3>Latest enforcement decisions</h3>
   ${rows ? `<div class="table-wrap short"><table><thead><tr><th>Time</th><th>Kind</th><th>Target</th><th>State</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="empty">No enforcement decisions yet.</div>`}`;
@@ -418,6 +418,7 @@ function buildNav() {
   showTab(t || "overview");
 }
 buildNav();
+window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 
 // ------------------------------------------------------------ toast + confirm dialog
 function toast(msg, bad) {
@@ -473,7 +474,7 @@ async function renderControls() {
   el.innerHTML = `<div class="grid2">
     <div><h3>Operating mode</h3>
       <div class="segs">${modeBtns}</div>
-      <p class="hint"><b>monitor</b>: observe and propose; nothing is applied. <b>assisted</b>: every action waits for your approval. <b>auto</b>: low-risk actions apply by themselves within the safety limits.${ROLE !== "admin" ? " Changing the mode needs an admin token." : ""}</p></div>
+      <p class="hint"><b>monitor</b>: the AI only records proposals; your own manual actions are still applied. <b>assisted</b>: every action waits for your approval. <b>auto</b>: low-risk actions apply by themselves within the safety limits.${ROLE !== "admin" ? " Changing the mode needs an admin token." : ""}</p></div>
     <div><h3>Restrict a source</h3>
       <form id="block-form" class="inline">
         <select id="blk-kind" aria-label="Action"><option value="source_block">Block at firewall</option><option value="waf_deny">Deny at WAF</option><option value="rate_limit:strict">Rate-limit (strict)</option><option value="rate_limit:moderate">Rate-limit (moderate)</option></select>
@@ -492,7 +493,7 @@ async function changeMode(m) {
   if (!overview || m === overview.mode) return;
   const warn = m === "auto"
     ? `<p><b>Automatic mode will block and rate-limit traffic without asking you.</b></p><p>The current model was measured to flag most <em>new legitimate users</em> (window false-positive rate about 0.84 on unseen users). Enable this only if you accept that real users may be restricted.</p>`
-    : m === "assisted" ? `<p>Every restriction will wait for your approval before it touches the firewall.</p>` : `<p>The controller will observe and propose only; nothing will be applied.</p>`;
+    : m === "assisted" ? `<p>Every restriction will wait for your approval before it touches the firewall.</p>` : `<p>The AI will only record proposals. Your own manual actions are still applied.</p>`;
   if (!(await confirmDialog({ title: `Switch to ${m} mode?`, body: warn, confirmLabel: `Switch to ${m}`, danger: m === "auto" }))) return;
   await act("/api/mode", { mode: m }, () => `Mode is now ${m}`);
 }
@@ -508,7 +509,7 @@ async function blockFlow(e) {
   if (!sim.valid) { toast("Refused: " + sim.errors.join("; "), true); return; }
   const ok = await confirmDialog({
     title: `${what}: ${ip} for ${dur / 60} min?`,
-    body: `<p>The validator accepts this action.${overview && overview.mode === "monitor" ? " <b>The controller is in monitor mode, so it will be recorded but not applied.</b>" : ""}</p>${(sim.notes || []).map((n) => `<p class="hint">${esc(n)}</p>`).join("")}`,
+    body: `<p>The validator accepts this action. <b>It will be applied now</b> and removed automatically after ${dur / 60} min; manual actions are enforced even in monitor mode (monitor mode only holds back the AI's own decisions).</p>${(sim.notes || []).map((n) => `<p class="hint">${esc(n)}</p>`).join("")}`,
     confirmLabel: "Apply", danger: true,
   });
   if (ok) await act("/api/policies", body, (r) => `Policy ${r.state}`);
@@ -536,7 +537,10 @@ function computeStatus(o, h, dets) {
   if (!be("waf").reachable) bad.push("WAF is not reachable"); else good.push("WAF reachable");
   if (h.model_error) bad.push("Model error: " + h.model_error);
   const stale = Object.entries((o.telemetry || {}).sensors || {}).filter(([, v]) => v.stale).map(([k]) => k);
-  if (stale.length) bad.push(`Sensor${stale.length > 1 ? "s" : ""} silent: ${stale.join(", ")}`); else good.push("all sensors reporting");
+  if (stale.length) bad.push(`Sensor${stale.length > 1 ? "s" : ""} silent: ${stale.join(", ")}`); else {
+    const waiting = Object.entries((o.telemetry || {}).sensors || {}).filter(([, v]) => v.heartbeat_age_s === null).map(([k]) => k);
+    if (waiting.length) warn.push(`Waiting for first heartbeat: ${waiting.join(", ")}`); else good.push("all sensors reporting");
+  }
   if (o.telemetry_degraded && !stale.length) warn.push("Telemetry degraded");
   const hot = (o.live_sources || []).filter((s) => s.risk >= 45);
   hot.forEach((s) => warn.push(`Suspicious source ${s.source_ip || s.source} (risk ${fmt(s.risk, 0)})`));
@@ -544,7 +548,7 @@ function computeStatus(o, h, dets) {
   if (recent.length) warn.push(`${recent.length} anomalous window${recent.length > 1 ? "s" : ""} in the last 15 min`);
   if (o.pending_approval) warn.push(`${o.pending_approval} decision${o.pending_approval > 1 ? "s" : ""} waiting for your approval`);
   if (o.active_policies.length) good.push(`${o.active_policies.length} active restriction${o.active_policies.length > 1 ? "s" : ""}`);
-  good.push(o.mode === "monitor" ? "monitor mode: nothing is being enforced" : `${o.mode} mode`);
+  good.push(o.mode === "monitor" ? "monitor mode: the AI is not enforcing anything" : `${o.mode} mode`);
   const level = bad.length ? "bad" : hot.length ? "alert" : warn.length ? "warn" : "ok";
   const title = { bad: "System needs attention", alert: "Possible malicious activity", warn: "Watch: something needs a look", ok: "All clear" }[level];
   const sub = { bad: "A component is down or silent; detection may be blind.", alert: "A source is behaving like an attacker. Open Threats.", warn: "Nothing dangerous detected, but review the items below.", ok: "No suspicious activity. Firewall, WAF and sensors are healthy." }[level];
