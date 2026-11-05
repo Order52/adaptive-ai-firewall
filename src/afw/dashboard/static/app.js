@@ -13,13 +13,15 @@ try { TOKEN = localStorage.getItem("afw_token") || ""; } catch (_) { /* storage 
 let selected = null;
 let overview = null;
 
-$("#token-btn").addEventListener("click", () => {
-  const t = prompt("API bearer token (viewer role or higher)", TOKEN);
-  if (t !== null) {
-    TOKEN = t.trim();
-    try { localStorage.setItem("afw_token", TOKEN); } catch (_) { /* ignore */ }
-    refresh(); slow();
-  }
+// Token entry is an inline form (a prompt() dialog blocks automation and is easy to miss).
+$("#token-btn").addEventListener("click", () => { const f = $("#token-form"); f.hidden = !f.hidden; if (!f.hidden) $("#token-input").focus(); });
+$("#token-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  TOKEN = $("#token-input").value.trim();
+  $("#token-input").value = "";
+  try { localStorage.setItem("afw_token", TOKEN); } catch (_) { /* ignore */ }
+  $("#token-form").hidden = true;
+  refresh(); slow();
 });
 
 async function api(path, opts = {}) {
@@ -359,6 +361,7 @@ async function refresh() {
     overview = await api("/api/overview");
   } catch (e) {
     $("#tiles").innerHTML = `<div class="tile"><div class="label">Not connected</div><div class="value">–</div><div class="note">${esc(e.message)} — set an API token</div></div>`;
+    $("#token-form").hidden = false;
     return;
   }
   renderTiles(overview);
@@ -369,7 +372,46 @@ async function refresh() {
   renderGeo(overview);
 }
 
-async function slow() { renderPolicies(); renderAdaptation(); renderShadow(); renderChallenger(); renderIdsOnly(); renderModels(); renderNetwork(); renderAuthCtl(); renderExperiments(); renderAudit(); if (selected) renderBaseline(); }
+// Firewall panel: devices' own read-back state (/api/health) plus the latest enforcement decisions.
+async function renderFirewall() {
+  let h, pol = [];
+  try { h = await api("/api/health"); } catch (_) { return; }
+  try { pol = await api("/api/policies?limit=5"); } catch (_) { /* optional */ }
+  const be = (n) => (h.backends || []).find((b) => b.backend === n) || {};
+  const fw = be("opnsense"), waf = be("waf");
+  const dot = (ok) => `<span class="dot${ok ? " live-dot" : ""}" style="background:${ok ? "var(--good)" : "var(--critical)"}"></span>`;
+  const n = (x) => (x ? (Array.isArray(x) ? x.length : Object.keys(x).length) : 0);
+  const blocked = fw.blocked_sources || [];
+  const box = (k, v, note) => `<div class="fwbox"><div class="k">${esc(k)}</div><div class="v">${v}</div><div class="n">${note}</div></div>`;
+  const gi = (h.backends || []).find((b) => b.geo_inbound)?.geo_inbound || [], go = (h.backends || []).find((b) => b.geo_outbound)?.geo_outbound || [];
+  const mode = h.mode;
+  const rows = (Array.isArray(pol) ? pol : []).slice(0, 5).map((p) => {
+    const t = p.intent.target;
+    const target = t.source_ip || t.route || `${t.country_code} ${t.direction}${t.simulated ? " (SIMULATED)" : ""}`;
+    return `<tr><td>${tShort(p.updated_at)}</td><td>${esc(p.intent.kind)}</td><td class="mono">${esc(target)}</td><td>${badge(STATE[p.state] || "var(--neutral)", p.state)}</td></tr>`;
+  }).join("");
+  $("#fw-live").innerHTML = `<div class="fwgrid">
+    ${box("FW01 OPNsense", `${dot(fw.reachable)}${fw.reachable ? "reachable" : "UNREACHABLE"}`, esc(fw.error || "API answering; rules read back"))}
+    ${box("Blocked at FW01", n(blocked), n(blocked) ? blocked.map(esc).join(", ") : "no source blocked")}
+    ${box("WAF01", `${dot(waf.reachable)}${waf.reachable ? "reachable" : "UNREACHABLE"}`, `rules revision ${esc(waf.revision ?? "–")}`)}
+    ${box("WAF denies / rate limits", `${n(waf.waf_denied_sources)} / ${n(waf.rate_limited)}`, `login controls: ${n(waf.login_controls)}`)}
+    ${box("Country blocks", `${gi.length} in · ${go.length} out`, gi.length + go.length ? esc([...gi, ...go].join(", ")) : "none active")}
+    ${box("Enforcement mode", esc(mode), mode === "monitor" ? "observe and propose only; nothing is applied" : "ENFORCING: decisions are applied")}
+  </div>
+  <h3>Latest enforcement decisions</h3>
+  ${rows ? `<div class="table-wrap short"><table><thead><tr><th>Time</th><th>Kind</th><th>Target</th><th>State</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="empty">No enforcement decisions yet.</div>`}`;
+}
+
+function buildNav() {
+  const hs = [...document.querySelectorAll("main h2")].filter((x) => x.closest("section,article"));
+  const pick = ["Firewall", "Highest risk", "Live sources", "Adaptive policy", "Models", "Online learning", "Promotion gate", "IDS-only", "Network novelty", "Login controls", "Static vs", "Telemetry health", "Audit trail"];
+  const out = [];
+  pick.forEach((p) => { const h = hs.find((x) => x.textContent.trim().startsWith(p)); if (h) { h.id = "s-" + out.length; out.push(`<a href="#${h.id}">${esc(p.replace("Highest risk", "Risk").replace("Static vs", "Experiments").replace("Adaptive policy", "Decisions"))}</a>`); } });
+  $("#nav").innerHTML = out.join("");
+}
+buildNav();
+
+async function slow() { renderFirewall(); renderPolicies(); renderAdaptation(); renderShadow(); renderChallenger(); renderIdsOnly(); renderModels(); renderNetwork(); renderAuthCtl(); renderExperiments(); renderAudit(); if (selected) renderBaseline(); }
 
 refresh(); slow();
 setInterval(refresh, 2000);

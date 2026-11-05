@@ -12,9 +12,21 @@
   <div class="chips" id="chips"></div>
   <button id="token-btn" class="ghost" type="button">API token</button>
 </header>
+<form id="token-form" class="tokenbar" hidden>
+  <label for="token-input">API token (viewer role is enough to watch)</label>
+  <input id="token-input" type="password" autocomplete="off" spellcheck="false" placeholder="paste token">
+  <button type="submit">Connect</button>
+</form>
+<nav id="nav" class="nav" aria-label="Sections"></nav>
 
 <main>
   <section class="tiles" id="tiles" aria-label="Key figures"></section>
+
+  <section class="card" id="fw-card">
+    <h2>Firewall &amp; enforcement (live)</h2>
+    <p class="sub">What FW01 (OPNsense) and the WAF are enforcing right now, read back from the devices. Updated every 6 s.</p>
+    <div id="fw-live"><div class="empty">Loading…</div></div>
+  </section>
 
   <section class="grid2">
     <article class="card">

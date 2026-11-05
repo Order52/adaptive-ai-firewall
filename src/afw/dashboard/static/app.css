@@ -96,3 +96,21 @@ button:hover { border-color: var(--series-1); }
 }
 code { font-size: 12px; }
 @media (max-width: 640px) { main { padding: 12px 16px 32px; } .top { padding: 10px 16px; } }
+
+/* token bar, section nav, firewall panel */
+.tokenbar { display: flex; gap: 8px; align-items: center; padding: 8px 16px; background: var(--surface-1); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.tokenbar[hidden] { display: none; }
+.tokenbar input { flex: 1 1 260px; min-width: 0; padding: 6px 8px; border: 1px solid var(--axis); border-radius: 6px; background: var(--page); color: var(--text-primary); font: inherit; }
+.tokenbar button { padding: 6px 14px; }
+.nav { position: sticky; top: 0; z-index: 5; display: flex; gap: 4px; padding: 6px 16px; overflow-x: auto; background: var(--page); border-bottom: 1px solid var(--border); }
+.nav a { white-space: nowrap; padding: 4px 10px; border-radius: 999px; font-size: 13px; color: var(--text-secondary); text-decoration: none; }
+.nav a:hover { background: var(--surface-1); color: var(--text-primary); }
+h2[id] { scroll-margin-top: 48px; }
+.fwgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 8px; }
+.fwbox { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--page); }
+.fwbox .k { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.fwbox .v { font-size: 20px; font-weight: 600; margin: 2px 0; }
+.fwbox .n { font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+@keyframes pulse { 50% { opacity: .35; } }
+.live-dot { animation: pulse 2s infinite; }

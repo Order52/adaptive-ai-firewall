@@ -1,8 +1,8 @@
 # Final demonstration (15–20 minutes)
 
 A repeatable walkthrough on the live GNS3 lab. Every step gives the command, what the
-audience should see, and what it does **not** show. Commands were checked on
-2026-10-28. Steps marked **[NEEDS TEAM ATTACK RUNS]** only work once the team has
+audience should see, and what it does **not** show. Commands were re-run against the live lab on
+2026-11-05 (isolation 41/41, live tests 14/14, dashboard rendered with no console errors). Steps marked **[NEEDS TEAM ATTACK RUNS]** only work once the team has
 recorded attack runs (`TEAM_ATTACK_QUICKSTART.md`).
 
 The rule for the whole demo: show what is measured, and say what is not.
@@ -17,9 +17,15 @@ curl -s --cacert ~/.config/afw/pki/lab-ca.pem https://10.77.50.10:8080/api/healt
 #   expect "status": "ok", "mode": "monitor", "telemetry_degraded": false, "model_error": null
 ```
 
-Dashboard, from the presenting laptop: `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>`,
-then open `https://localhost:18080/` (trust the lab CA, paste the dashboard token from
-`~/.config/afw/api/dashboard.token`).
+Dashboard, from the presenting laptop: use the one command in `TEAM_HANDOFF.md` §11.1
+(`ssh -tt -L 18080:… gns3@100.103.204.8 …`), then open `https://localhost:18080/`, click
+**API token**, paste a **viewer** token and press Connect. The new **Firewall & enforcement
+(live)** panel under the key figures shows FW01 and WAF reachability, blocked sources, WAF
+denies and rate limits, country blocks, the mode and the latest decisions; the bar under the
+header jumps to each section.
+
+**Five minutes before:** start benign background traffic (step 2) so the charts are not flat.
+The lab is idle otherwise: no sources, no requests, risk 0.
 
 Keep the mode **monitor** for the whole demo except step 6. The trusted profile v2 has
 too many false positives for enforce mode on new users (step 2, `RESULTS.md` §3a–3b).
@@ -114,6 +120,21 @@ address, never on a P6/P7 or team address.
 * Explain the difference between the synthetic regression cases (feature-level, no
   traffic, measure sensitivity regression) and attack evaluation (step 10).
 
+### 8b. Offline results on public attack captures (add 3 min)
+
+Separate gate from the live lab; say so first. Details: `OFFLINE_THIRD_CAPTURE.md`,
+`ERRATUM_FORGETTING.md`, `ERRATUM_STATIC_BASELINE.md`.
+
+* Three independent CIC-IDS2017 days, replayed offline through our own pipeline.
+* With a correctly configured Suricata (our first baseline was misconfigured and is
+  corrected): static rules recall 0.434 / 0.133 / 0.282 vs ML 0.895 / 0.267 / 0.877. The two
+  complement each other (union 0.908 on Thursday morning).
+* Models are **family-specific** (cross-family recall about 0.1), and the real sample size is
+  3–7 independent bursts per family: say it before anyone asks.
+* Learning a new family works (0.45 to 0.9 depending on family) but **forgets the old one
+  without rehearsal** (old-family recall down to 0.08); rehearsal fixes it (0.999). Batch
+  retraining is the stable, cheaper alternative. No claim that online learning is better.
+
 ## 9. Telemetry liveness and recovery (2 min)
 
 * On APP01: `sudo systemctl stop afw-heartbeat.timer`. After about 150 s the dashboard
@@ -134,11 +155,21 @@ address, never on a P6/P7 or team address.
   the recorded runs. Until those runs exist, say: **attack detection has not been
   measured**.
 
+## Demo-day checklist
+
+- [ ] `afw lab status`: 8 VMs started; `afw lab verify`: 41/41
+- [ ] Health: mode monitor, `telemetry_degraded` false, all three sensors fresh
+- [ ] Tailscale up; the one-command tunnel opens dashboard, OPNsense, GNS3 and the app
+- [ ] Benign traffic running 5 minutes before (use an address the team does not use)
+- [ ] Nothing else running: no capture, no attack run, no model promotion pending
+- [ ] Say once, at the start: live attack detection is not yet measured
+- [ ] Never enable enforce mode; verified-block demo only on a demo address (step 6)
+
 ## Questions to be ready for
 
 | Question | Honest answer | Where |
 |---|---|---|
-| Does it detect attacks? | Not measured yet: needs labelled team runs | `RESULTS.md` scope note |
+| Does it detect attacks? | On recorded public captures yes (family-specific, modest sample); in our own lab not measured yet: needs labelled team runs | `OFFLINE_THIRD_CAPTURE.md` |
 | Why not enforce mode? | v2 restricts most new legitimate users | §3a–3b |
 | Is the AI better than static rules? | Unknown until the four-way comparison on attack runs | runbook §4.1 |
 | Does it adapt? | Learns and detects drift live; no challenger has passed the gate; nothing promoted | §6b, step 7 |
