@@ -164,7 +164,10 @@ def test_whoami_and_active_config_are_read_only_and_leak_no_secrets(settings, tm
     client, tok, _ = client_with_tokens(settings)
     assert client.get("/api/whoami").status_code == 401
     assert client.get("/api/config").status_code == 401
-    assert client.get("/api/whoami", headers=tok["viewer"]).json() == {"name": "viewer", "role": "viewer"}
+    assert client.get("/api/whoami", headers=tok["viewer"]).json() == {
+        "name": "viewer",
+        "role": "viewer",
+    }
     assert client.get("/api/whoami", headers=tok["admin"]).json()["role"] == "admin"
     cfg = client.get("/api/config", headers=tok["viewer"])
     assert cfg.status_code == 200

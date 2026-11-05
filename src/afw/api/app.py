@@ -174,7 +174,9 @@ def create_app(c: Container) -> FastAPI:
             "risk": cfg.risk.model_dump(mode="json"),
             "window": cfg.window.model_dump(mode="json"),
             "safety": {
-                "protected": [{"network": str(p.network), "reason": p.reason} for p in cfg.safety.protected],
+                "protected": [
+                    {"network": str(p.network), "reason": p.reason} for p in cfg.safety.protected
+                ],
                 "min_duration_s": cfg.safety.min_duration_s,
                 "max_auto_duration_s": cfg.safety.max_auto_duration_s,
                 "max_duration_s": cfg.safety.max_duration_s,
@@ -182,8 +184,12 @@ def create_app(c: Container) -> FastAPI:
                 "max_auto_actions_per_minute": cfg.safety.max_auto_actions_per_minute,
                 "auto_kinds": sorted(k.value for k in cfg.safety.auto_kinds),
             },
-            "services": [{"name": x.name, "address": str(x.address), "port": x.port} for x in cfg.services],
-            "applications": [{"app_id": a.app_id, "routes": len(a.routes)} for a in cfg.applications],
+            "services": [
+                {"name": x.name, "address": str(x.address), "port": x.port} for x in cfg.services
+            ],
+            "applications": [
+                {"app_id": a.app_id, "routes": len(a.routes)} for a in cfg.applications
+            ],
         }
 
     @app.get("/api/overview")
