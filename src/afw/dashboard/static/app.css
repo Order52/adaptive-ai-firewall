@@ -104,6 +104,7 @@ code { font-size: 12px; }
 .tokenbar button { padding: 6px 14px; }
 .nav { position: sticky; top: 0; z-index: 5; display: flex; gap: 4px; padding: 6px 16px; overflow-x: auto; background: var(--page); border-bottom: 1px solid var(--border); }
 .nav a { white-space: nowrap; padding: 4px 10px; border-radius: 999px; font-size: 13px; color: var(--text-secondary); text-decoration: none; }
+.nav a.on { background: var(--text-primary); color: var(--page); font-weight: 600; }
 .nav a:hover { background: var(--surface-1); color: var(--text-primary); }
 h2[id] { scroll-margin-top: 48px; }
 .fwgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 8px; }
@@ -114,3 +115,41 @@ h2[id] { scroll-margin-top: 48px; }
 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
 @keyframes pulse { 50% { opacity: .35; } }
 .live-dot { animation: pulse 2s infinite; }
+
+/* status banner */
+.status { margin: 12px 16px 0; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border); border-left-width: 6px; background: var(--surface-1); display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.status-main { display: flex; gap: 12px; align-items: center; }
+.status-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--neutral); flex: none; }
+.status-title { font-size: 18px; font-weight: 650; }
+.status-sub { font-size: 13px; color: var(--text-secondary); }
+.status-reasons { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--text-secondary); }
+.status-reasons li::before { content: "•"; margin-right: 5px; color: var(--muted); }
+.status.ok { border-left-color: var(--good); } .status.ok .status-dot { background: var(--good); }
+.status.warn { border-left-color: var(--warning); } .status.warn .status-dot { background: var(--warning); }
+.status.alert, .status.bad { border-left-color: var(--critical); } .status.alert .status-dot, .status.bad .status-dot { background: var(--critical); animation: pulse 1.2s infinite; }
+.tab { display: grid; gap: 16px; }
+.tab[hidden] { display: none; }
+/* controls, buttons, dialog, toast */
+button { font: inherit; font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--axis); border-radius: 6px; background: var(--surface-1); color: var(--text-primary); cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--text-secondary); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+button.primary { background: var(--series-1); border-color: var(--series-1); color: #fff; }
+button.danger { background: var(--critical); border-color: var(--critical); color: #fff; }
+.segs { display: inline-flex; gap: 0; }
+.seg { border-radius: 0; }
+.seg:first-child { border-radius: 6px 0 0 6px; } .seg:last-child { border-radius: 0 6px 6px 0; }
+.seg.on { background: var(--text-primary); color: var(--page); border-color: var(--text-primary); }
+.hint { font-size: 12px; color: var(--text-secondary); margin: 8px 0 0; }
+form.inline { display: flex; gap: 8px; flex-wrap: wrap; }
+form.inline input, form.inline select { padding: 5px 8px; border: 1px solid var(--axis); border-radius: 6px; background: var(--page); color: var(--text-primary); font: inherit; font-size: 12.5px; }
+form.inline input:first-child { width: 130px; } form.inline input[id=blk-why] { flex: 1 1 140px; min-width: 0; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.dialog { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; width: min(460px, 100%); box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+.dialog h3 { margin: 0 0 8px; font-size: 16px; }
+.dlg-body p { margin: 6px 0; font-size: 13.5px; }
+.dlg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.toast { position: fixed; right: 16px; bottom: 16px; z-index: 60; background: var(--text-primary); color: var(--page); padding: 10px 14px; border-radius: 8px; font-size: 13px; max-width: min(420px, calc(100% - 32px)); box-shadow: 0 6px 24px rgba(0,0,0,.3); }
+.toast.bad { background: var(--critical); color: #fff; }
+.acts { white-space: nowrap; }
+@media (max-width: 700px) { .status { margin: 8px; } main { padding: 8px; } }

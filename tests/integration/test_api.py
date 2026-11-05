@@ -157,3 +157,21 @@ def test_geoip_endpoints_lookup_preview_and_real_country_tables(settings, tmp_pa
     assert client.get("/api/overview", headers=fw).status_code == 403
     assert client.get("/api/geo/status", headers=fw).status_code == 403
     assert client.get("/api/geo/enforcement/inbound").status_code == 401
+
+
+def test_whoami_and_active_config_are_read_only_and_leak_no_secrets(settings, tmp_path):
+    settings = settings.model_copy(update={"api_tokens_file": tmp_path / "tokens.yaml"})
+    client, tok, _ = client_with_tokens(settings)
+    assert client.get("/api/whoami").status_code == 401
+    assert client.get("/api/config").status_code == 401
+    assert client.get("/api/whoami", headers=tok["viewer"]).json() == {"name": "viewer", "role": "viewer"}
+    assert client.get("/api/whoami", headers=tok["admin"]).json()["role"] == "admin"
+    cfg = client.get("/api/config", headers=tok["viewer"])
+    assert cfg.status_code == 200
+    body = cfg.json()
+    assert body["risk"]["block"] > body["risk"]["rate_limit"] > 0
+    assert any(p["network"] == "10.77.50.0/24" for p in body["safety"]["protected"])
+    assert body["safety"]["max_duration_s"] >= body["safety"]["max_auto_duration_s"]
+    text = cfg.text.lower()
+    assert "secret" not in text and "token" not in text and "password" not in text
+    assert client.post("/api/config", headers=tok["admin"]).status_code == 405
