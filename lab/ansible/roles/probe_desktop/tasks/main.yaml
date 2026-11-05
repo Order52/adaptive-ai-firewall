@@ -76,6 +76,16 @@
       autologin-user-timeout=0
       user-session=xfce
 
+# light-locker is pulled in as a dependency of xfce4-session and will lock the
+# idle session (demanding the afw account's own password, which defeats the
+# point of autologin on a kiosk-style showcase machine nobody is meant to need
+# a password for). Remove it rather than just configure around it.
+- name: No screen locker (always-on showcase desktop, not a personal session)
+  ansible.builtin.apt:
+    name: [light-locker, light-locker-settings, xfce4-screensaver]
+    state: absent
+    purge: true
+
 - name: Desktop directory
   ansible.builtin.file: {path: /home/afw/Desktop, state: directory, owner: afw, group: afw, mode: "0755"}
 
