@@ -23,6 +23,7 @@
       - lightdm
       - lightdm-gtk-greeter
       - dbus-x11
+      - gvfs
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -103,6 +104,108 @@
       Icon=firefox
       Terminal=false
   notify: own the desktop icon
+
+# XFCE refuses to launch a desktop-icon .desktop file until it is marked trusted
+# (otherwise: an "untrusted application launcher" error on double-click, no matter
+# the +x bit). This needs gvfsd-metadata, hence `gvfs` above, and a live session to
+# talk to -- harmless and safe to rerun if the session wasn't up yet this time
+# (first boot, before the first autologin completes); it will just no-op then and
+# take effect next time this role runs against an already-logged-in box.
+- name: Mark the Firefox desktop icon as trusted (needs a live session; best-effort)
+  ansible.builtin.command:
+    cmd: gio set /home/afw/Desktop/Firefox.desktop metadata::trusted true
+  become: true
+  become_user: afw
+  environment:
+    DISPLAY: ":0"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/1000/bus"
+  register: _trust
+  changed_when: _trust.rc == 0
+  failed_when: false
+
+# Ready to present the moment someone connects: both open on login, nobody has
+# to click an icon first.
+- name: Firefox opens automatically on login
+  ansible.builtin.copy:
+    dest: /etc/xdg/autostart/afw-firefox.desktop
+    mode: "0644"
+    content: |
+      [Desktop Entry]
+      Type=Application
+      Name=Firefox (auto-start)
+      Exec=firefox
+      Icon=firefox
+      Terminal=false
+      X-GNOME-Autostart-enabled=true
+- name: A terminal opens automatically on login
+  ansible.builtin.copy:
+    dest: /etc/xdg/autostart/afw-terminal.desktop
+    mode: "0644"
+    content: |
+      [Desktop Entry]
+      Type=Application
+      Name=Terminal (auto-start)
+      Exec=xfce4-terminal
+      Icon=utilities-terminal
+      Terminal=false
+      X-GNOME-Autostart-enabled=true
+
+# Perceived speed over VNC/noVNC: compositing (alpha blending, drop shadows) and
+# a highly detailed wallpaper both cost real encode time on every redraw across
+# that link. Minimal xfconf overrides (xfconf reads these at session start and
+# merges them over its schema defaults, so this doesn't need a running D-Bus
+# session the way `xfconf-query` would) -- not a full dump of every property.
+- name: XFCE config directory
+  ansible.builtin.file:
+    path: /home/afw/.config/xfce4/xfconf/xfce-perchannel-xml
+    state: directory
+    owner: afw
+    group: afw
+    mode: "0755"
+    recurse: true
+- name: Compositing and window-shadow effects off (xfwm4) -- the single biggest
+    win for how smooth this feels over VNC
+  ansible.builtin.copy:
+    dest: /home/afw/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml
+    owner: afw
+    group: afw
+    mode: "0644"
+    content: |
+      <?xml version="1.0" encoding="UTF-8"?>
+      <channel name="xfwm4" version="1.0">
+        <property name="general" type="empty">
+          <property name="use_compositing" type="bool" value="false"/>
+          <property name="show_frame_shadow" type="bool" value="false"/>
+          <property name="show_popup_shadow" type="bool" value="false"/>
+          <property name="show_dock_shadow" type="bool" value="false"/>
+        </property>
+      </channel>
+- name: Plain dark background instead of the detailed default wallpaper (xfce4-desktop)
+  ansible.builtin.copy:
+    dest: /home/afw/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml
+    owner: afw
+    group: afw
+    mode: "0644"
+    content: |
+      <?xml version="1.0" encoding="UTF-8"?>
+      <channel name="xfce4-desktop" version="1.0">
+        <property name="backdrop" type="empty">
+          <property name="screen0" type="empty">
+            <property name="monitor0" type="empty">
+              <property name="workspace0" type="empty">
+                <property name="color-style" type="int" value="0"/>
+                <property name="image-style" type="int" value="0"/>
+                <property name="rgba1" type="array">
+                  <value type="double" value="0.08"/>
+                  <value type="double" value="0.08"/>
+                  <value type="double" value="0.08"/>
+                  <value type="double" value="1"/>
+                </property>
+              </property>
+            </property>
+          </property>
+        </property>
+      </channel>
 
 - name: Boot to a graphical session
   ansible.builtin.command: systemctl set-default graphical.target
