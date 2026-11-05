@@ -1,0 +1,2 @@
+- name: own the desktop icon
+  ansible.builtin.file: {path: /home/afw/Desktop, state: directory, recurse: true, owner: afw, group: afw}

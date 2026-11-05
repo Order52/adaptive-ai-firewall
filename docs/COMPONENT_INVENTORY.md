@@ -14,7 +14,7 @@ addresses, safety limits): `config/lab.yaml`.
 | WAF01 | DMZ | 10.77.30.10 | nginx + OWASP CRS 4.25.2; policy helper | 443 (clients); helper 9443 (CTRL01 only); rsyslog RELP-over-mTLS sender (ADR-038); heartbeat timer |
 | APP01 | APP | 10.77.40.10 | Rental application v1.0.0 | 8000 (WAF01 only); rsyslog RELP-over-mTLS sender (ADR-038); heartbeat timer |
 | DB01 | DB | 10.77.60.10 | PostgreSQL 16 (container) | 5432 (APP01 only) |
-| USR01 | USERS | 10.77.20.10 (+ probe .250) | Benign clients (`traffic/benign_personas.py`), probe agent | probe 9180 (CTRL01 only) |
+| USR01 | USERS | 10.77.20.10 (+ probe .250) | Benign clients (`traffic/benign_personas.py`), probe agent, live XFCE/Firefox desktop (GNS3 VNC console, 2048 MB/2 vCPU, added 2026-11-05) | probe 9180 (CTRL01 only); console VNC (GNS3-managed, host-local) |
 | ATK01 | ATTACK | 10.77.10.10 (+ probe .250) | Team attack host (team tooling only), probe agent | probe 9180 (CTRL01 only) |
 | SW-* | — | — | One switch per zone | — |
 | HOST-MGMT | MGMT | 10.77.50.254 | Host TAP `afw-mgmt0`; route 10.77.0.0/16 via FW01 | — |

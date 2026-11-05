@@ -58,10 +58,13 @@ def _node_body(
             IMAGES_DIR / iso, name, spec["ip"], spec["gw"], spec.get("extra_ips", []), pubkey
         )
         log(f"seed {iso}")
-        body |= {
-            "node_type": "qemu",
-            "properties": _qemu_props(spec, topo["images"]["ubuntu"], iso),
-        }
+        props = _qemu_props(spec, topo["images"]["ubuntu"], iso)
+        if spec.get("console") == "vnc":
+            # Same base image as every other `ubuntu` node (no GUI baked in); this
+            # only switches the GNS3 console to VNC so a desktop installed live
+            # (e.g. by the `probe_desktop` Ansible role) is actually viewable.
+            props["console_type"] = "vnc"
+        body |= {"node_type": "qemu", "properties": props}
     elif kind == "desktop":
         iso = f"afw-seed-{name.lower()}.iso"
         build_seed(

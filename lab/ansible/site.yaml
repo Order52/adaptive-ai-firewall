@@ -20,3 +20,6 @@
 - hosts: desktop
   become: true
   roles: [desktop]
+- hosts: probe_desktop
+  become: true
+  roles: [probe_desktop]

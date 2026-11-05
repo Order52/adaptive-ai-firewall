@@ -16,6 +16,7 @@ Node, port and entry-point details are in `COMPONENT_INVENTORY.md`.
 ```
             ATTACK 10.77.10.0/24          USERS 10.77.20.0/24
             ATK01 .10 (+probe .250)       USR01 .10 (+probe .250)
+                                           + live XFCE/Firefox desktop (VNC)
                      \                       /
                       \    (443 only)       /
                        +------ FW01 -------+         OPNsense 26.7: pf, aliases,
