@@ -145,8 +145,13 @@ form.inline { display: flex; gap: 8px; flex-wrap: wrap; }
 form.inline input, form.inline select { padding: 5px 8px; border: 1px solid var(--axis); border-radius: 6px; background: var(--page); color: var(--text-primary); font: inherit; font-size: 12.5px; }
 form.inline input:first-child { width: 130px; } form.inline input[id=blk-why] { flex: 1 1 140px; min-width: 0; }
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: grid; place-items: center; z-index: 50; padding: 16px; }
-.dialog { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; width: min(460px, 100%); box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+.dialog { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; width: min(460px, 100%); box-shadow: 0 10px 40px rgba(0,0,0,.3); max-height: 90vh; overflow-y: auto; }
 .dialog h3 { margin: 0 0 8px; font-size: 16px; }
+.mcp-dialog { width: min(640px, 100%); }
+.mcp-dialog label { display: block; font-size: 12.5px; font-weight: 600; margin: 12px 0 4px; }
+.mcp-dialog select, .mcp-dialog input[type="text"] { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--page); color: var(--text-primary); font-size: 13px; }
+.mcp-code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; background: var(--page); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; white-space: pre-wrap; word-break: break-all; margin: 0 0 6px; }
+.warn-text { color: var(--warning); font-weight: 600; }
 .dlg-body p { margin: 6px 0; font-size: 13.5px; }
 .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .toast { position: fixed; right: 16px; bottom: 16px; z-index: 60; background: var(--text-primary); color: var(--page); padding: 10px 14px; border-radius: 8px; font-size: 13px; max-width: min(420px, calc(100% - 32px)); box-shadow: 0 6px 24px rgba(0,0,0,.3); }
