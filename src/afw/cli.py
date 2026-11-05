@@ -264,6 +264,64 @@ def scenario_list() -> None:
     typer.echo(f"active run: {act.run_id} ({act.scenario_id})" if act else "no active run")
 
 
+@sc_app.command("menu")
+def scenario_menu() -> None:
+    """Interactive picker over the registry, for showing the project: lists the
+    predeclared scenarios, records ground truth (begin/end) and the kill switch
+    (abort) through the journal, same as `scenario begin`/`end`/`abort`. It never
+    runs a tool itself -- each scenario's `team_tooling` hint names what the team
+    runs by hand on ATK01, inside the run window this prints."""
+    from afw.domain.common import utcnow
+
+    reg, journal = _harness()
+    act = journal.active()
+    if act is not None:
+        spec = reg.get(act.scenario_id)
+        typer.echo(f"Run already active: {act.run_id} ({act.scenario_id}), started {act.begun_at}")
+        if not typer.confirm("End it now?", default=False):
+            typer.echo(f"Leave it running, or: afw scenario end {act.run_id}")
+            return
+        r = journal.end(act.run_id, utcnow())
+        typer.echo(f"{r.run_id} ended at {r.ended_at}")
+
+    scenarios = list(reg.scenarios)
+    typer.echo("\nPredeclared scenarios (config/scenarios.yaml):\n")
+    for i, s in enumerate(scenarios, 1):
+        typer.echo(f"  {i}. {s.id} [{s.family}, {s.purpose.value}, max {s.max_duration_s}s]")
+        typer.echo(f"     {s.description}")
+    typer.echo("  0. cancel\n")
+
+    choice = typer.prompt("Pick a scenario", type=int, default=0)
+    if choice <= 0 or choice > len(scenarios):
+        typer.echo("cancelled")
+        return
+    spec = scenarios[choice - 1]
+    operator = typer.prompt("Your name (recorded as the operator)")
+    notes = typer.prompt("Notes (e.g. the exact tool/options you'll run)", default="")
+
+    typer.echo("\nTarget(s) this scenario is allowed to hit:")
+    for t in spec.targets:
+        typer.echo(f"  {t.ip}:{t.port}" + (f"  # {t.name}" if t.name else ""))
+    typer.echo("\nSuggested tooling (yours to choose and run, on ATK01 10.77.10.10 only):")
+    hint = spec.team_tooling or f"(none recorded -- pick a standard tool for {spec.family})"
+    typer.echo(f"  {hint}")
+
+    if not typer.confirm(
+        f"\nStart '{spec.id}' now? (begins the run window, max {spec.max_duration_s}s)",
+        default=False,
+    ):
+        typer.echo("cancelled")
+        return
+    r = journal.begin(spec, operator, utcnow(), notes)
+    typer.echo(f"\n{r.run_id} begun at {r.begun_at.isoformat()}; max {spec.max_duration_s}s")
+    typer.echo("Now, on ATK01, run the tool above against the target(s) above.")
+    typer.echo(f"When done:  afw scenario end {r.run_id}")
+    typer.echo(f'To stop early:  afw scenario abort {r.run_id} "<reason>"  (also stops ATK01)')
+    typer.echo(
+        "Tip: run `afw scenario watchdog` in another terminal to auto-abort past the max duration."
+    )
+
+
 @sc_app.command("begin")
 def scenario_begin(scenario_id: str, operator: str, notes: str = "") -> None:
     """Record ground truth: the team starts scenario SCENARIO_ID now."""
