@@ -69,7 +69,7 @@ h2 { font-size: 15px; margin: 0 0 2px; font-weight: 620; }
 .chart { width: 100%; min-height: 180px; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .chart text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
-.table-wrap { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+.table-wrap { overflow-x: auto; max-height: 640px; overflow-y: auto; }
 .table-wrap.short { max-height: 260px; }
 table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 th { text-align: left; color: var(--text-secondary); font-weight: 560; border-bottom: 1px solid var(--axis); padding: 6px 8px; position: sticky; top: 0; background: var(--surface-1); }

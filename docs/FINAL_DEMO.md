@@ -30,6 +30,32 @@ The lab is idle otherwise: no sources, no requests, risk 0.
 Keep the mode **monitor** for the whole demo except step 6. The trusted profile v2 has
 too many false positives for enforce mode on new users (step 2, `RESULTS.md` §3a–3b).
 
+## Dashboard tour (3 min, do this first)
+
+The status banner at the top is the answer to "is anything wrong?": **All clear**, **Watch**,
+**Possible malicious activity** or **System needs attention**, with the reasons beside it.
+Six tabs:
+
+* **Overview**: banner, key figures, live firewall and WAF state read back from the devices,
+  latest enforcement decisions, risk and request charts.
+* **Threats**: anomalous detections, live sources with risk, IDS-only sources, login controls.
+  Lab probe addresses are tagged "lab infrastructure" and are never counted as a threat.
+* **Network**: connections, DNS, TLS, firewall drops, network-novelty detector.
+* **Firewall & controls**: restrict a source (firewall block, WAF deny, rate limit strict or
+  moderate; validator check, then a confirmation), approve / reject / revoke decisions, change
+  mode (admin token only), and the configuration in force (thresholds, safety limits, protected
+  networks, protected application).
+* **Learning**: models, profiles, shadow challenger, promotion gate. Promotion is not in the
+  dashboard on purpose.
+* **System**: sensor health and the audit trail.
+
+Use a **viewer** token to present (read-only). Use an **operator** token only for the live
+control demo in step 6. The token decides what the page lets you do; the server enforces it.
+
+**What "monitor" means:** it holds back the AI's own decisions (recorded, not applied). Actions
+you request yourself, from the dashboard or MCP, are applied and verified even in monitor mode,
+and expire on their own.
+
 ## 1. The lab and its isolation (2 min)
 
 * `uv run afw lab status` and the dashboard's topology/resources: 8 VMs, 6 zone
@@ -89,6 +115,13 @@ rate limit, read-back, probe verification, expiry, revoke, protected-address ref
 ```bash
 AFW_LAB=1 uv run pytest tests/lab -o addopts="" -q     # 14 passed (2026-10-28 16:0xZ)
 ```
+
+MCP tools for acting on the firewall (all validated, expiring, verified by read-back, and
+recorded with origin `mcp`): `simulate_restriction`, `restrict_source` (action
+`firewall_block`, `waf_deny`, `rate_limit_strict` or `rate_limit_moderate`), `block_source`,
+`unblock`, `approve_policy`, `reject_policy`, `country_policy`, `set_mode` (admin token),
+`feedback`. Checked live on 2026-11-05 on the demo address: each action applied, read back,
+and was revoked with the removal confirmed by read-back.
 
 Interactive version (optional): MCP *"block 10.77.20.198 for 2 minutes"* → the policy
 goes `pending → enforced` only after FW01's alias is read back and a probe from that

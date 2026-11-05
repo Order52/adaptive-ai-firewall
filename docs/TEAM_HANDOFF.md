@@ -384,6 +384,17 @@ depends on when the team schedules the runs.
 | Dashboard from your laptop | `ssh -N -L 18080:10.77.50.10:8080 gns3@<host>` then open `https://localhost:18080/`, click **API token**, paste the *dashboard* token |
 | Run unit tests only | `uv run pytest -o addopts="" -q` (live-lab tests need `AFW_LAB=1`) |
 
+**Using the dashboard and MCP to control the firewall (added 2026-11-05).** The dashboard has six tabs
+(Overview, Threats, Network, Firewall & controls, Learning, System) and a status banner that
+says All clear / Watch / Possible malicious activity / System needs attention. With an
+*operator* token the **Firewall & controls** tab can block at the firewall, deny at the WAF,
+rate-limit, approve / reject / revoke decisions; changing mode needs an *admin* token. The same
+actions exist as MCP tools (`restrict_source`, `simulate_restriction`, `block_source`,
+`unblock`, `approve_policy`, `reject_policy`, `country_policy`, `set_mode`, `feedback`). In
+monitor mode only the AI's own decisions are held back: manual actions are applied, verified by
+read-back and expire on their own. Management, database and firewall addresses are always
+refused. Use the demo address 10.77.20.198 for tests, never a team or attack-run address.
+
 **Known gotchas**
 - **Host rebooted?** The lab usually restarts itself; if not, `uv run afw lab start`.
 - **IDS heartbeat goes stale** (dashboard → Telemetry health, or `/api/overview` → `telemetry.sensors.ids`):
