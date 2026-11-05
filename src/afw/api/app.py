@@ -158,6 +158,40 @@ def create_app(c: Container) -> FastAPI:
             "last_reconcile": rep.at.isoformat() if rep else None,
         }
 
+    @app.get("/api/whoami")
+    def whoami(who: Viewer) -> dict[str, str]:
+        # Lets the dashboard show or hide controls; the server still enforces roles.
+        return {"name": who.name, "role": who.role.name.lower()}
+
+    @app.get("/api/config")
+    def active_config(_: Viewer) -> dict[str, Any]:
+        """The policy and safety configuration in force. Read-only; contains no secrets."""
+        cfg = c.cfg
+        return {
+            "name": cfg.name,
+            "mode": c.settings_repo.get_mode(),
+            "strategy": c.controller.inference.strategy,
+            "risk": cfg.risk.model_dump(mode="json"),
+            "window": cfg.window.model_dump(mode="json"),
+            "safety": {
+                "protected": [
+                    {"network": str(p.network), "reason": p.reason} for p in cfg.safety.protected
+                ],
+                "min_duration_s": cfg.safety.min_duration_s,
+                "max_auto_duration_s": cfg.safety.max_auto_duration_s,
+                "max_duration_s": cfg.safety.max_duration_s,
+                "max_active_policies": cfg.safety.max_active_policies,
+                "max_auto_actions_per_minute": cfg.safety.max_auto_actions_per_minute,
+                "auto_kinds": sorted(k.value for k in cfg.safety.auto_kinds),
+            },
+            "services": [
+                {"name": x.name, "address": str(x.address), "port": x.port} for x in cfg.services
+            ],
+            "applications": [
+                {"app_id": a.app_id, "routes": len(a.routes)} for a in cfg.applications
+            ],
+        }
+
     @app.get("/api/overview")
     def overview(_: Viewer) -> dict[str, Any]:
         ctl = c.controller

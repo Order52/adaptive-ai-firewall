@@ -13,13 +13,15 @@ try { TOKEN = localStorage.getItem("afw_token") || ""; } catch (_) { /* storage 
 let selected = null;
 let overview = null;
 
-$("#token-btn").addEventListener("click", () => {
-  const t = prompt("API bearer token (viewer role or higher)", TOKEN);
-  if (t !== null) {
-    TOKEN = t.trim();
-    try { localStorage.setItem("afw_token", TOKEN); } catch (_) { /* ignore */ }
-    refresh(); slow();
-  }
+// Token entry is an inline form (a prompt() dialog blocks automation and is easy to miss).
+$("#token-btn").addEventListener("click", () => { const f = $("#token-form"); f.hidden = !f.hidden; if (!f.hidden) $("#token-input").focus(); });
+$("#token-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  TOKEN = $("#token-input").value.trim();
+  $("#token-input").value = "";
+  try { localStorage.setItem("afw_token", TOKEN); } catch (_) { /* ignore */ }
+  $("#token-form").hidden = true;
+  loadRole().then(() => { refresh(); slow(); });
 });
 
 async function api(path, opts = {}) {
@@ -160,17 +162,15 @@ async function renderPolicies() {
     return `<tr><td>${tShort(p.updated_at)}</td><td>${esc(p.intent.kind)}${p.intent.rate_profile ? ` (${esc(p.intent.rate_profile)})` : ""}</td><td class="mono">${esc(target)}</td>
       <td>${badge(STATE[p.state] || "var(--neutral)", p.state)}</td><td>${esc(p.intent.origin)} / ${esc(p.mode_at_creation)}</td>
       <td class="mono">${ver}</td><td>${p.expires_at ? tShort(p.expires_at) : "–"}</td>
-      <td><button type="button" data-explain="${esc(p.policy_id)}">Explain</button>${p.state === "pending_approval" ? ` <button type="button" data-approve="${esc(p.policy_id)}">Approve</button>` : ""}</td></tr>`;
+      <td class="acts"><button type="button" data-explain="${esc(p.policy_id)}">Explain</button>${canOperate() && p.state === "pending_approval" ? ` <button type="button" class="primary" data-act="approve" data-id="${esc(p.policy_id)}">Approve</button> <button type="button" data-act="reject" data-id="${esc(p.policy_id)}">Reject</button>` : ""}${canOperate() && ["enforced", "applied_unverified", "applying"].includes(p.state) ? ` <button type="button" data-act="revoke" data-id="${esc(p.policy_id)}">Revoke</button>` : ""}</td></tr>`;
   }).join("");
   tb.querySelectorAll("[data-explain]").forEach((b) => b.addEventListener("click", () => explain(b.dataset.explain)));
-  tb.querySelectorAll("[data-approve]").forEach((b) => b.addEventListener("click", async () => {
-    try { await api(`/api/policies/${b.dataset.approve}/approve`, { method: "POST" }); renderPolicies(); } catch (e) { alert(e.message); }
-  }));
+  tb.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => policyAction(b.dataset.id, b.dataset.act)));
 }
 
 async function explain(id) {
   let x;
-  try { x = await api(`/api/policies/${id}/explain`); } catch (e) { alert(e.message); return; }
+  try { x = await api(`/api/policies/${id}/explain`); } catch (e) { toast(e.message, true); return; }
   $("#explain-card").hidden = false;
   $("#explain-id").textContent = id;
   const w = x.what_happened, m = x.model_and_profile, r = x.response, en = x.enforcement, lg = x.legitimate_traffic;
@@ -359,6 +359,7 @@ async function refresh() {
     overview = await api("/api/overview");
   } catch (e) {
     $("#tiles").innerHTML = `<div class="tile"><div class="label">Not connected</div><div class="value">–</div><div class="note">${esc(e.message)} — set an API token</div></div>`;
+    $("#token-form").hidden = false;
     return;
   }
   renderTiles(overview);
@@ -367,10 +368,241 @@ async function refresh() {
   renderSources(overview);
   renderTelemetry(overview);
   renderGeo(overview);
+  renderNetSummary();
+  if (!statusReady || ++statusTick % 3 === 0) { statusReady = true; renderStatus(); }
 }
 
-async function slow() { renderPolicies(); renderAdaptation(); renderShadow(); renderChallenger(); renderIdsOnly(); renderModels(); renderNetwork(); renderAuthCtl(); renderExperiments(); renderAudit(); if (selected) renderBaseline(); }
+// Firewall panel: devices' own read-back state (/api/health) plus the latest enforcement decisions.
+async function renderFirewall() {
+  let h, pol = [];
+  try { h = await api("/api/health"); } catch (_) { return; }
+  try { pol = await api("/api/policies?limit=5"); } catch (_) { /* optional */ }
+  const be = (n) => (h.backends || []).find((b) => b.backend === n) || {};
+  const fw = be("opnsense"), waf = be("waf");
+  const dot = (ok) => `<span class="dot${ok ? " live-dot" : ""}" style="background:${ok ? "var(--good)" : "var(--critical)"}"></span>`;
+  const n = (x) => (x ? (Array.isArray(x) ? x.length : Object.keys(x).length) : 0);
+  const blocked = fw.blocked_sources || [];
+  const box = (k, v, note) => `<div class="fwbox"><div class="k">${esc(k)}</div><div class="v">${v}</div><div class="n">${note}</div></div>`;
+  const gi = (h.backends || []).find((b) => b.geo_inbound)?.geo_inbound || [], go = (h.backends || []).find((b) => b.geo_outbound)?.geo_outbound || [];
+  const mode = h.mode;
+  const rows = (Array.isArray(pol) ? pol : []).slice(0, 5).map((p) => {
+    const t = p.intent.target;
+    const target = t.source_ip || t.route || `${t.country_code} ${t.direction}${t.simulated ? " (SIMULATED)" : ""}`;
+    return `<tr><td>${tShort(p.updated_at)}</td><td>${esc(p.intent.kind)}</td><td class="mono">${esc(target)}</td><td>${badge(STATE[p.state] || "var(--neutral)", p.state)}</td></tr>`;
+  }).join("");
+  $("#fw-live").innerHTML = `<div class="fwgrid">
+    ${box("FW01 OPNsense", `${dot(fw.reachable)}${fw.reachable ? "reachable" : "UNREACHABLE"}`, esc(fw.error || "API answering; rules read back"))}
+    ${box("Blocked at FW01", n(blocked), n(blocked) ? blocked.map(esc).join(", ") : "no source blocked")}
+    ${box("WAF01", `${dot(waf.reachable)}${waf.reachable ? "reachable" : "UNREACHABLE"}`, `rules revision ${esc(waf.revision ?? "–")}`)}
+    ${box("WAF denies / rate limits", `${n(waf.waf_denied_sources)} / ${n(waf.rate_limited)}`, `login controls: ${n(waf.login_controls)}`)}
+    ${box("Country blocks", `${gi.length} in · ${go.length} out`, gi.length + go.length ? esc([...gi, ...go].join(", ")) : "none active")}
+    ${box("Enforcement mode", esc(mode), mode === "monitor" ? "observe and propose only; nothing is applied" : "ENFORCING: decisions are applied")}
+  </div>
+  <h3>Latest enforcement decisions</h3>
+  ${rows ? `<div class="table-wrap short"><table><thead><tr><th>Time</th><th>Kind</th><th>Target</th><th>State</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="empty">No enforcement decisions yet.</div>`}`;
+}
 
-refresh(); slow();
+const TABS = [["overview", "Overview"], ["threats", "Threats"], ["network", "Network"], ["firewall", "Firewall & controls"], ["learning", "Learning"], ["system", "System"]];
+function showTab(name) {
+  if (!TABS.some(([k]) => k === name)) name = "overview";
+  document.querySelectorAll(".tab").forEach((t) => { t.hidden = t.dataset.tab !== name; });
+  document.querySelectorAll("#nav a").forEach((l) => { const on = l.dataset.tab === name; l.classList.toggle("on", on); l.setAttribute("aria-selected", on); });
+  try { localStorage.setItem("afw_tab", name); } catch (_) { /* ignore */ }
+  if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+}
+function buildNav() {
+  $("#nav").innerHTML = TABS.map(([k, l]) => `<a href="#${k}" data-tab="${k}" role="tab">${esc(l)}</a>`).join("");
+  $("#nav").addEventListener("click", (e) => { const a = e.target.closest("a[data-tab]"); if (a) { e.preventDefault(); showTab(a.dataset.tab); } });
+  let t = location.hash.slice(1);
+  if (!t) { try { t = localStorage.getItem("afw_tab") || ""; } catch (_) { /* ignore */ } }
+  showTab(t || "overview");
+}
+buildNav();
+
+// ------------------------------------------------------------ toast + confirm dialog
+function toast(msg, bad) {
+  const t = document.createElement("div");
+  t.className = "toast" + (bad ? " bad" : "");
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), bad ? 7000 : 3500);
+}
+function confirmDialog({ title, body, confirmLabel, danger }) {
+  return new Promise((resolve) => {
+    const ov = document.createElement("div");
+    ov.className = "overlay";
+    ov.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h3>${esc(title)}</h3><div class="dlg-body">${body}</div>
+      <div class="dlg-actions"><button type="button" data-no>Cancel</button><button type="button" data-yes class="${danger ? "danger" : "primary"}">${esc(confirmLabel || "Confirm")}</button></div></div>`;
+    const done = (v) => { ov.remove(); document.removeEventListener("keydown", onKey); resolve(v); };
+    const onKey = (e) => { if (e.key === "Escape") done(false); };
+    ov.addEventListener("click", (e) => { if (e.target === ov) done(false); });
+    ov.querySelector("[data-no]").addEventListener("click", () => done(false));
+    ov.querySelector("[data-yes]").addEventListener("click", () => done(true));
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(ov);
+    ov.querySelector("[data-no]").focus();
+  });
+}
+
+// ------------------------------------------------------------ role and controls
+let ROLE = "none";
+let statusReady = false, statusTick = 0;
+async function loadRole() {
+  try { ROLE = (await api("/api/whoami")).role; } catch (_) { ROLE = "none"; }
+}
+const canOperate = () => ROLE === "operator" || ROLE === "admin";
+
+async function act(path, body, okMsg) {
+  try {
+    const r = await api(path, { method: "POST", body: JSON.stringify(body || {}) });
+    toast(okMsg(r));
+    refresh(); slow();
+    return r;
+  } catch (e) { toast(e.message.replace(/^\d+ /, ""), true); return null; }
+}
+
+async function renderControls() {
+  const el = $("#controls");
+  if (!el) return;
+  if (!canOperate()) {
+    el.innerHTML = `<div class="empty">This token can watch but not change anything (role: ${esc(ROLE)}). Click <b>API token</b> and use an operator or admin token to enable controls.</div>`;
+    return;
+  }
+  const mode = overview ? overview.mode : "";
+  const modeBtns = ["monitor", "assisted", "auto"].map((m) => `<button type="button" class="seg${m === mode ? " on" : ""}" data-mode="${m}" ${ROLE !== "admin" ? "disabled" : ""}>${m}</button>`).join("");
+  el.innerHTML = `<div class="grid2">
+    <div><h3>Operating mode</h3>
+      <div class="segs">${modeBtns}</div>
+      <p class="hint"><b>monitor</b>: observe and propose; nothing is applied. <b>assisted</b>: every action waits for your approval. <b>auto</b>: low-risk actions apply by themselves within the safety limits.${ROLE !== "admin" ? " Changing the mode needs an admin token." : ""}</p></div>
+    <div><h3>Restrict a source</h3>
+      <form id="block-form" class="inline">
+        <select id="blk-kind" aria-label="Action"><option value="source_block">Block at firewall</option><option value="waf_deny">Deny at WAF</option><option value="rate_limit:strict">Rate-limit (strict)</option><option value="rate_limit:moderate">Rate-limit (moderate)</option></select>
+        <input id="blk-ip" placeholder="10.77.20.x" inputmode="decimal" aria-label="IP address" required pattern="^\\d{1,3}(\\.\\d{1,3}){3}$">
+        <select id="blk-min" aria-label="Duration"><option value="120">2 min</option><option value="300">5 min</option><option value="900">15 min</option><option value="3600">1 hour</option></select>
+        <input id="blk-why" placeholder="reason" maxlength="120" aria-label="Reason">
+        <button type="submit" class="danger">Check &amp; apply…</button>
+      </form>
+      <p class="hint">The validator runs first and shows what would happen. Blocks expire by themselves. Management, database, firewall and WAF addresses are always refused.</p></div>
+  </div>`;
+  el.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => changeMode(b.dataset.mode)));
+  $("#block-form").addEventListener("submit", blockFlow);
+}
+
+async function changeMode(m) {
+  if (!overview || m === overview.mode) return;
+  const warn = m === "auto"
+    ? `<p><b>Automatic mode will block and rate-limit traffic without asking you.</b></p><p>The current model was measured to flag most <em>new legitimate users</em> (window false-positive rate about 0.84 on unseen users). Enable this only if you accept that real users may be restricted.</p>`
+    : m === "assisted" ? `<p>Every restriction will wait for your approval before it touches the firewall.</p>` : `<p>The controller will observe and propose only; nothing will be applied.</p>`;
+  if (!(await confirmDialog({ title: `Switch to ${m} mode?`, body: warn, confirmLabel: `Switch to ${m}`, danger: m === "auto" }))) return;
+  await act("/api/mode", { mode: m }, () => `Mode is now ${m}`);
+}
+
+async function blockFlow(e) {
+  e.preventDefault();
+  const ip = $("#blk-ip").value.trim(), dur = Number($("#blk-min").value), why = $("#blk-why").value.trim() || "operator block from dashboard";
+  const [kind, prof] = $("#blk-kind").value.split(":");
+  const body = { kind, target: { type: "source", source_ip: ip }, duration_s: dur, reason: why, ...(prof ? { rate_profile: prof } : {}) };
+  const what = $("#blk-kind").selectedOptions[0].textContent;
+  let sim;
+  try { sim = await api("/api/policies/simulate", { method: "POST", body: JSON.stringify(body) }); } catch (er) { toast(er.message.replace(/^\d+ /, ""), true); return; }
+  if (!sim.valid) { toast("Refused: " + sim.errors.join("; "), true); return; }
+  const ok = await confirmDialog({
+    title: `${what}: ${ip} for ${dur / 60} min?`,
+    body: `<p>The validator accepts this action.${overview && overview.mode === "monitor" ? " <b>The controller is in monitor mode, so it will be recorded but not applied.</b>" : ""}</p>${(sim.notes || []).map((n) => `<p class="hint">${esc(n)}</p>`).join("")}`,
+    confirmLabel: "Apply", danger: true,
+  });
+  if (ok) await act("/api/policies", body, (r) => `Policy ${r.state}`);
+}
+
+async function policyAction(id, verb) {
+  const label = { approve: "Approve", reject: "Reject", revoke: "Revoke" }[verb];
+  if (!(await confirmDialog({ title: `${label} this decision?`, body: `<p class="mono">${esc(id)}</p>`, confirmLabel: label}))) return;
+  await act(`/api/policies/${id}/${verb}`, verb === "approve" ? {} : { reason: `${verb} from dashboard` }, (r) => `${label}d: ${r.state}`);
+}
+
+// Protected addresses (lab infrastructure, probes) are tagged, and never counted as a threat.
+let PROTECTED = [];
+const ip4 = (s) => s.split(".").reduce((n, p) => n * 256 + Number(p), 0);
+const isProtected = (ip) => PROTECTED.some(([base, bits]) => { const m = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0; return ((ip4(ip) & m) >>> 0) === ((base & m) >>> 0); });
+async function loadProtected() {
+  try { PROTECTED = (await api("/api/config")).safety.protected.map((p) => { const [n, b] = p.network.split("/"); return [ip4(n), Number(b ?? 32)]; }); } catch (_) { /* keep */ }
+}
+
+// ------------------------------------------------------------ status banner
+function computeStatus(o, h, dets) {
+  const bad = [], warn = [], good = [];
+  const be = (n) => (h.backends || []).find((b) => b.backend === n) || {};
+  if (!be("opnsense").reachable) bad.push("FW01 firewall API is not reachable"); else good.push("FW01 firewall reachable");
+  if (!be("waf").reachable) bad.push("WAF is not reachable"); else good.push("WAF reachable");
+  if (h.model_error) bad.push("Model error: " + h.model_error);
+  const stale = Object.entries((o.telemetry || {}).sensors || {}).filter(([, v]) => v.stale).map(([k]) => k);
+  if (stale.length) bad.push(`Sensor${stale.length > 1 ? "s" : ""} silent: ${stale.join(", ")}`); else good.push("all sensors reporting");
+  if (o.telemetry_degraded && !stale.length) warn.push("Telemetry degraded");
+  const hot = (o.live_sources || []).filter((s) => s.risk >= 45);
+  hot.forEach((s) => warn.push(`Suspicious source ${s.source_ip || s.source} (risk ${fmt(s.risk, 0)})`));
+  const recent = (dets || []).filter((d) => !isProtected(d.source_ip)).filter((d) => Date.now() - new Date(d.window_end).getTime() < 15 * 60 * 1000);
+  if (recent.length) warn.push(`${recent.length} anomalous window${recent.length > 1 ? "s" : ""} in the last 15 min`);
+  if (o.pending_approval) warn.push(`${o.pending_approval} decision${o.pending_approval > 1 ? "s" : ""} waiting for your approval`);
+  if (o.active_policies.length) good.push(`${o.active_policies.length} active restriction${o.active_policies.length > 1 ? "s" : ""}`);
+  good.push(o.mode === "monitor" ? "monitor mode: nothing is being enforced" : `${o.mode} mode`);
+  const level = bad.length ? "bad" : hot.length ? "alert" : warn.length ? "warn" : "ok";
+  const title = { bad: "System needs attention", alert: "Possible malicious activity", warn: "Watch: something needs a look", ok: "All clear" }[level];
+  const sub = { bad: "A component is down or silent; detection may be blind.", alert: "A source is behaving like an attacker. Open Threats.", warn: "Nothing dangerous detected, but review the items below.", ok: "No suspicious activity. Firewall, WAF and sensors are healthy." }[level];
+  return { level, title, sub, items: [...bad, ...warn].concat(level === "ok" || !bad.length ? good : []) };
+}
+async function renderStatus() {
+  if (!overview) return;
+  if (!PROTECTED.length) await loadProtected();
+  let h = {}, dets = [];
+  try { h = await api("/api/health"); } catch (_) { /* keep empty */ }
+  try { dets = await api("/api/detections?limit=30&anomalous=true"); } catch (_) { /* optional */ }
+  const s = computeStatus(overview, h, dets);
+  const el = $("#status");
+  el.className = "status " + s.level;
+  el.querySelector(".status-title").textContent = s.title;
+  el.querySelector(".status-sub").textContent = s.sub;
+  $("#status-reasons").innerHTML = s.items.map((i) => `<li>${esc(i)}</li>`).join("");
+  document.title = (s.level === "ok" ? "" : "● ") + "AFW Control Plane";
+}
+
+// ------------------------------------------------------------ threats + network + config
+async function renderDetections() {
+  if (!PROTECTED.length) await loadProtected();
+  let ds;
+  try { ds = await api("/api/detections?limit=25&anomalous=true"); } catch (_) { return; }
+  const tb = $("#detections tbody");
+  if (!ds.length) { tb.innerHTML = `<tr><td colspan="5" class="empty">No anomalous windows recorded. The detectors are running; they flag nothing right now.</td></tr>`; return; }
+  tb.innerHTML = ds.map((d) => `<tr><td>${tShort(d.window_end)}</td><td class="mono">${esc(d.source_ip)}${isProtected(d.source_ip) ? " " + badge("var(--neutral)", "lab infrastructure") : ""}</td><td>${esc(d.detector)}</td><td class="num">${fmt(d.score, 3)} / ${fmt(d.threshold, 3)}</td><td class="num">${esc(d.n_requests)}</td></tr>`).join("");
+}
+function renderNetSummary() {
+  const c = ((overview || {}).telemetry || {}).counts || {};
+  const box = (k, v, n) => `<div class="fwbox"><div class="k">${esc(k)}</div><div class="v">${esc(v ?? 0)}</div><div class="n">${esc(n)}</div></div>`;
+  $("#netsummary").innerHTML = `<div class="fwgrid">
+    ${box("Connections seen", c.net_flow, "flows reported by FW01's IDS sensor")}
+    ${box("DNS lookups", c.net_dns, "names resolved by lab clients")}
+    ${box("TLS sessions", c.net_tls, "encrypted sessions observed")}
+    ${box("Unfamiliar behaviour", c.net_unfamiliar, "windows unlike the benign baseline")}
+    ${box("Firewall-dropped packets", c.pf_other, "pf log lines received")}
+    ${box("Telemetry messages", c.received, "all sensors, since start")}
+  </div>`;
+}
+async function renderConfig() {
+  let x;
+  try { x = await api("/api/config"); } catch (_) { return; }
+  const row = (k, v) => `<dt>${esc(k)}</dt><dd class="mono">${esc(v)}</dd>`;
+  const r = x.risk, s = x.safety;
+  $("#config").innerHTML = `<div class="grid2">
+    <div><h3>Risk thresholds (evidence score 0–100)</h3><dl class="kv">${row("watch", r.watch)}${row("rate-limit", r.rate_limit)}${row("block", r.block)}${row("escalate", r.escalate)}${row("history half-life", r.history_half_life_s + " s")}${row("base block time", r.base_block_s + " s")}</dl>
+      <h3>Detection window</h3><dl class="kv">${row("length / hop", `${x.window.length_s} s / ${x.window.hop_s} s`)}${row("min requests", x.window.min_requests)}</dl>
+      <h3>Protected application</h3><dl class="kv">${x.services.map((v) => row(v.name, `${v.address}:${v.port}`)).join("")}${x.applications.map((v) => row(v.app_id, `${v.routes} allowed routes`)).join("")}</dl></div>
+    <div><h3>Safety limits</h3><dl class="kv">${row("shortest action", s.min_duration_s + " s")}${row("longest automatic", s.max_auto_duration_s + " s")}${row("longest any", s.max_duration_s + " s")}${row("max active policies", s.max_active_policies)}${row("max auto actions / min", s.max_auto_actions_per_minute)}${row("may apply automatically", s.auto_kinds.join(", "))}</dl>
+      <h3>Never blocked (protected)</h3><div class="table-wrap short"><table><tbody>${s.protected.map((p) => `<tr><td class="mono">${esc(p.network)}</td><td>${esc(p.reason)}</td></tr>`).join("")}</tbody></table></div></div>
+  </div>`;
+}
+
+
+async function slow() { renderStatus(); renderDetections(); renderConfig(); renderControls(); renderFirewall(); renderPolicies(); renderAdaptation(); renderShadow(); renderChallenger(); renderIdsOnly(); renderModels(); renderNetwork(); renderAuthCtl(); renderExperiments(); renderAudit(); if (selected) renderBaseline(); }
+
+loadRole().then(() => { refresh(); slow(); });
 setInterval(refresh, 2000);
 setInterval(slow, 6000);

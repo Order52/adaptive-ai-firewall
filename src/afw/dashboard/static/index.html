@@ -12,10 +12,30 @@
   <div class="chips" id="chips"></div>
   <button id="token-btn" class="ghost" type="button">API token</button>
 </header>
+<form id="token-form" class="tokenbar" hidden>
+  <label for="token-input">API token (viewer role is enough to watch)</label>
+  <input id="token-input" type="password" autocomplete="off" spellcheck="false" placeholder="paste token">
+  <button type="submit">Connect</button>
+</form>
+<nav id="nav" class="nav" aria-label="Views" role="tablist"></nav>
 
 <main>
+  <section class="status" id="status" aria-live="polite"><div class="status-main"><span class="status-dot"></span><div><div class="status-title">Connecting…</div><div class="status-sub"></div></div></div><ul class="status-reasons" id="status-reasons"></ul></section>
+  <div class="tab" data-tab="overview" hidden>
   <section class="tiles" id="tiles" aria-label="Key figures"></section>
 
+  <section class="card" id="fw-card">
+    <h2>Firewall &amp; enforcement (live)</h2>
+    <p class="sub">What FW01 (OPNsense) and the WAF are enforcing right now, read back from the devices. Updated every 6 s.</p>
+    <div id="fw-live"><div class="empty">Loading…</div></div>
+  </section>
+  <section class="tiles" id="tiles" aria-label="Key figures"></section>
+
+  <section class="card" id="fw-card">
+    <h2>Firewall &amp; enforcement (live)</h2>
+    <p class="sub">What FW01 (OPNsense) and the WAF are enforcing right now, read back from the devices. Updated every 6 s.</p>
+    <div id="fw-live"><div class="empty">Loading…</div></div>
+  </section>
   <section class="grid2">
     <article class="card">
       <h2>Highest risk per 5 s window</h2>
@@ -28,7 +48,13 @@
       <div id="req-chart" class="chart"></div>
     </article>
   </section>
-
+  </div>
+  <div class="tab" data-tab="threats" hidden>
+  <section class="card">
+    <h2>Detections and security events</h2>
+    <p class="sub">Windows the detectors judged anomalous, newest first. A detection is a signal, not a verdict: a block needs two independent evidence categories.</p>
+    <div class="table-wrap"><table id="detections"><thead><tr><th>Time</th><th>Source</th><th>Detector</th><th class="num">Score / threshold</th><th>Requests</th></tr></thead><tbody></tbody></table></div>
+  </section>
   <section class="grid2">
     <article class="card">
       <h2>Live sources</h2>
@@ -43,59 +69,25 @@
       <div id="baseline" class="chart"></div>
     </article>
   </section>
-
-  <section class="card">
-    <h2>Adaptive policy decisions</h2>
-    <p class="sub">Lifecycle: proposed → validated → applying → applied_unverified → enforced → expired / rolled_back. “Enforced” needs read-back and traffic verification.</p>
-    <div class="table-wrap"><table id="policies"><thead><tr>
-      <th>Updated</th><th>Kind</th><th>Target</th><th>State</th><th>Origin / mode</th><th>Verification</th><th>Expires</th><th></th>
-    </tr></thead><tbody></tbody></table></div>
-  </section>
-
-  <section class="card" id="explain-card" hidden>
-    <h2>Decision explanation <span class="muted" id="explain-id"></span></h2>
-    <div id="explain"></div>
-  </section>
-
-  <section class="grid2">
-    <article class="card">
-      <h2>Controlled adaptation</h2>
-      <p class="sub">Shadow learning from reputation-gated traffic; drift reports; candidate evaluation gates.</p>
-      <div id="adaptation"></div>
-    </article>
-    <article class="card">
-      <h2>Models &amp; profiles</h2>
-      <p class="sub">Versioned artifacts with validation metrics (thresholds chosen on validation runs only).</p>
-      <div id="models"></div>
-    </article>
-  </section>
-
-  <section class="grid2">
-    <article class="card">
-      <h2>Online learning (shadow challenger)</h2>
-      <p class="sub">Learns only from mTLS-authenticated, untainted, corroborated benign windows. Shadow only: never influences enforcement.</p>
-      <div id="shadow"></div>
-    </article>
-    <article class="card">
-      <h2>Promotion gate &amp; probation</h2>
-      <p class="sub">A challenger becomes champion only after a passing gate evaluation and a human admin promotion; probation rolls back automatically.</p>
-      <div id="challenger"></div>
-    </article>
-  </section>
-
   <section class="grid2">
     <article class="card">
       <h2>IDS-only sources</h2>
       <p class="sub">Sources seen by the IDS without HTTP windows. Single-category evidence: watched at most, never blocked on IDS alone.</p>
       <div id="ids-only"></div>
     </article>
-    <article class="card">
-      <h2>GeoIP</h2>
-      <p class="sub">Real country lookup, preview and enforcement on FW01 (DB-IP Lite, CC BY 4.0). Simulated lab mappings stay labelled SIMULATED.</p>
-      <div id="geo"></div>
-    </article>
   </section>
-
+  <section class="card">
+    <h2>Login controls &amp; shared-address protection</h2>
+    <p class="sub">Account-aware AUTH controls, scoped to the login endpoint only (A3, ADR-044): throttle then deny login, never the whole site. An address used by ≥ 3 accounts in the last hour is shared, so a block becomes a human-approved strict rate limit (ADR-043). Reconciled live state from the WAF/firewall backends.</p>
+    <div id="authctl"></div>
+  </section>
+  </div>
+  <div class="tab" data-tab="network" hidden>
+  <section class="card">
+    <h2>Network at a glance</h2>
+    <p class="sub">What FW01's sensors have seen since the controller started. Counts only; per-source behaviour is below.</p>
+    <div id="netsummary"></div>
+  </section>
   <section class="grid2">
     <article class="card">
       <h2>Network novelty (shadow)</h2>
@@ -108,19 +100,67 @@
       <div id="netblocks"></div>
     </article>
   </section>
-
-  <section class="card">
-    <h2>Login controls &amp; shared-address protection</h2>
-    <p class="sub">Account-aware AUTH controls, scoped to the login endpoint only (A3, ADR-044): throttle then deny login, never the whole site. An address used by ≥ 3 accounts in the last hour is shared, so a block becomes a human-approved strict rate limit (ADR-043). Reconciled live state from the WAF/firewall backends.</p>
-    <div id="authctl"></div>
+  </div>
+  <div class="tab" data-tab="firewall" hidden>
+  <section class="card" id="controls-card">
+    <h2>Controls</h2>
+    <p class="sub">Every action is checked by the safety validator, asked to confirm, and recorded in the audit trail. Protected addresses are always refused.</p>
+    <div id="controls"></div>
   </section>
-
+  <section class="card">
+    <h2>Adaptive policy decisions</h2>
+    <p class="sub">Lifecycle: proposed → validated → applying → applied_unverified → enforced → expired / rolled_back. “Enforced” needs read-back and traffic verification.</p>
+    <div class="table-wrap"><table id="policies"><thead><tr>
+      <th>Updated</th><th>Kind</th><th>Target</th><th>State</th><th>Origin / mode</th><th>Verification</th><th>Expires</th><th></th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+  <section class="card" id="explain-card" hidden>
+    <h2>Decision explanation <span class="muted" id="explain-id"></span></h2>
+    <div id="explain"></div>
+  </section>
+  <section class="card">
+    <h2>Configuration in force</h2>
+    <p class="sub">The policy and safety settings the controller is running with. Read-only; change them in <code>config/lab.yaml</code> and deploy.</p>
+    <div id="config"></div>
+  </section>
+  <section class="card" id="geo-card">
+      <h2>GeoIP</h2>
+      <p class="sub">Real country lookup, preview and enforcement on FW01 (DB-IP Lite, CC BY 4.0). Simulated lab mappings stay labelled SIMULATED.</p>
+      <div id="geo"></div>
+  </section>
+  </div>
+  <div class="tab" data-tab="learning" hidden>
+  <section class="grid2">
+    <article class="card">
+      <h2>Controlled adaptation</h2>
+      <p class="sub">Shadow learning from reputation-gated traffic; drift reports; candidate evaluation gates.</p>
+      <div id="adaptation"></div>
+    </article>
+    <article class="card">
+      <h2>Models &amp; profiles</h2>
+      <p class="sub">Versioned artifacts with validation metrics (thresholds chosen on validation runs only).</p>
+      <div id="models"></div>
+    </article>
+  </section>
+  <section class="grid2">
+    <article class="card">
+      <h2>Online learning (shadow challenger)</h2>
+      <p class="sub">Learns only from mTLS-authenticated, untainted, corroborated benign windows. Shadow only: never influences enforcement.</p>
+      <div id="shadow"></div>
+    </article>
+    <article class="card">
+      <h2>Promotion gate &amp; probation</h2>
+      <p class="sub">A challenger becomes champion only after a passing gate evaluation and a human admin promotion; probation rolls back automatically.</p>
+      <div id="challenger"></div>
+    </article>
+  </section>
   <section class="card">
     <h2>Static vs statistical vs ML-assisted experiments</h2>
     <p class="sub">Results recorded by <code>afw experiment</code> from captured lab runs. Empty until experiments are run. Predeclared model-selection results (P6/P7/A3, NV1/NV2) are offline and live in <code>RESULTS.md</code>, not here.</p>
     <div id="experiments"></div>
   </section>
-
+  </div>
+  <div class="tab" data-tab="system" hidden>
   <section class="grid2">
     <article class="card">
       <h2>Telemetry health</h2>
@@ -131,6 +171,7 @@
       <div class="table-wrap short"><table id="audit"><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Subject</th></tr></thead><tbody></tbody></table></div>
     </article>
   </section>
+  </div>
 </main>
 <div id="tooltip" role="tooltip" hidden></div>
 <script src="/static/app.js"></script>
