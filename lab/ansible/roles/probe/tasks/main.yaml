@@ -1,3 +1,5 @@
+- name: Editor for interactive work on probe hosts
+  ansible.builtin.apt: {name: vim, state: present}
 - name: Egress verification targets (single source of truth is config/lab.yaml, ADR-036)
   ansible.builtin.set_fact:
     probe_egress: >-
