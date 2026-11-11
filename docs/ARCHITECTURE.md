@@ -1,5 +1,8 @@
 # Architecture
 
+*For a plain-language walkthrough, read `HOW_IT_WORKS.md` first. This page is the
+precise technical reference: exact flows, trust boundaries and failure behavior.*
+
 AI-Adaptive-Firewall is a control plane (CTRL01) that sits on top of mature
 enforcement and sensing engines in an isolated GNS3 lab. The engines are OPNsense pf
 with Suricata on FW01, and an OWASP CRS WAF on WAF01. The control plane learns how the

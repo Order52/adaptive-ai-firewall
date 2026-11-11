@@ -1,6 +1,8 @@
 # AI-Adaptive-Firewall — explain it in 5 minutes
 
-A plain-language briefing for talking to your supervisor or teammates. For deep detail see `ARCHITECTURE.md`, `THREAT_MODEL.md`, `SECURITY_AND_LIMITATIONS.md`.
+A plain-language briefing for talking to your supervisor or teammates. For the fuller
+mechanics (still plain-language) see `HOW_IT_WORKS.md`. For deep technical detail see
+`ARCHITECTURE.md`, `THREAT_MODEL.md`, `SECURITY_AND_LIMITATIONS.md`.
 
 ## One sentence
 
