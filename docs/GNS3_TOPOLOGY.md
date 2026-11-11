@@ -4,6 +4,8 @@ _Live, verified against the running GNS3 project `AI-Adaptive-Firewall`
 (API v2, 127.0.0.1:3080) on 2026-10-17. Reproduce the canvas with
 `afw lab layout`._
 
+![AI-Adaptive-Firewall lab topology, colour-coded by zone](figures/fig-topology.png)
+
 ## Logical architecture
 
 ```
