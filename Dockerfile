@@ -16,7 +16,7 @@
 
 FROM ghcr.io/astral-sh/uv:0.13.1 AS uv
 
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.15-slim-bookworm AS builder
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 WORKDIR /app
@@ -31,7 +31,7 @@ COPY src ./src
 COPY README.md ./
 RUN uv sync --locked --no-dev
 
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.15-slim-bookworm AS runtime
 
 RUN groupadd --system afw && useradd --system --gid afw --home-dir /app afw
 WORKDIR /app
