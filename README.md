@@ -97,6 +97,14 @@ Modular monolith with hexagonal boundaries (`domain` / `ports` / adapters); SQLA
 confined to `persistence`; everything crossing a boundary is a typed Pydantic model.
 Full breakdown of flows and trust boundaries: `docs/ARCHITECTURE.md`.
 
+### The lab network itself
+
+![AI-Adaptive-Firewall lab topology](docs/figures/fig-topology.png)
+*16 real GNS3 nodes — 7 VMs, 6 zone switches, 2 host connectors — colour-coded by
+security zone exactly as the live canvas is. Every arrow is a path the firewall's own
+policy enforces, verified by 34 automated reachability checks (`afw lab verify`), not
+just drawn this way. Full detail: `docs/GNS3_TOPOLOGY.md`.*
+
 ![Adaptation lifecycle observed live on real traffic](docs/figures/fig-c-adaptation-lifecycle.png)
 *This is the adaptive loop in practice, captured on genuine lab traffic: real users
 exercise new routes, drift is detected, a candidate model is trained and put through

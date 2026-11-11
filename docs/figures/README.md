@@ -12,6 +12,7 @@ or fabricated numbers. Each is provided as PDF (for LaTeX `\includegraphics`) an
 | **D** | `fig-d-soak-stability` | `soak-*.md` / `samples.tsv` (sustained-load soak) | Controller RSS and tick latency stay flat across a >60-minute continuous benign soak — no leak, no drift, benign traffic never restricted. |
 | **E** | `fig-e-dashboard-live` (PNG) | live dashboard render (`dashboard-live-2026-10-20.md`) | The operator dashboard populated with **real** profile-v2 data: stat tiles, live risk, policy-lifecycle history, model/profile table, candidate-evaluation gates, M0/M1/M2 experiments, telemetry health, audit trail — renders with no console errors. |
 | **F** | `fig-f-explainable-detection` | `dashboard-live-2026-10-20.md` (live assessment `risk-7b3ee514524a`) | **Explainable AI on live traffic**: occlusion feature attributions show *why* the health-probe source scored elevated (unknown route, never logs in, sparse) — in monitor mode, observed not blocked. |
+| **Topology** | `fig-topology` (SVG, hand-authored) | `lab/gns3/topology.yaml`, `GNS3_TOPOLOGY.md`, `src/afw/lab/layout.py` (zone colours match the live canvas exactly) | The full lab network, zone-by-zone, for README/GNS3_TOPOLOGY.md. Diagram, not a data figure — regenerate by editing the SVG directly. |
 
 ## Regenerate
 
