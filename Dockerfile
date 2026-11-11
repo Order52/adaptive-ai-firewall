@@ -14,8 +14,11 @@
 # image — they are supplied at runtime via volumes/env vars, same as the
 # bare-metal CTRL01 deployment (see docs/DEPLOYMENT.md).
 
-FROM ghcr.io/astral-sh/uv:0.13.1-python3.12-bookworm-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.13.1 AS uv
 
+FROM python:3.12-slim-bookworm AS builder
+
+COPY --from=uv /uv /uvx /usr/local/bin/
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
