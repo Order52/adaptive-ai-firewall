@@ -1,7 +1,8 @@
 # Architecture
 
 *For a plain-language walkthrough, read `HOW_IT_WORKS.md` first. This page is the
-precise technical reference: exact flows, trust boundaries and failure behavior.*
+precise technical reference: exact flows, trust boundaries and failure behavior.
+How this code is built, tested and shipped as a container: `CI_CD.md`.*
 
 AI-Adaptive-Firewall is a control plane (CTRL01) that sits on top of mature
 enforcement and sensing engines in an isolated GNS3 lab. The engines are OPNsense pf

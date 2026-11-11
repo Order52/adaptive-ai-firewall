@@ -1,5 +1,9 @@
 # AI-Adaptive-Firewall
 
+[![CI](https://github.com/Order52/adaptive-ai-firewall/actions/workflows/ci.yml/badge.svg)](https://github.com/Order52/adaptive-ai-firewall/actions/workflows/ci.yml)
+[![CD](https://github.com/Order52/adaptive-ai-firewall/actions/workflows/cd.yml/badge.svg)](https://github.com/Order52/adaptive-ai-firewall/actions/workflows/cd.yml)
+[![CodeQL](https://github.com/Order52/adaptive-ai-firewall/actions/workflows/codeql.yml/badge.svg)](https://github.com/Order52/adaptive-ai-firewall/actions/workflows/codeql.yml)
+
 **An application-aware firewall that learns what "normal" traffic looks like for a
 specific web app, scores deviations from it, and acts only through a chain of
 human-governed safety checks.** Built and evaluated end-to-end in an isolated GNS3
@@ -31,6 +35,7 @@ audit trail, all on one screen.*
 | What it defends against, and how | [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) |
 | What's proven, what's limited, and what's honestly unfinished | [`docs/SECURITY_AND_LIMITATIONS.md`](docs/SECURITY_AND_LIMITATIONS.md) |
 | Full milestone-by-milestone status and acceptance gates | [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) |
+| How this is tested, scanned, and shipped as a container | [`docs/CI_CD.md`](docs/CI_CD.md) |
 
 ## What's real vs. simulated
 
@@ -69,6 +74,15 @@ afw experiment replay --datasets <held-out>    # model comparison
 # controller + dashboard (on CTRL01 via systemd, or locally)
 afw serve                     # :8080, HTTPS when AFW_TLS_CERT/KEY set; dashboard at /
 claude mcp list                # confirm the `afw` MCP server is Connected
+```
+
+Controller as a container (built and vulnerability-scanned by CD on every merge
+to `main`; see `docs/CI_CD.md`):
+```bash
+docker pull ghcr.io/order52/adaptive-ai-firewall:latest
+docker run -p 8080:8080 -v $PWD/config:/app/config:ro \
+  -v afw-secrets:/app/secrets -v afw-var:/app/var \
+  ghcr.io/order52/adaptive-ai-firewall:latest
 ```
 
 Dashboard over an SSH tunnel:
@@ -186,6 +200,7 @@ The "Start here" table above covers what most readers need. Everything else:
 | `docs/OPERATOR_GUIDE.md`, `docs/MCP_GUIDE.md` | Day-to-day operation |
 | `docs/FINAL_DEMO.md` | Repeatable demonstration script |
 | `docs/GNS3_TOPOLOGY.md` | Live network topology |
+| `docs/CI_CD.md` | Lint/type/test/build pipeline, image scanning, container publishing |
 | `docs/engineering/` | Milestone design notes and individual scenario/session reports (engineering history) |
 | `docs/archive/` | Superseded status snapshots, kept for history only |
 
