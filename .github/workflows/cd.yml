@@ -67,7 +67,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         env:
           # authenticates the trivy-db pull from ghcr.io, which otherwise hits
           # the anonymous-pull rate limit on shared GitHub-hosted runners
