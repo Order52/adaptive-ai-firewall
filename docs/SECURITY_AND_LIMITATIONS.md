@@ -4,7 +4,8 @@ Threats, adversaries and mitigations: `THREAT_MODEL.md`. Trust boundaries and
 communication flows: `ARCHITECTURE.md` §3. This page lists the safety invariants and
 the known gaps — stated plainly, including the ones that don't flatter the project,
 because an honest limitations section is part of the engineering, not a weakness to
-hide.
+hide. Supply-chain and build-pipeline checks (CodeQL, image scanning, dependency
+updates) are covered in `CI_CD.md`.
 
 ## Safety invariants (enforced in code, tested)
 
