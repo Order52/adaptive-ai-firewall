@@ -2,6 +2,8 @@
 
 Scope: the GNS3 lab and the AFW control plane. Trust boundaries and flows are in
 `ARCHITECTURE.md` §3. Gaps and operational risks are in `SECURITY_AND_LIMITATIONS.md`.
+For *why* this threat model looks the way it does — in plain language — see
+`HOW_IT_WORKS.md` and `EXPLAIN_THIS_PROJECT.md`.
 
 ## 1. Assets
 

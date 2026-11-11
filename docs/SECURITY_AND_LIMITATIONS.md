@@ -2,7 +2,9 @@
 
 Threats, adversaries and mitigations: `THREAT_MODEL.md`. Trust boundaries and
 communication flows: `ARCHITECTURE.md` §3. This page lists the safety invariants and
-the known gaps.
+the known gaps — stated plainly, including the ones that don't flatter the project,
+because an honest limitations section is part of the engineering, not a weakness to
+hide.
 
 ## Safety invariants (enforced in code, tested)
 
