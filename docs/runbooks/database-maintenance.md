@@ -10,7 +10,7 @@ feedback, which are kept. Freed pages are returned to the filesystem incremental
 ```bash
 ssh -F ~/.config/afw/ssh_config ctrl01 'sudo ls -lh /var/lib/afw/afw.sqlite3; df -h /var/lib/afw | tail -1'
 ```
-Alert if disk use exceeds 80 %.
+Alert if disk use exceeds 80 % (`afw_data_disk_used_ratio`). `/api/readyz` fails its `disk_space` check above 90 % used or under 500 MB free (drill F, `docs/SLO.md`).
 
 **Compact once (offline, about 5 s per 500 MB; needs free space equal to the live data)**
 ```bash

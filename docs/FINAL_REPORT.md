@@ -113,7 +113,7 @@ are unchanged and still govern what may be claimed about detection).
 |---|---|---|
 | Quality gates | Lint, strict typing, 441 tests with a coverage floor (74.5 % measured, floor 73 %), dependency audit, secret scan, CodeQL, blocking image-vulnerability gate, pinned Actions, SBOM; verified locally, first GitHub run pending | `CI_CD.md`; a date-dependent test and a vulnerable dependency (CVE-2026-126360) were found and fixed |
 | Security review | 21 checks pass, 3 accepted risks (SSH password login, evidence-frozen patching, five non-expiring legacy tokens), 0 open | `SECURITY_CHECKLIST.md`; controller systemd exposure 8.3 to 2.9; per-route role matrix tested |
-| Reliability | Crash recovery 9.3 s; silent sensor detected at 151 s and cleared in 4 s; rollback and roll-forward 16 s each | `SLO.md` drills A-C |
+| Reliability | Crash recovery 9.3 s; silent sensor detected at 151 s and cleared in 4 s; rollback and roll-forward 16 s each; full disk and FW01 reboot drilled with a safe end state | `SLO.md` drills A-G |
 | Capacity | Ingestion ceiling about 2 500 requests/s, loud degradation above it; API 1 283 requests/s, p95 35 ms (synthetic, local) | `SLO.md`; `scripts/loadtest.py` |
 | Data | Database 2.7 GB to 517 MB; retention added for the one unbounded table | `runbooks/database-maintenance.md` |
 | Recovery | Verified encrypted backups; restore script with pre-restore copy; certificate rotation rehearsed | `runbooks/backup-restore.md`, `credential-rotation.md` |

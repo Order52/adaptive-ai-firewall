@@ -20,5 +20,5 @@ api() { curl -s --cacert $CA -H "Authorization: Bearer $TOK" "https://10.77.50.1
 | Database large, disk filling | [database-maintenance.md](database-maintenance.md) |
 
 Monitoring: scrape `/api/metrics` (viewer token) and alert on `afw_ready == 0`,
-`afw_sensor_stale == 1`, `afw_telemetry_degraded == 1`, `afw_tls_certificate_days_left < 30`,
+`afw_sensor_stale == 1`, `afw_telemetry_degraded == 1`, `afw_tls_certificate_days_left < 30`, `afw_data_disk_used_ratio > 0.8`,
 and `afw_backend_reachable == 0`. Targets: `docs/SLO.md`.

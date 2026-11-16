@@ -15,7 +15,7 @@ api /api/overview | python3 -c 'import json,sys;print(json.load(sys.stdin)["tele
 |---|---|---|
 | `waf` | `ssh waf01 'systemctl status afw-heartbeat.timer rsyslog'` | `sudo systemctl restart afw-heartbeat.timer rsyslog` |
 | `app` | `ssh app01 'systemctl status afw-heartbeat.timer rsyslog'` | same on `app01` |
-| `ids` (FW01) | `afw lab verify`; `pgrep suricata` on FW01 empty means Suricata died (memory) | restart the IDS service from the OPNsense UI or `afw lab provision-ids`; if FW01 is wedged, reboot via the OPNsense API (RAM was raised to 2.5 GB on 2026-10-29) |
+| `ids` (FW01) | `afw lab verify`; `pgrep suricata` on FW01 empty means Suricata died (memory) | restart the IDS service from the OPNsense UI or `afw lab provision-ids`; if FW01 is wedged, reboot via the OPNsense API with the provisioning credential (`~/.config/afw/opnsense/provisioner.*`; the controller's own API user cannot reboot it, by design). RAM was raised to 2.5 GB on 2026-10-29; a reboot was drilled on 2026-11-16 (`SLO.md` drill G) |
 | all three | controller restarted recently | wait up to 150 s: a sensor that has not reconnected since start counts as stale |
 
 **Verify:** `api /api/readyz` returns `{"ready": true}` (about 5 s after the heartbeat returns).

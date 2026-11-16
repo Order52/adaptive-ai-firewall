@@ -96,7 +96,7 @@ Output: a one-page "security review result" listing pass / fail / accepted-risk 
 
 **Status 2026-11-16: implemented and exercised on the live lab on branch
 `phase4-operations`; evidence in `SLO.md` and `runbooks/`. 4.5 was already fixed on
-2026-10-29 (FW01 at 2.5 GB RAM plus swap). The FW01-reboot and full-disk drills were not run.**
+2026-10-29 (FW01 at 2.5 GB RAM plus swap). The full-disk and FW01-reboot drills were run on 2026-11-16 (`SLO.md` F, G).**
 
 | # | Task | Done when |
 |---|---|---|

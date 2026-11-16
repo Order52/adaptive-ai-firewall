@@ -70,7 +70,7 @@ its operation were brought to release quality; none of this changes the detectio
   size cap, security headers, hardened SSH, sandboxed controller (systemd exposure 8.3 to 2.9).
 - *Operations* (`SLO.md`, `runbooks/`): readiness and Prometheus metrics endpoints, request ids
   and structured logs, retention that bounds the database (2.7 GB to 517 MB), measured capacity
-  (about 2 500 requests/s ingestion ceiling with loud degradation above it), five failure drills,
+  (about 2 500 requests/s ingestion ceiling with loud degradation above it), seven failure drills,
   verified backup and restore, rehearsed rollback (16 s) and certificate rotation.
 - *What the drills found:* the first hand-typed restore runbook failed (stale WAL, controller left
   stopped about 4 minutes); it was replaced by a verified script. Reported, not hidden.
