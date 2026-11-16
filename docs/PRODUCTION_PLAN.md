@@ -94,6 +94,10 @@ Output: a one-page "security review result" listing pass / fail / accepted-risk 
 
 ## Phase 4: Reliability and operations (about 2-3 days)
 
+**Status 2026-11-16: implemented and exercised on the live lab on branch
+`phase4-operations`; evidence in `SLO.md` and `runbooks/`. 4.5 was already fixed on
+2026-10-29 (FW01 at 2.5 GB RAM plus swap). The FW01-reboot and full-disk drills were not run.**
+
 | # | Task | Done when |
 |---|---|---|
 | 4.1 | `/healthz` (liveness) and `/readyz` (DB, sensors fresh, FW reachable); confirm what exists in `api/app.py`, add the rest | Both return correct state in a test |

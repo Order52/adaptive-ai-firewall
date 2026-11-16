@@ -144,3 +144,12 @@ block X", "compare M1 and M2", "restart the WAF").
 
 All under `~/.config/afw/` (never in Git): `gns3.env`, `lab_ed25519`, `ssh_config`,
 `opnsense/`, `pki/` (lab CA + leaf certs), `tokens/`, `api/` (API tokens + hashes).
+
+## Operations pack (Phase 4)
+
+- Readiness `GET /api/readyz`; metrics `GET /api/metrics` (Prometheus text, viewer token).
+- Service levels, capacity numbers and the failure drills: `SLO.md`.
+- Runbooks (sensor stale, controller down, false positive, model rollback, upgrade and rollback,
+  backup and restore, credential rotation, database maintenance): `runbooks/README.md`.
+- Scripts: `scripts/backup_controller.sh`, `scripts/restore_controller.sh`,
+  `scripts/make_offhost_backup.sh`, `scripts/loadtest.py`.

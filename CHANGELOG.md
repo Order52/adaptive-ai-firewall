@@ -20,6 +20,11 @@ versioning: [SemVer](https://semver.org/). Detailed milestone history is in
   (off by default), extra systemd sandboxing for the controller.
 - `docs/SECURITY_CHECKLIST.md`: Phase 3 security review with evidence and accepted risks.
 
+- Operations: `/api/readyz`, `/api/metrics`, request ids and structured request logs,
+  assessment retention (90 days, keeps rows cited by policies or feedback) with incremental
+  vacuum, `scripts/backup_controller.sh` and `scripts/restore_controller.sh`,
+  `scripts/loadtest.py`, `docs/SLO.md`, `docs/runbooks/`.
+
 ### Changed
 - `GET /api/health` returns only `{status, version}` without a viewer token. Detail
   (mode, backends, telemetry state) now needs a token. Docs and examples updated.
