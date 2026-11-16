@@ -71,7 +71,7 @@ Rotate operator and admin tokens every 90 days. On CTRL01 the token file is depl
 
 ## Not covered (stated plainly)
 
-- `gitleaks` over the full history has not run yet; it runs in CI (`docs/CI_CD.md`).
+- `gitleaks` over the full git history has not run yet; it runs in CI (`docs/CI_CD.md`). As a substitute check on 2026-11-16, `detect-secrets` scanned every tracked text file (including `artifacts/`): no real secrets. The 77 findings are dataset/model SHA-256 hashes in evidence JSON, a fake request id in a test, and code that compares a password field. History before HEAD was pattern-searched only.
 - No external penetration test; no fuzzing beyond the route-level tests above.
 - The audit table is application-append-only (the code exposes `record` and `recent`
   only) but not tamper-proof against someone with database access.
