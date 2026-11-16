@@ -10,13 +10,14 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import psutil
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from afw import __version__
 from afw.api.auth import Principal, Role, TokenStore, require
+from afw.api.hardening import HardeningMiddleware
 from afw.container import Container
 from afw.domain.adaptation import Feedback, FeedbackLabel
 from afw.domain.common import new_id, utcnow
@@ -47,9 +48,12 @@ _PROCESS = psutil.Process(os.getpid())
 _STARTED = time.time()
 
 
+APP_ID = Field(default="rental", pattern=r"^[a-z0-9_-]{1,32}$")
+
+
 class IntentRequest(BaseModel):
     kind: PolicyKind
-    app_id: str = "rental"
+    app_id: str = APP_ID
     target: PolicyTarget
     duration_s: int | None = Field(default=None, ge=1)
     rate_profile: RateProfile | None = None
@@ -70,7 +74,7 @@ class ReasonRequest(BaseModel):
 
 class FeedbackRequest(BaseModel):
     label: FeedbackLabel
-    app_id: str = "rental"
+    app_id: str = APP_ID
     source_ip: IPv4Address | None = None
     assessment_id: str | None = None
     policy_id: str | None = None
@@ -80,7 +84,7 @@ class FeedbackRequest(BaseModel):
 class CandidateRequest(BaseModel):
     since: datetime
     until: datetime
-    attack_validation_ids: list[str] = []
+    attack_validation_ids: list[str] = Field(default=[], max_length=50)
 
 
 class ReviewRequest(BaseModel):
@@ -88,13 +92,16 @@ class ReviewRequest(BaseModel):
 
 
 class ChallengerEvalRequest(BaseModel):
-    app_id: str = "rental"
-    benign_dataset_ids: list[str] = Field(min_length=1)
-    attack_dataset_ids: list[str] = []
+    app_id: str = APP_ID
+    benign_dataset_ids: list[str] = Field(min_length=1, max_length=100)
+    attack_dataset_ids: list[str] = Field(default=[], max_length=100)
 
 
 def _intent(c: Container, req: IntentRequest, who: Principal) -> PolicyIntent:
-    app = c.cfg.application(req.app_id)
+    try:
+        app = c.cfg.application(req.app_id)
+    except StopIteration:
+        raise HTTPException(404, "unknown app_id") from None
     return PolicyIntent(
         kind=req.kind,
         app_id=req.app_id,
@@ -133,6 +140,18 @@ def create_app(c: Container) -> FastAPI:
     app = FastAPI(title="AI-Adaptive-Firewall", version=__version__)
     app.state.c = c
     app.state.tokens = TokenStore(c.settings.api_tokens_file)
+    app.add_middleware(
+        HardeningMiddleware,
+        rate_per_min=c.settings.api_rate_per_min,
+        mutations_per_min=c.settings.api_mutations_per_min,
+        auth_failures_per_min=c.settings.api_auth_failures_per_min,
+        max_body_bytes=c.settings.api_max_body_bytes,
+    )
+
+    def known_app(app_id: str) -> str:
+        if not any(a.app_id == app_id for a in c.cfg.applications):
+            raise HTTPException(404, "unknown app_id")
+        return app_id
 
     @app.exception_handler(PolicyError)
     @app.exception_handler(InvalidTransition)
@@ -143,7 +162,17 @@ def create_app(c: Container) -> FastAPI:
 
     # ------------------------------------------------------------- health
     @app.get("/api/health")
-    def health() -> dict[str, Any]:
+    def health(request: Request) -> dict[str, Any]:
+        # Unauthenticated callers (load balancers, uptime probes) learn only liveness.
+        # Mode, backends and model state need a viewer token.
+        header = request.headers.get("authorization", "")
+        who = (
+            app.state.tokens.lookup(header.removeprefix("Bearer ").strip())
+            if header.startswith("Bearer ")
+            else None
+        )
+        if who is None or who.role < Role.VIEWER:
+            return {"status": "ok", "version": __version__}
         rep = c.policy_service.last_report
         return {
             "status": "ok",
@@ -540,6 +569,7 @@ def create_app(c: Container) -> FastAPI:
 
     @app.post("/api/learning/challenger/evaluate")
     def challenger_evaluate(req: ChallengerEvalRequest, who: Admin) -> dict[str, Any]:
+        known_app(req.app_id)
         ev = c.challenger.evaluate(
             req.app_id, req.benign_dataset_ids, req.attack_dataset_ids, who.name
         )
@@ -549,6 +579,7 @@ def create_app(c: Container) -> FastAPI:
     def challenger_promote(
         evaluation_id: str, req: ReviewRequest, who: Admin, app_id: str = "rental"
     ) -> dict[str, Any]:
+        known_app(app_id)
         rec = c.challenger.promote(app_id, evaluation_id, who.name, req.note)
         c.controller.reload()
         return {"active_hst": rec.version, "threshold": rec.threshold}
@@ -557,6 +588,7 @@ def create_app(c: Container) -> FastAPI:
     def challenger_rollback(
         req: ReviewRequest, who: Admin, app_id: str = "rental"
     ) -> dict[str, Any]:
+        known_app(app_id)
         rec = c.challenger.rollback(app_id, who.name, req.note)
         c.controller.reload()
         return {"active_hst": rec.version, "threshold": rec.threshold}
@@ -570,6 +602,7 @@ def create_app(c: Container) -> FastAPI:
             **req.model_dump(),
         )
         c.adaptation.add_feedback(fb)
+        c.audit.record(who.name, "feedback.add", fb.feedback_id, {"label": fb.label.value})
         if c.controller.drift:
             c.controller.drift.note_feedback(fb.label)
         if fb.label is FeedbackLabel.TRUE_POSITIVE and fb.source_ip:
@@ -578,6 +611,7 @@ def create_app(c: Container) -> FastAPI:
 
     @app.post("/api/profiles/{app_id}/candidates")
     def candidate(app_id: str, req: CandidateRequest, who: Operator) -> dict[str, Any]:
+        known_app(app_id)
         tainted = c.controller.reputation.tainted_sources(utcnow())
         res = c.learning.build_candidate(
             app_id, req.since, req.until, tainted, req.attack_validation_ids
@@ -597,18 +631,21 @@ def create_app(c: Container) -> FastAPI:
 
     @app.post("/api/profiles/{app_id}/{version}/promote")
     def promote(app_id: str, version: int, req: ReviewRequest, who: Admin) -> dict[str, Any]:
+        known_app(app_id)
         prof = c.learning.promote(app_id, version, who.name, req.note)
         c.controller.reload()
         return {"trusted_version": prof.version}
 
     @app.post("/api/profiles/{app_id}/{version}/rollback")
     def rollback(app_id: str, version: int, req: ReviewRequest, who: Admin) -> dict[str, Any]:
+        known_app(app_id)
         prof = c.learning.rollback(app_id, version, who.name, req.note)
         c.controller.reload()
         return {"trusted_version": prof.version}
 
     @app.post("/api/profiles/{app_id}/{version}/reject")
     def reject_profile(app_id: str, version: int, req: ReviewRequest, who: Admin):  # type: ignore[no-untyped-def]
+        known_app(app_id)
         return c.learning.reject(app_id, version, who.name, req.note).model_dump(mode="json")
 
     # ----------------------------------------------------------- experiments

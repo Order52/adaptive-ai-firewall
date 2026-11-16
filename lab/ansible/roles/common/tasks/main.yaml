@@ -29,6 +29,45 @@
 - name: Host firewall (default deny inbound; SSH only from MGMT)
   ansible.builtin.template: {src: nftables.conf.j2, dest: /etc/nftables.conf, mode: "0644"}
   notify: reload nftables
+- name: SSH hardening (no root login, short auth window, idle timeout; forwarding stays on for the dashboard tunnel)
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-afw-hardening.conf
+    mode: "0644"
+    content: |
+      # Managed by Ansible (AFW). Authentication method is chosen elsewhere
+      # (scripts/set_vm_passwords.sh); this file only tightens everything around it.
+      PermitRootLogin no
+      PermitEmptyPasswords no
+      MaxAuthTries 3
+      LoginGraceTime 30
+      X11Forwarding no
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+  notify: reload sshd
+- name: Journal drop-in directory
+  ansible.builtin.file: {path: /etc/systemd/journald.conf.d, state: directory, mode: "0755"}
+- name: Persistent, size-bounded journal
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/afw.conf
+    mode: "0644"
+    content: |
+      [Journal]
+      Storage=persistent
+      SystemMaxUse=200M
+      MaxRetentionSec=30day
+  notify: restart journald
+- name: Automatic security updates (off by default because evidence runs need a frozen system)
+  when: auto_security_updates | default(false)
+  block:
+    - ansible.builtin.apt: {name: unattended-upgrades, state: present, update_cache: true}
+    - ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/52afw-unattended
+        mode: "0644"
+        content: |
+          Unattended-Upgrade::Allowed-Origins { "${distro_id}:${distro_codename}-security"; };
+          Unattended-Upgrade::Automatic-Reboot "false";
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
 - name: nftables enabled
   ansible.builtin.systemd: {name: nftables, enabled: true, state: started}
 - ansible.builtin.meta: flush_handlers

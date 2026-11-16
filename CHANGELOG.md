@@ -12,10 +12,21 @@ versioning: [SemVer](https://semver.org/). Detailed milestone history is in
 - CD: blocking Trivy gate on CRITICAL vulnerabilities; CycloneDX SBOM attached to releases.
 - `docs/PRODUCTION_PLAN.md`: plan to finish the project.
 
+- API: token expiry (default 90 days), `afw token list` / `afw token revoke` with immediate
+  effect, rate limiting and authentication-failure lockout, 64 KiB body cap, security
+  headers (CSP, nosniff, frame denial, no-store), audit of feedback submissions.
+- Tests: route-by-route authorization matrix and API hardening tests.
+- Ansible: SSH hardening, bounded persistent journal, optional automatic security updates
+  (off by default), extra systemd sandboxing for the controller.
+- `docs/SECURITY_CHECKLIST.md`: Phase 3 security review with evidence and accepted risks.
+
 ### Changed
+- `GET /api/health` returns only `{status, version}` without a viewer token. Detail
+  (mode, backends, telemetry state) now needs a token. Docs and examples updated.
 - GitHub Actions pinned to commit SHAs (Dependabot keeps them current).
 
 ### Fixed
+- `POST /api/profiles/{unknown}/candidates` returned HTTP 500; unknown applications now give 404.
 - `test_geoip_endpoints_lookup_preview_and_real_country_tables` failed once the fixed
   `2026-10` GeoIP release passed the 45-day staleness limit; it now uses the current month.
 - Upgraded `opentelemetry-api` to remove CVE-2026-126360 (reported by `pip-audit`).

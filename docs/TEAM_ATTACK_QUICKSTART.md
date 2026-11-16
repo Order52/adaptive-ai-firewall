@@ -79,7 +79,7 @@ Runs of one family must be separate sessions, hours apart.
 # host
 uv run afw lab status                    # 8 VMs started
 uv run afw lab verify                    # every check passed (41/41)
-curl -s --cacert ~/.config/afw/pki/lab-ca.pem https://10.77.50.10:8080/api/health \
+curl -s --cacert ~/.config/afw/pki/lab-ca.pem -H "Authorization: Bearer $(cat ~/.config/afw/api/dashboard.token)" https://10.77.50.10:8080/api/health \
   | python3 -c 'import json,sys; h=json.load(sys.stdin); print(h["status"], h["mode"], "degraded" if h["telemetry_degraded"] else "telemetry ok")'
 # expect: ok monitor telemetry ok   (detection runs are in MONITOR mode)
 uv run afw scenario watchdog &           # keep running during the run (stops ATK01 past max duration)

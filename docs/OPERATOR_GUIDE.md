@@ -131,6 +131,13 @@ block X", "compare M1 and M2", "restart the WAF").
 
 - `GET /api/overview` — mode, strategy, live sources, telemetry freshness, resources.
 - `GET /api/health`, `/api/resources`, `/api/audit` — service health, RSS/CPU, audit.
+  `/api/health` without a token returns only `{status, version}` (liveness); mode, backends
+  and model state need a viewer token.
+- API protection (`SECURITY_CHECKLIST.md`): tokens expire (default 90 days; `afw token
+  list|revoke`), requests are rate limited per client (HTTP 429 with `Retry-After`; ten
+  failed authentications in a minute lock the client out for the rest of that minute), bodies
+  above 64 KiB are refused (413). Limits are settings (`AFW_API_RATE_PER_MIN`,
+  `AFW_API_MUTATIONS_PER_MIN`, `AFW_API_AUTH_FAILURES_PER_MIN`, `AFW_API_MAX_BODY_BYTES`).
 - Telemetry panel shows per-sensor heartbeat age (stale after 150 s → evidence degraded) and per-feed counters.
 
 ## Secrets

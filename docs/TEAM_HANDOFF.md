@@ -313,7 +313,7 @@ Internet.
 cd ~/uot/ai-adaptive-firewall
 uv run afw lab status          # all 8 VMs "started"
 uv run afw lab verify          # must say 41/41 checks passed
-curl -s --cacert ~/.config/afw/pki/lab-ca.pem https://10.77.50.10:8080/api/health   # status ok, mode monitor, telemetry_degraded false
+curl -s --cacert ~/.config/afw/pki/lab-ca.pem -H "Authorization: Bearer $(cat ~/.config/afw/api/dashboard.token)" https://10.77.50.10:8080/api/health   # status ok, mode monitor, telemetry_degraded false
 uv run afw scenario watchdog & # stops ATK01 automatically if a run exceeds its maximum time
 ```
 **Keep it modest:** FW01 has limited memory. Do **not** run more than about 50 simulated users at

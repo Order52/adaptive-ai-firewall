@@ -13,7 +13,7 @@ The rule for the whole demo: show what is measured, and say what is not.
 cd ~/uot/ai-adaptive-firewall
 uv run afw lab status          # 8 VMs (APP01 ATK01 CTRL01 DB01 DESK01 FW01 USR01 WAF01) "started"
 uv run afw lab verify          # 41/41 checks passed
-curl -s --cacert ~/.config/afw/pki/lab-ca.pem https://10.77.50.10:8080/api/health | python3 -m json.tool | head -12
+curl -s --cacert ~/.config/afw/pki/lab-ca.pem -H "Authorization: Bearer $(cat ~/.config/afw/api/dashboard.token)" https://10.77.50.10:8080/api/health | python3 -m json.tool | head -12
 #   expect "status": "ok", "mode": "monitor", "telemetry_degraded": false, "model_error": null
 ```
 

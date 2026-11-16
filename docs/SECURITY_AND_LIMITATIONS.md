@@ -30,6 +30,17 @@ updates) are covered in `CI_CD.md`.
 - Dead-controller fail-safe: FW01 flushes dynamic blocks within ~120 s without
   heartbeats (ADR-009).
 
+## API and host protection (Phase 3 review, `SECURITY_CHECKLIST.md`)
+
+- Token expiry, revocation and listing; constant-time hashed lookup; 0600 token file.
+- Per-route role matrix enforced and tested; no route returns 500 on hostile input.
+- Rate limits, authentication-failure lockout, 64 KiB body cap, CSP and other security headers.
+- Controller sandboxed by systemd (exposure 8.3 to 2.9); SSH hardened on all Linux VMs.
+- **Accepted risks:** the five existing lab API tokens do not expire (issued before expiry
+  existed); SSH password login stays on at the owner's request (lab only; undo with
+  `scripts/set_vm_passwords.sh --lock`); automatic security updates are off by default so
+  evidence runs use a frozen system.
+
 ## Limitations (honest)
 
 - **No attack-side results.** Attack recall, scenarios A/B/E and the incremental value

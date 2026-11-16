@@ -39,7 +39,7 @@ On the host:
 ```bash
 uv run afw lab status            # all 8 VMs started
 uv run afw lab verify            # expect every check passed (41/41 on 2026-10-28)
-curl -s --cacert ~/.config/afw/pki/lab-ca.pem https://10.77.50.10:8080/api/health    # "status":"ok", "telemetry_degraded":false
+curl -s --cacert ~/.config/afw/pki/lab-ca.pem -H "Authorization: Bearer $(cat ~/.config/afw/api/dashboard.token)" https://10.77.50.10:8080/api/health    # "status":"ok", "telemetry_degraded":false
 ```
 
 * Operating mode **monitor** for detection runs (the dashboard header shows it; change

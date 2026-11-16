@@ -26,6 +26,25 @@ ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/var/lib/afw
 PrivateTmp=true
+# Further sandboxing (systemd-analyze security afw-controller). The service needs only
+# TCP/UDP/unix sockets on ports above 1024 and no capabilities.
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+SystemCallArchitectures=native
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target

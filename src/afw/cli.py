@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Annotated
 
 import structlog
 import typer
-import yaml
 
 from afw.config import get_settings, load_lab_config
 
@@ -86,20 +85,64 @@ def db_upgrade() -> None:
 @token_app.command("issue")
 def token_issue(
     name: str,
-    role: Annotated[str, typer.Option(help="viewer|operator|admin")] = "viewer",
+    role: Annotated[str, typer.Option(help="viewer|operator|admin|firewall")] = "viewer",
     channel: Annotated[str, typer.Option(help="api|mcp")] = "api",
+    days: Annotated[int, typer.Option(help="validity in days; 0 = never expires")] = 90,
 ) -> None:
-    """Create a token; appends its hash to the tokens file and prints the secret once."""
-    from afw.api.auth import TokenStore
+    """Create a token (replaces one with the same name); prints the secret once."""
+    from afw.api.auth import Role, TokenStore, read_entries, write_entries
+
+    if role.upper() not in Role.__members__:
+        raise typer.BadParameter(
+            f"role must be one of {sorted(r.lower() for r in Role.__members__)}"
+        )
+    if days < 0:
+        raise typer.BadParameter("days must be >= 0")
+    path = get_settings().api_tokens_file
+    token, entry = TokenStore.issue(name, role, channel, ttl_days=days or None)
+    write_entries(path, [e for e in read_entries(path) if e["name"] != name] + [entry])
+    typer.echo(token)
+    typer.echo(
+        f"expires {entry['expires']}"
+        if "expires" in entry
+        else "WARNING: this token never expires",
+        err=True,
+    )
+
+
+@token_app.command("list")
+def token_list() -> None:
+    """List tokens (never the secrets): name, role, channel, created, expiry."""
+    from datetime import UTC, date, datetime
+
+    from afw.api.auth import read_entries
+
+    today = datetime.now(UTC).date()
+    for e in read_entries(get_settings().api_tokens_file):
+        exp = e.get("expires")
+        state = "no-expiry"
+        if exp:
+            left = (date.fromisoformat(str(exp)) - today).days
+            state = "EXPIRED" if left < 0 else f"{left}d left"
+        typer.echo(
+            f"{e['name']:<20} {e['role']:<9} {e.get('channel', 'api'):<4} "
+            f"created={e.get('created', '?')} expires={exp or '-'} ({state})"
+        )
+
+
+@token_app.command("revoke")
+def token_revoke(name: str) -> None:
+    """Delete a token by name; takes effect immediately (the API re-reads the file)."""
+    from afw.api.auth import read_entries, write_entries
 
     path = get_settings().api_tokens_file
-    path.parent.mkdir(parents=True, exist_ok=True)
-    entries = yaml.safe_load(path.read_text()) if path.exists() else []
-    token, entry = TokenStore.issue(name, role, channel)
-    entries = [e for e in (entries or []) if e["name"] != name] + [entry]
-    path.write_text(yaml.safe_dump(entries))
-    path.chmod(0o600)
-    typer.echo(token)
+    entries = read_entries(path)
+    kept = [e for e in entries if e["name"] != name]
+    if len(kept) == len(entries):
+        typer.echo(f"no token named {name!r}", err=True)
+        raise typer.Exit(1)
+    write_entries(path, kept)
+    typer.echo(f"revoked {name}")
 
 
 @app.command()

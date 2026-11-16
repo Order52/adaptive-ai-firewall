@@ -282,6 +282,12 @@ class Settings(BaseSettings):
     tls_key: Path | None = None  # AFW_TLS_KEY: matching private key (PEM)
     log_level: str = "INFO"
     log_json: bool = True
+    # API hardening (see afw.api.hardening). Per client address, per minute.
+    # ~230 requests/min per open dashboard tab (2 s and 6 s polling): leave room for many tabs
+    api_rate_per_min: int = 3000
+    api_mutations_per_min: int = 60
+    api_auth_failures_per_min: int = 10
+    api_max_body_bytes: int = 64 * 1024
 
     def tls_enabled(self) -> bool:
         return bool(
