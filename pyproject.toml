@@ -7,42 +7,42 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "alembic>=1.20.0",
+    "alembic>=1.20.1",
     "cryptography>=46",
-    "fastapi>=0.143.3",
+    "fastapi>=0.162.6",
     "httpx>=0.28.1",
     "jinja2>=3.1.6",
     "joblib>=1.6.0",
     "mcp>=2.3.0",
     "numpy>=2.5.4",
     "psutil>=7.2.2",
-    "pydantic>=2",
-    "pydantic-settings>=2.16.0",
-    "psycopg[binary]>=3.2.3",
+    "pydantic>=2.14.3",
+    "pydantic-settings>=2.16.3",
+    "psycopg[binary]>=3.3.9",
     "psycopg-pool>=3.2.4",
     "pyyaml>=6.0.3",
     "river>=0.26.1",
     "scikit-learn>=1.9.1",
-    "sqlalchemy>=2.1.5",
+    "sqlalchemy>=2.1.8",
     "structlog>=26.1.0",
-    "typer>=0.27.3",
+    "typer>=0.29.1",
     "uvicorn[standard]>=0.54.0",
 ]
 
 [build-system]
-requires = ["uv_build>=0.13.1,<0.14.0"]
+requires = ["uv_build>=0.13.8,<0.14.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "ansible-core>=2.21.5",
-    "mypy>=2.4.0",
-    "pytest>=9.1.1",
-    "pytest-asyncio>=1.4.0",
+    "ansible-core>=2.21.6",
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
     "pytest-cov>=7.0.0",
-    "ruff>=0.17.1",
-    "types-psutil>=7.2.2.20260906",
-    "types-pyyaml>=6.0.12.20260906",
+    "ruff>=0.17.5",
+    "types-psutil>=7.2.2.20261111",
+    "types-pyyaml>=6.0.12.20261113",
 ]
 
 [project.scripts]
