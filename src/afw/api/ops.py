@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import shutil
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -20,6 +21,8 @@ from afw import __version__
 from afw.container import Container
 
 CERT_WARN_DAYS = 30  # readiness fails inside this window: rotate (SECURITY_CHECKLIST.md)
+DISK_MAX_USED = 0.90  # readiness fails above this: see runbooks/database-maintenance.md
+DISK_MIN_FREE_BYTES = 500 * 2**20
 
 
 def cert_days_left(cert_path: Path | None, now: datetime | None = None) -> float | None:
@@ -31,6 +34,13 @@ def cert_days_left(cert_path: Path | None, now: datetime | None = None) -> float
     except (OSError, ValueError):
         return None
     return (cert.not_valid_after_utc - (now or datetime.now(UTC))).total_seconds() / 86400
+
+
+def disk_state(path: Path) -> tuple[float, int]:
+    """(used fraction, free bytes) of the filesystem holding the controller's data."""
+    target = path if path.exists() else path.parent
+    du = shutil.disk_usage(target)
+    return (du.total - du.free) / du.total, du.free
 
 
 def readiness(c: Container) -> dict[str, Any]:
@@ -58,6 +68,13 @@ def readiness(c: Container) -> dict[str, Any]:
         rep = c.policy_service.last_report
         down = sorted(o.backend for o in rep.observed if not o.reachable) if rep else ["unknown"]
         check("backends_reachable", not down, {"unreachable": down} if down else None)
+
+    used, free = disk_state(c.settings.data_dir)
+    check(
+        "disk_space",
+        used <= DISK_MAX_USED and free >= DISK_MIN_FREE_BYTES,
+        {"used_pct": round(used * 100, 1), "free_mb": round(free / 2**20)},
+    )
 
     days = cert_days_left(c.settings.tls_cert if c.settings.tls_enabled() else None)
     if days is not None:
@@ -132,6 +149,9 @@ def render_metrics(c: Container, started: float) -> str:
     for o in rep.observed if rep else []:
         m.add("afw_backend_reachable", int(o.reachable), "Enforcement backend reachable.",
               backend=o.backend)  # fmt: skip
+    used, free = disk_state(c.settings.data_dir)
+    m.add("afw_data_disk_used_ratio", round(used, 4), "Fraction of the data filesystem in use.")
+    m.add("afw_data_disk_free_bytes", free, "Free bytes on the data filesystem.")
     days = cert_days_left(c.settings.tls_cert if c.settings.tls_enabled() else None)
     if days is not None:
         m.add("afw_tls_certificate_days_left", round(days, 1), "Days until the API cert expires.")

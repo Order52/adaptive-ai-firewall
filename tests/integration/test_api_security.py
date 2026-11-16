@@ -358,3 +358,35 @@ def test_metrics_show_degradation(api):
     text = client.get("/api/metrics", headers=tok["viewer"]).text
     assert "afw_ready 0" in text and 'afw_ready_check{check="models_loaded"} 0' in text
     assert "afw_telemetry_degraded 1" in text
+
+
+def test_readyz_fails_when_the_data_disk_is_nearly_full(api, monkeypatch):
+    import collections
+
+    client, tok, _, _ = api
+    du = collections.namedtuple("du", "total used free")
+    monkeypatch.setattr(
+        "afw.api.ops.shutil.disk_usage", lambda _p: du(100 * 2**30, 95 * 2**30, 5 * 2**30)
+    )
+    r = client.get("/api/readyz", headers=tok["viewer"])
+    assert r.status_code == 503
+    assert r.json()["checks"]["disk_space"] == {
+        "ok": False,
+        "detail": {"used_pct": 95.0, "free_mb": 5120},
+    }
+    text = client.get("/api/metrics", headers=tok["viewer"]).text
+    assert (
+        "afw_data_disk_used_ratio 0.95" in text and 'afw_ready_check{check="disk_space"} 0' in text
+    )
+    # plenty used but still enough absolute space is not enough: both limits apply
+    monkeypatch.setattr(
+        "afw.api.ops.shutil.disk_usage", lambda _p: du(10 * 2**30, 9.5 * 2**30, 400 * 2**20)
+    )
+    assert client.get("/api/readyz", headers=tok["viewer"]).status_code == 503
+    monkeypatch.setattr(
+        "afw.api.ops.shutil.disk_usage", lambda _p: du(100 * 2**30, 40 * 2**30, 60 * 2**30)
+    )
+    assert (
+        client.get("/api/readyz", headers=tok["viewer"]).json()["checks"]["disk_space"]["ok"]
+        is True
+    )
