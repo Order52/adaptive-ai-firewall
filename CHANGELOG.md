@@ -6,6 +6,13 @@ versioning: [SemVer](https://semver.org/). Detailed milestone history is in
 
 ## [Unreleased]
 
+## [1.0.0-rc.1] - 2026-11-16
+
+Release candidate. Engineering, security review and operations work from
+`docs/PRODUCTION_PLAN.md` phases 2-6 are complete. **Not a final 1.0.0:** attack-side
+evaluation (plan phase 1) has not been run, so detection recall is unproven and gates B, E
+and G are "NOT MET: attack runs not performed" (see `docs/PROJECT_STATUS.md`).
+
 ### Added
 - `SECURITY.md`, `LICENSE`, `CODEOWNERS`, pull-request template, pre-commit config.
 - CI: coverage floor, dependency audit (`pip-audit`), secret scan (`gitleaks`).

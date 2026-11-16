@@ -123,7 +123,9 @@ jobs:
       # SBOM of the exact locked dependency set (CycloneDX 1.5).
       - run: uv export --locked --no-emit-project --format cyclonedx1.5 -o sbom.cdx.json
       - run: |
-          gh release create "${{ github.ref_name }}" sbom.cdx.json \
+          # tags with a hyphen (v1.0.0-rc.1) are SemVer pre-releases
+          case "${{ github.ref_name }}" in *-*) PRE="--prerelease" ;; *) PRE="" ;; esac
+          gh release create "${{ github.ref_name }}" sbom.cdx.json $PRE \
             --title "${{ github.ref_name }}" \
             --generate-notes \
             --notes "Container image: ghcr.io/${{ github.repository }}:${{ github.ref_name }}"
