@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from afw import __version__
 from afw.api.auth import Principal, Role, TokenStore, require
 from afw.api.hardening import HardeningMiddleware
+from afw.api.ops import readiness, render_metrics
 from afw.container import Container
 from afw.domain.adaptation import Feedback, FeedbackLabel
 from afw.domain.common import new_id, utcnow
@@ -186,6 +187,27 @@ def create_app(c: Container) -> FastAPI:
             "backends": [o.model_dump(mode="json") for o in rep.observed] if rep else [],
             "last_reconcile": rep.at.isoformat() if rep else None,
         }
+
+    @app.get("/api/readyz")
+    def readyz(request: Request) -> JSONResponse:
+        """Readiness. Anonymous callers learn only ready/not ready (HTTP 200/503)."""
+        rep = readiness(c)
+        header = request.headers.get("authorization", "")
+        who = (
+            app.state.tokens.lookup(header.removeprefix("Bearer ").strip())
+            if header.startswith("Bearer ")
+            else None
+        )
+        body: dict[str, Any] = (
+            rep if who is not None and who.role >= Role.VIEWER else {"ready": rep["ready"]}
+        )
+        return JSONResponse(body, status_code=200 if rep["ready"] else 503)
+
+    @app.get("/api/metrics", response_class=PlainTextResponse)
+    def metrics(_: Viewer) -> PlainTextResponse:
+        return PlainTextResponse(
+            render_metrics(c, _STARTED), media_type="text/plain; version=0.0.4; charset=utf-8"
+        )
 
     @app.get("/api/whoami")
     def whoami(who: Viewer) -> dict[str, str]:

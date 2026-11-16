@@ -7,6 +7,8 @@ in the table fails ``test_every_route_is_in_the_reviewed_table`` until someone d
 from __future__ import annotations
 
 import os
+import re
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import yaml
@@ -16,7 +18,7 @@ from afw.api.app import create_app
 from afw.api.auth import Role, TokenStore, write_entries
 from afw.container import build_container
 
-PUBLIC = {("GET", "/api/health")}
+PUBLIC = {("GET", "/api/health"), ("GET", "/api/readyz")}
 
 ROLE_TABLE: dict[tuple[str, str], Role] = {
     **{
@@ -48,6 +50,7 @@ ROLE_TABLE: dict[tuple[str, str], Role] = {
             "/api/whoami",
         ]
     },
+    ("GET", "/api/metrics"): Role.VIEWER,
     ("GET", "/api/geo/enforcement/{direction}"): Role.FIREWALL,
     **{
         ("POST", p): Role.OPERATOR
@@ -254,3 +257,104 @@ def test_feedback_is_audited(api):
     assert any(
         a["action"] == "feedback.add" and a["actor"] == "operator" for a in c.audit.recent(50)
     )
+
+
+# ----------------------------------------------------------------- readiness / metrics
+
+
+def _cert(path, days):
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "t")])
+    now = datetime.now(UTC)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(1)
+        .not_valid_before(now - timedelta(days=1))
+        .not_valid_after(now + timedelta(days=days))
+        .sign(key, hashes.SHA256())
+    )
+    path.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+    return path
+
+
+def test_cert_days_left(tmp_path):
+    from afw.api.ops import cert_days_left
+
+    assert 99 < cert_days_left(_cert(tmp_path / "c.pem", 100)) < 100
+    assert cert_days_left(None) is None
+    assert cert_days_left(tmp_path / "missing.pem") is None
+    (tmp_path / "junk.pem").write_text("not a cert")
+    assert cert_days_left(tmp_path / "junk.pem") is None
+
+
+def test_readyz_anonymous_gets_only_the_verdict(api):
+    client, tok, _, _ = api
+    r = client.get("/api/readyz")
+    assert r.status_code == 200 and r.json() == {"ready": True}
+    full = client.get("/api/readyz", headers=tok["viewer"]).json()
+    assert full["ready"] is True
+    assert {"database", "reconciled", "sensors_fresh", "models_loaded"} <= set(full["checks"])
+    assert full["checks"]["backends_reachable"]["detail"] == "simulated"
+
+
+def test_readyz_is_503_with_the_failing_check_named(api):
+    client, tok, c, _ = api
+    c.controller.model_error = "trusted model failed to load"
+    r = client.get("/api/readyz")
+    assert r.status_code == 503 and r.json() == {"ready": False}
+    detail = client.get("/api/readyz", headers=tok["viewer"]).json()
+    assert detail["checks"]["models_loaded"] == {
+        "ok": False,
+        "detail": "trusted model failed to load",
+    }
+    assert detail["checks"]["database"]["ok"] is True
+
+
+def test_readyz_fails_when_the_certificate_is_about_to_expire(settings, tmp_path):
+    cert = _cert(tmp_path / "srv.pem", 10)
+    key = tmp_path / "srv.key"
+    key.write_text("placeholder")
+    client, tok, _, _ = _build(settings, tmp_path, tls_cert=cert, tls_key=key)
+    r = client.get("/api/readyz", headers=tok["viewer"])
+    assert r.status_code == 503
+    assert r.json()["checks"]["certificate_valid"]["ok"] is False
+    far = _cert(tmp_path / "srv2.pem", 365)
+    client, tok, _, _ = _build(settings, tmp_path, tls_cert=far, tls_key=key)
+    assert client.get("/api/readyz", headers=tok["viewer"]).json()["ready"] is True
+
+
+def test_metrics_requires_a_viewer_and_is_valid_prometheus_text(api):
+    client, tok, _, _ = api
+    assert client.get("/api/metrics").status_code == 401
+    assert client.get("/api/metrics", headers=tok["firewall"]).status_code == 403
+    r = client.get("/api/metrics", headers=tok["viewer"])
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/plain")
+    sample = re.compile(r"^[a-zA-Z_:][a-zA-Z0-9_:]*(\{[^}]*\})? -?[0-9.e+-]+$")
+    helps, types = {}, {}
+    for line in r.text.splitlines():
+        if line.startswith("# HELP "):
+            helps[line.split()[2]] = helps.get(line.split()[2], 0) + 1
+        elif line.startswith("# TYPE "):
+            types[line.split()[2]] = types.get(line.split()[2], 0) + 1
+        else:
+            assert sample.match(line), line
+    assert all(n == 1 for n in [*helps.values(), *types.values()])  # declared once each
+    assert "afw_ready 1" in r.text and 'afw_info{version="' in r.text
+    assert 'afw_ready_check{check="database"} 1' in r.text
+    assert "afw_telemetry_degraded 0" in r.text and r.text.endswith("\n")
+
+
+def test_metrics_show_degradation(api):
+    client, tok, c, _ = api
+    c.controller.model_error = "boom"
+    text = client.get("/api/metrics", headers=tok["viewer"]).text
+    assert "afw_ready 0" in text and 'afw_ready_check{check="models_loaded"} 0' in text
+    assert "afw_telemetry_degraded 1" in text

@@ -10,20 +10,28 @@ tunnel every dashboard user shares one address, so the limits are deliberately g
   (stops token guessing; tokens carry 256 bits, so this is defence in depth);
 * body cap - bodies above ``max_body_bytes`` are refused with 413, chunked bodies with 411;
 * headers - ``nosniff``, frame denial, no referrer, no caching of API responses, and a CSP
-  that allows scripts only from this origin.
+  that allows scripts only from this origin;
+* request id - every response carries ``X-Request-ID`` (a safe incoming value is kept, else one
+  is generated) and every log line written while handling the request includes it. Requests
+  are logged as ``api_request`` events: 2xx/3xx at debug, 4xx at info (401/403/429 at warning),
+  5xx at error.
 """
 
 from __future__ import annotations
 
 import json
-import logging
+import re
 import threading
 import time
+import uuid
 from collections import defaultdict, deque
 from collections.abc import Callable, MutableMapping
 from typing import Any
 
-log = logging.getLogger(__name__)
+import structlog
+
+log = structlog.get_logger(__name__)
+_REQUEST_ID = re.compile(rb"^[A-Za-z0-9._-]{8,64}$")
 
 Scope = MutableMapping[str, Any]
 Message = MutableMapping[str, Any]
@@ -106,55 +114,73 @@ class HardeningMiddleware:
         is_api = path.startswith("/api/")
         client = (scope.get("client") or ("?", 0))[0]
         headers = {k.lower(): v for k, v in scope.get("headers", [])}
+        incoming = headers.get(b"x-request-id", b"")
+        rid = incoming.decode() if _REQUEST_ID.match(incoming) else uuid.uuid4().hex[:16]
+        started = time.perf_counter()
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(request_id=rid)
+        status_seen = 0
+
+        async def reject(status: int, detail: str, retry_after: int | None = None) -> None:
+            self._log(method, path, status, client, started)
+            await self._reply(send, status, detail, is_api, rid, retry_after)
 
         if is_api:
             if self.failures.blocked(client):
-                log.warning("api lockout client=%s path=%s", client, path)
-                await self._reply(
-                    send,
-                    429,
-                    "too many failed authentications",
-                    is_api,
-                    self.failures.retry_after(client),
+                await reject(
+                    429, "too many failed authentications", self.failures.retry_after(client)
                 )
                 return
             if not self.general.hit(client):
-                await self._reply(
-                    send, 429, "rate limit exceeded", is_api, self.general.retry_after(client)
-                )
+                await reject(429, "rate limit exceeded", self.general.retry_after(client))
                 return
             if method in MUTATING and not self.mutations.hit(client):
-                await self._reply(
-                    send,
-                    429,
-                    "mutation rate limit exceeded",
-                    is_api,
-                    self.mutations.retry_after(client),
+                await reject(
+                    429, "mutation rate limit exceeded", self.mutations.retry_after(client)
                 )
                 return
             if method in MUTATING:
                 if b"chunked" in headers.get(b"transfer-encoding", b"").lower():
-                    await self._reply(send, 411, "Content-Length required", is_api)
+                    await reject(411, "Content-Length required")
                     return
                 declared = headers.get(b"content-length")
                 if declared is not None and (
                     not declared.isdigit() or int(declared) > self.max_body
                 ):
-                    await self._reply(send, 413, "request body too large", is_api)
+                    await reject(413, "request body too large")
                     return
 
         async def send_wrapped(message: Message) -> None:
+            nonlocal status_seen
             if message["type"] == "http.response.start":
-                status = message["status"]
-                if is_api and status == 401:
+                status_seen = message["status"]
+                if is_api and status_seen == 401:
                     self.failures.hit(client)
-                    log.warning("api auth failed client=%s path=%s", client, path)
-                elif is_api and status == 403:
-                    log.warning("api forbidden client=%s path=%s", client, path)
-                message["headers"] = self._with_security(message.get("headers", []), is_api)
+                message["headers"] = [
+                    *self._with_security(message.get("headers", []), is_api),
+                    (b"x-request-id", rid.encode()),
+                ]
             await send(message)
 
-        await self.app(scope, receive, send_wrapped)
+        try:
+            await self.app(scope, receive, send_wrapped)
+        finally:
+            if is_api:
+                self._log(method, path, status_seen, client, started)
+            structlog.contextvars.clear_contextvars()
+
+    @staticmethod
+    def _log(method: str, path: str, status: int, client: str, started: float) -> None:
+        ms = round((time.perf_counter() - started) * 1000, 1)
+        fields = {"method": method, "path": path, "status": status, "client": client, "ms": ms}
+        if status >= 500 or status == 0:
+            log.error("api_request", **fields)
+        elif status in (401, 403, 429):
+            log.warning("api_request", **fields)
+        elif status >= 400:
+            log.info("api_request", **fields)
+        else:
+            log.debug("api_request", **fields)
 
     @staticmethod
     def _with_security(raw: list[tuple[bytes, bytes]], is_api: bool) -> list[tuple[bytes, bytes]]:
@@ -170,13 +196,20 @@ class HardeningMiddleware:
         return [*raw, *((k, v) for k, v in extra.items() if k not in present)]
 
     async def _reply(
-        self, send: Any, status: int, detail: str, is_api: bool, retry_after: int | None = None
+        self,
+        send: Any,
+        status: int,
+        detail: str,
+        is_api: bool,
+        rid: str,
+        retry_after: int | None = None,
     ) -> None:
         body = json.dumps({"detail": detail}).encode()
         headers = [
             (b"content-type", b"application/json"),
             (b"content-length", str(len(body)).encode()),
         ]
+        headers.append((b"x-request-id", rid.encode()))
         if retry_after is not None:
             headers.append((b"retry-after", str(retry_after).encode()))
         await send(

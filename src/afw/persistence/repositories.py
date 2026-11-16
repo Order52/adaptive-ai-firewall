@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from ipaddress import IPv4Address
@@ -195,6 +196,9 @@ class SqlEventRepository(_Repo):
         return int(n)
 
 
+_ID_TOKEN = re.compile(r"[A-Za-z0-9_-]{8,40}")
+
+
 class SqlAnalysisRepository(_Repo):
     def add_features(self, items: Sequence[FeatureVector], dataset_id: str | None) -> None:
         if not items:
@@ -266,6 +270,47 @@ class SqlAnalysisRepository(_Repo):
                     body=item.model_dump_json(),
                 )
             )
+
+    def purge_assessments_before(self, cutoff: datetime, batch: int = 500) -> int:
+        """Delete assessments older than ``cutoff`` that nothing refers to.
+
+        A policy or an operator feedback record keeps the assessment it cites, so a policy
+        explanation never loses its evidence. Everything else ages out: without this the
+        table grows without bound (about 3 KB per assessment).
+        """
+        with self.engine.begin() as c:
+            old = {
+                r[0]
+                for r in c.execute(
+                    select(t.assessments.c.assessment_id).where(
+                        t.assessments.c.assessed_at < utc_naive(cutoff)
+                    )
+                )
+            }
+            if not old:
+                return 0
+            keep: set[str] = set()
+            for table in (t.policies, t.feedback):
+                for (body,) in c.execute(select(table.c.body)):
+                    keep.update(old.intersection(_ID_TOKEN.findall(body)))
+            doomed = sorted(old - keep)
+            for i in range(0, len(doomed), batch):
+                c.execute(
+                    delete(t.assessments).where(
+                        t.assessments.c.assessment_id.in_(doomed[i : i + batch])
+                    )
+                )
+        return len(doomed)
+
+    def reclaim_space(self, pages: int = 2000) -> None:
+        """Hand freed pages back to the filesystem (SQLite databases in incremental
+        auto-vacuum mode; see docs/runbooks/database-maintenance.md). No-op elsewhere."""
+        if self.engine.dialect.name != "sqlite":
+            return
+        with self.engine.connect() as c:
+            if c.exec_driver_sql("PRAGMA auto_vacuum").scalar() == 2:  # INCREMENTAL
+                c.exec_driver_sql(f"PRAGMA incremental_vacuum({int(pages)})")
+                c.commit()
 
     def get_assessment(self, assessment_id: str) -> RiskAssessment | None:
         q = select(t.assessments.c.body).where(t.assessments.c.assessment_id == assessment_id)

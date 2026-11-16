@@ -71,6 +71,8 @@ HEARTBEAT_STALE_S = (
     150  # sensors send one every 30 s  # re-assess an IDS-only source at most this often
 )
 WATCH_RETENTION = timedelta(days=7)
+# Risk assessments are the long-lived audit trail; policies and feedback keep the ones they cite.
+ASSESSMENT_RETENTION = timedelta(days=90)
 _ROLE_OF_KIND = {
     "afw-waf-access": "waf",
     "afw-waf-audit": "waf",
@@ -109,6 +111,7 @@ class Controller:
         self.stats = stats
         self.events = events
         self.analysis = analysis
+        self.assessment_retention = ASSESSMENT_RETENTION
         self.adaptation_repo = adaptation
         self.learning = learning
         self.policies = policies
@@ -590,7 +593,12 @@ class Controller:
         self.tick()
 
     def _retention(self) -> None:
-        self.events.purge_before(self.clock() - WATCH_RETENTION)
+        now = self.clock()
+        self.events.purge_before(now - WATCH_RETENTION)
+        n = self.analysis.purge_assessments_before(now - self.assessment_retention)
+        if n:
+            log.info("assessments_purged", count=n)
+        self.analysis.reclaim_space()
 
     def stop(self) -> None:
         self._stop.set()

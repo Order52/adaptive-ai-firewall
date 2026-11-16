@@ -53,6 +53,12 @@ def _app(clk: Clock, **kw) -> TestClient:
     def echo(body: dict) -> dict:
         return body
 
+    @app.get("/api/ctx")
+    def ctx() -> dict[str, str]:  # sync endpoint: runs in a worker thread
+        import structlog
+
+        return dict(structlog.contextvars.get_contextvars())
+
     @app.get("/page")
     def page() -> dict[str, str]:
         return {"page": "1"}
@@ -123,3 +129,51 @@ def test_csp_forbids_external_and_inline_scripts():
     assert "script-src 'self'" in CSP and "frame-ancestors 'none'" in CSP
     script = next(d for d in CSP.split("; ") if d.startswith("script-src"))
     assert "unsafe-inline" not in script and "http" not in CSP
+
+
+def test_request_id_is_generated_and_a_safe_incoming_one_is_kept():
+    c = _app(Clock())
+    generated = c.get("/api/ok").headers["x-request-id"]
+    assert len(generated) == 16 and generated != c.get("/api/ok").headers["x-request-id"]
+    assert (
+        c.get("/api/ok", headers={"X-Request-ID": "trace-0123456789"}).headers["x-request-id"]
+        == "trace-0123456789"
+    )
+    # control characters / oversize values are not echoed back (log injection)
+    assert (
+        c.get("/api/ok", headers={"X-Request-ID": "x" * 200}).headers["x-request-id"] != "x" * 200
+    )
+    assert (
+        c.get("/api/ok", headers={"X-Request-ID": "bad id!"}).headers["x-request-id"] != "bad id!"
+    )
+
+
+def test_rejections_carry_a_request_id_too():
+    c = _app(Clock(), rate_per_min=1)
+    c.get("/api/ok")
+    r = c.get("/api/ok")
+    assert r.status_code == 429 and r.headers["x-request-id"]
+
+
+def test_requests_are_logged_with_the_request_id():
+    from structlog.testing import capture_logs
+
+    c = _app(Clock(), auth_failures_per_min=100)
+    with capture_logs() as logs:
+        r = c.get("/api/deny", headers={"X-Request-ID": "trace-0123456789"})
+        c.get("/api/ok")
+    assert r.status_code == 401
+    events = [e for e in logs if e["event"] == "api_request"]
+    deny = next(e for e in events if e["path"] == "/api/deny")
+    assert deny["status"] == 401 and deny["log_level"] == "warning" and deny["method"] == "GET"
+    ok = next(e for e in events if e["path"] == "/api/ok")
+    assert ok["status"] == 200 and ok["log_level"] == "debug"
+
+
+def test_request_id_reaches_log_lines_written_inside_endpoints():
+    c = _app(Clock())
+    r = c.get("/api/ctx", headers={"X-Request-ID": "trace-0123456789"})
+    assert r.json() == {"request_id": "trace-0123456789"}
+    assert (
+        c.get("/api/ctx").json()["request_id"] != "trace-0123456789"
+    )  # no leakage between requests
