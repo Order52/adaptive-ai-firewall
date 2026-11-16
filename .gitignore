@@ -32,3 +32,10 @@ artifacts/evidence/a4-2026-10-29/select/*.pkl
 
 # Personal scratch work (never part of the project)
 scratch/
+
+# Test coverage output
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+requirements-audit.txt
