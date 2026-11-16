@@ -265,7 +265,7 @@ measured honestly.
 | Offline audit (leakage + corrections) | `docs/engineering/OFFLINE_CIC_AUDIT.md` |
 | Revised capability assessment | `docs/engineering/REVISED_ASSESSMENT.md` |
 | Separated gate states | `docs/engineering/GATE_STATES.md` |
-| Summary + readiness | `docs/PROJECT_SUMMARY_AND_READINESS.md` |
+| Summary + readiness | `docs/archive/PROJECT_SUMMARY_AND_READINESS.md` |
 | Results | `docs/RESULTS.md` (§3b P6, §3c P7, §3d A3, §3e NV1, §3f NV2, §3g A4, §3h offline CIC) |
 | OOM fix + persistence + resilience | `artifacts/evidence/fw01-oom-fix-2026-10-29/` |
 | Offline CIC (scripts, results, provenance) | `artifacts/evidence/offline-cic-2026-10-29/` (+ `~/afw-external-datasets/`) |

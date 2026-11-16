@@ -80,5 +80,5 @@ rehearsal and mis-measured retention was wrong.
 
 Every document that claimed "no forgetting" now points here:
 `FINAL_REPORT.md`, `ARCHITECTURE_VS_GOALS.md`, `COMPLETE_DOSSIER.md`, `RESULTS.md` §3h,
-`STATUS_LIMITATIONS_FIXES.md`, `engineering/GATE_STATES.md`,
+`archive/STATUS_LIMITATIONS_FIXES.md`, `engineering/GATE_STATES.md`,
 `engineering/REVISED_ASSESSMENT.md`, `engineering/OFFLINE_INDEPENDENCE.md`.

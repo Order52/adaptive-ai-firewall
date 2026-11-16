@@ -1,6 +1,6 @@
 # Final report — self-learning network firewall
 
-**2026-10-29.** Direct answers to: what has actually been demonstrated, what failed, what
+**2026-10-29; section 5 added 2026-11-16.** Direct answers to: what has actually been demonstrated, what failed, what
 remains blocked, and whether the system satisfies the original vision. Everything here is
 backed by evidence under `artifacts/evidence/`; nothing is asserted without a measurement.
 Offline recorded-traffic results are on a **separate gate** and never advance the live GNS3
@@ -101,3 +101,35 @@ offline; the live-attack proof remains the one external, safety-gated step.
 
 *Supporting detail:* `COMPLETE_DOSSIER.md`, `engineering/OFFLINE_CIC_AUDIT.md`,
 `OFFLINE_INDEPENDENCE.md`, `REVISED_ASSESSMENT.md`, `GATE_STATES.md`, `RESULTS.md`.
+
+---
+
+## 5. Engineering quality, security and operations (added 2026-11-16)
+
+These results concern the software and its operation, not detection effectiveness (sections 1-4
+are unchanged and still govern what may be claimed about detection).
+
+| Area | Result | Evidence |
+|---|---|---|
+| Quality gates | Lint, strict typing, 441 tests with a coverage floor (74.5 % measured, floor 73 %), dependency audit, secret scan, CodeQL, blocking image-vulnerability gate, pinned Actions, SBOM; verified locally, first GitHub run pending | `CI_CD.md`; a date-dependent test and a vulnerable dependency (CVE-2026-126360) were found and fixed |
+| Security review | 21 checks pass, 3 accepted risks (SSH password login, evidence-frozen patching, five non-expiring legacy tokens), 0 open | `SECURITY_CHECKLIST.md`; controller systemd exposure 8.3 to 2.9; per-route role matrix tested |
+| Reliability | Crash recovery 9.3 s; silent sensor detected at 151 s and cleared in 4 s; rollback and roll-forward 16 s each | `SLO.md` drills A-C |
+| Capacity | Ingestion ceiling about 2 500 requests/s, loud degradation above it; API 1 283 requests/s, p95 35 ms (synthetic, local) | `SLO.md`; `scripts/loadtest.py` |
+| Data | Database 2.7 GB to 517 MB; retention added for the one unbounded table | `runbooks/database-maintenance.md` |
+| Recovery | Verified encrypted backups; restore script with pre-restore copy; certificate rotation rehearsed | `runbooks/backup-restore.md`, `credential-rotation.md` |
+
+**What the drills found, stated plainly.** The first hand-typed restore procedure failed: an
+unreadable temp file stopped a command chain, leaving the controller stopped for about four
+minutes with a stale write-ahead log beside a different database file. The database was
+recovered by verifying it against the backup checksum, and the procedure was replaced by a
+script that removes the log first, checks the checksum and integrity before starting, and keeps
+a pre-restore copy. The lab was in monitor mode with no active blocks, so there was no
+enforcement effect.
+
+## 6. What is still open, and the path to production
+
+Detection and adaptation under attack remain unmeasured (section 3): that is the one result
+that decides whether the system works. `PATH_TO_PRODUCTION.md` lists, in priority order, what
+separates this prototype from a deployable product (high availability, SSO and vaulted
+secrets, enterprise PKI, SIEM export, wider sensor coverage, scale testing, compliance
+mapping). It is a statement of scope, not a plan to build them here.

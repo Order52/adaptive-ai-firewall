@@ -191,9 +191,25 @@ Separate gate from the live lab; say so first. Details: `OFFLINE_THIRD_CAPTURE.m
 * On APP01: `sudo systemctl stop afw-heartbeat.timer`. After about 150 s the dashboard
   shows sensor **app stale** and telemetry degraded (automatic enforcement pauses).
   `sudo systemctl start afw-heartbeat.timer` clears it within seconds.
+* The same drill, seen through the operations endpoints (added 2026-11-16): while the
+  heartbeat is stopped, `api /api/readyz` turns to HTTP 503 and names the failing checks
+  (`sensors_fresh`, `telemetry_not_degraded`), and `api /api/metrics | grep afw_sensor_stale`
+  shows `waf 1`. Measured: flagged at 151 s, cleared 4 s after restoring (`SLO.md` drill B).
+  (`api` is the helper defined in `runbooks/README.md`.)
 * `ssh -F ~/.config/afw/ssh_config ctrl01 sudo systemctl restart afw-controller` →
   the controller reloads profile v2 and its models and reconciles enforcement state;
   FW01's watchdog flushes dynamic blocks if the controller stays dead (~120 s).
+
+## 9b. Operations: security and recovery in 3 minutes (added 2026-11-16)
+
+* Security: `uv run afw token list` (expiring tokens, never the secrets); open
+  `SECURITY_CHECKLIST.md` (21 checks pass, 3 accepted risks stated). Show an anonymous
+  `curl .../api/health` returning only `{"status":"ok","version":...}`.
+* Capacity: `SLO.md` capacity table (ceiling about 2 500 requests/s, loud degradation above it).
+* Recovery: `bash scripts/backup_controller.sh` (about 15 s, proves its own restore) and
+  `docs/runbooks/` as the one-page answers to "what do you do when X breaks".
+* Say plainly: the first restore runbook failed its rehearsal (`SLO.md` drill E) and was
+  replaced by a verified script. Rehearsing is why it works now.
 
 ## 10. Attack scenarios **[NEEDS TEAM ATTACK RUNS]** (2 min)
 
@@ -209,6 +225,7 @@ Separate gate from the live lab; say so first. Details: `OFFLINE_THIRD_CAPTURE.m
 ## Demo-day checklist
 
 - [ ] `afw lab status`: 8 VMs started; `afw lab verify`: 41/41
+- [ ] `api /api/readyz` returns `{"ready": true}` (helper in `runbooks/README.md`)
 - [ ] Health: mode monitor, `telemetry_degraded` false, all three sensors fresh
 - [ ] Tailscale up; the one-command tunnel opens dashboard, OPNsense, GNS3 and the app
 - [ ] Benign traffic running 5 minutes before (use an address the team does not use)

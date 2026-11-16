@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-11-16.** Point-in-time snapshot, superseded by `docs/PROJECT_STATUS.md` (current status), `docs/RESULTS.md` (measured results) and `docs/SLO.md` / `docs/SECURITY_CHECKLIST.md` (operations, security). Kept for history; numbers and statuses below are as of the date inside.
+
 # AI-Adaptive-Firewall — everything done, what is left, limitations and how to fix them
 
 **One document.** As of **2026-10-30 ~08:25Z** · branch `engineering-directive` · HEAD `576e19e` ·

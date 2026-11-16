@@ -45,5 +45,5 @@ Thursday morning: static OR ML detects **0.908** (both 41, neither 15).
 - The independent run-level sample is still small (Tuesday 3 bursts, Friday 4, Thursday 7).
 
 ## Corrections applied
-`ARCHITECTURE_VS_GOALS.md` (Goal C, §2 table, §6), `STATUS_LIMITATIONS_FIXES.md`. The old result
+`ARCHITECTURE_VS_GOALS.md` (Goal C, §2 table, §6), `archive/STATUS_LIMITATIONS_FIXES.md`. The old result
 files are kept and listed in `artifacts/evidence/offline-cic-2026-10-29/SUPERSEDED.md`.

@@ -1,6 +1,6 @@
 # Project status
 
-**As of 2026-10-29 ~13:00Z (branch `engineering-directive`, since merged into `main`).** This is the single status page.
+**Detection and adaptation status as of 2026-10-29 ~13:00Z; engineering, security and operations status as of 2026-11-16.** This is the single status page.
 Milestone detail is in `engineering/AUTONOMOUS_PROGRESS.md`; per-criterion evidence is
 in `VALIDATION_MATRIX.md`. Older status files are in `docs/archive/` and are superseded.
 
@@ -57,6 +57,24 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 - *pf server-block evidence* (lateral-movement attempts from protected servers) runs live
   in shadow.
 
+**Engineering readiness, 2026-11-16 (Phases 2-4 of `PRODUCTION_PLAN.md`).** The software and
+its operation were brought to release quality; none of this changes the detection gaps above.
+
+- *Quality gates in CI:* lint, `mypy --strict`, 441 unit and integration tests with a 73 %
+  coverage floor (74.5 % measured), dependency audit, secret scan, CodeQL, a blocking
+  image-vulnerability gate, pinned Actions, SBOM on releases (`CI_CD.md`). Verified locally;
+  the new jobs have not yet run on GitHub. A date-dependent test and a vulnerable dependency
+  were found and fixed.
+- *Security review* (`SECURITY_CHECKLIST.md`): 21 checks pass, 3 accepted risks, 0 open findings.
+  Token expiry and revocation, per-route role matrix tested, rate limiting and lockout, request
+  size cap, security headers, hardened SSH, sandboxed controller (systemd exposure 8.3 to 2.9).
+- *Operations* (`SLO.md`, `runbooks/`): readiness and Prometheus metrics endpoints, request ids
+  and structured logs, retention that bounds the database (2.7 GB to 517 MB), measured capacity
+  (about 2 500 requests/s ingestion ceiling with loud degradation above it), five failure drills,
+  verified backup and restore, rehearsed rollback (16 s) and certificate rotation.
+- *What the drills found:* the first hand-typed restore runbook failed (stale WAL, controller left
+  stopped about 4 minutes); it was replaced by a verified script. Reported, not hidden.
+
 ## 2. Gates
 
 | Gate | Status | Main gap |
@@ -66,7 +84,7 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | C Genuine adaptation | **PARTIAL** | Live learning, pivots, restart restore and drift reports observed on CTRL01; **promotion gate exercised live 2026-10-29 on fresh A4 benign data -> correctly refuses** (attack_recall_regression has no data, sensitive_invariance fails); `promote()` refuses a failed evaluation (code + M3 tests). No promotion; monitor mode. `live-governance-2026-10-29/` |
 | D Enforcement | **MET** | Live 2026-10-29: protected MGMT/DB addresses refused by the validator, attack-zone block valid but needs >=2 evidence categories to auto-apply (`live-governance-2026-10-29/`) |
 | E Independent value | **NOT MET** | Benign-only comparison; value under attack BLOCKED-EXT |
-| F Security and operations | **MET** | API HTTPS-only with lab CA (ADR-023 revised); all telemetry mTLS (ADR-035) |
+| F Security and operations | **MET** | API HTTPS-only with lab CA (ADR-023 revised); all telemetry mTLS (ADR-035); security review, SLOs, drills and runbooks 2026-11-16 (`SECURITY_CHECKLIST.md`, `SLO.md`) |
 | G Academic defensibility | **PARTIAL** | Team demonstration only the team can do; attack-side methodology unexercised |
 
 ## 3. Milestones (engineering directive)
@@ -172,3 +190,10 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 | 11 | Final demo | `FINAL_DEMO.md` |
 | 12 | Validation matrix | `VALIDATION_MATRIX.md` |
 | 13 | Project status | this file |
+| 14 | Security review | `SECURITY_CHECKLIST.md` |
+| 15 | Service levels, capacity, drills | `SLO.md` |
+| 16 | Runbooks | `runbooks/README.md` |
+| 17 | CI/CD and supply chain | `CI_CD.md` |
+| 18 | Path to production | `PATH_TO_PRODUCTION.md` |
+| 19 | Finish plan (what was done and when) | `PRODUCTION_PLAN.md` |
+| 20 | Superseded status snapshots | `archive/` |

@@ -162,7 +162,7 @@ legitimate accounts (a household, an office) is not punished for it.
 | `config/` | `lab.yaml` (the controller's config), `scenarios.yaml` (the attack-run registry and allow-list) |
 | `traffic/` | `benign_personas.py` — generates *legitimate* user traffic. **There is no attack generator in this project and there never will be** |
 | `scripts/` | `final_verification.sh` (run everything verifiable), `make_offhost_backup.sh`, `set_vm_passwords.sh`, `archive_datasets.sh` |
-| `docs/` | Design, results and runbooks. Start with this file, then `FULL_STATUS_AND_ROADMAP.md`, `TEAM_ATTACK_QUICKSTART.md` |
+| `docs/` | Design, results and runbooks. Start with this file, then `PROJECT_STATUS.md`, `TEAM_ATTACK_QUICKSTART.md` |
 | `artifacts/evidence/` | **Every measurement**, by date/topic (36 folders). If a number is quoted anywhere, its raw file is here |
 
 Key documents: `docs/ARCHITECTURE.md` (design), `docs/ARCHITECTURE_DECISIONS.md` (44 decisions and
@@ -528,7 +528,7 @@ history; you do not need them to run the attack series, but you need them to rea
 | **P6 / P7 / A2** | Choose among seven candidate models that stop flagging new normal users without becoming blind. P7 is the same test on clean data after A2 fixed a generator/app mismatch (`/reviews` returned 404) | No candidate eligible: one forgetful user kept tripping the brute-force rule | `P6_GENERALIZATION_AND_SENSITIVITY.md`, `RESULTS.md` §3b–3c |
 | **A3 → A4** | Make login protection per-account and graduated (throttle, then deny, only on the login page). A3's final test failed (shared-household users); A4 fixed it by making "many accounts from one address" a ceiling only | A4 passed on fresh data: 0 of 2,791 legitimate logins refused | `A3_AUTH_CONTROLS.md`, `A4_AUTH_HOUSEHOLD_REVALIDATION.md` |
 | **NV1 → NV2** | Same idea for ordinary non-web network use (DNS, NTP, ping, HTTPS). NV1 exposed a sweep rule firing on normal behaviour; NV2 revalidated on new users | See `RESULTS.md` §3e–3f | `NV1_…`, `NV2_…` |
-| **N1/N2** | The network-novelty detector (port/host scan behaviour) | Fixed ceiling misses slow scans | `PROJECT_SUMMARY_AND_READINESS.md` §4.3 |
+| **N1/N2** | The network-novelty detector (port/host scan behaviour) | Fixed ceiling misses slow scans | `archive/PROJECT_SUMMARY_AND_READINESS.md` §4.3 |
 | **ADR-001…044** | 44 architecture decision records: what we chose, why, what we rejected, how it was verified | Read an ADR before changing the thing it covers | `docs/ARCHITECTURE_DECISIONS.md` |
 | **Phase E / "final"** | A test set used exactly once, after the protocol was committed. It cannot be reused | Never tune on a `*-final` dataset | each protocol document |
 | **Predeclared** | The pass/fail criteria were written and committed before the data was looked at | This is how we avoid fooling ourselves | any `engineering/*` protocol |
@@ -605,7 +605,7 @@ host; on CTRL01 the installed binary is `/opt/afw/venv/bin/afw` (see §9 for the
 1. This document (you have done it).
 2. `docs/TEAM_ATTACK_QUICKSTART.md`, the short exact attack-run procedure; `docs/engineering/P3_TEAM_ATTACK_RUNBOOK.md` for the reasons.
 3. `docs/ARCHITECTURE.md` and `docs/ARCHITECTURE_DECISIONS.md` (the 44 decisions).
-4. `docs/RESULTS.md` (every measured number, with its limits) and `docs/STATUS_LIMITATIONS_FIXES.md`.
+4. `docs/RESULTS.md` (every measured number, with its limits) and `docs/archive/STATUS_LIMITATIONS_FIXES.md`.
 5. The three corrections, so you do not repeat our mistakes: `engineering/ERRATUM_FORGETTING.md`,
    `engineering/ERRATUM_STATIC_BASELINE.md`, `engineering/OFFLINE_THIRD_CAPTURE.md`.
 6. `docs/OPERATOR_GUIDE.md`, `docs/SECURITY_AND_LIMITATIONS.md`, `docs/THREAT_MODEL.md`.

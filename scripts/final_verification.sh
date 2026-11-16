@@ -74,7 +74,7 @@ printf "  %-26s %-12s %s\n" "G Academic"        "PARTIAL" "methodology+negatives
 echo; echo "-- 5. Reproducibility --"
 LATEST=$(ls -t ~/afw-datasets-archive/SHA256SUMS-* 2>/dev/null | head -1)
 [ -n "$LATEST" ] && ok "dataset archive $(basename "$LATEST") ($(wc -l < "$LATEST") files)" || note "no dataset archive found"
-note "evidence under artifacts/evidence/ ; docs map in docs/PROJECT_REPORT_2026-10-29.md §12"
+note "evidence under artifacts/evidence/ ; docs map in docs/PROJECT_STATUS.md §6 (documentation map)"
 
 echo; echo "== Summary: $pass passed, $fail failed (verifiable checks) =="
 echo "   Attack-dependent gates (B, E, parts of C/G) require team runs and are BLOCKED, not failed."

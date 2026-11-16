@@ -184,6 +184,12 @@ exists. Attack-side scenario evaluation is ongoing via team-run scripted runs (s
 `docs/engineering/`). For the authoritative, milestone-by-milestone breakdown of
 what's done, partial, and open, see `docs/PROJECT_STATUS.md`.
 
+**Engineering and operations (2026-11-16).** CI gates (lint, strict types, tests with a
+coverage floor, dependency audit, secret scan, CodeQL, image scan), a security review
+(`docs/SECURITY_CHECKLIST.md`), measured capacity and failure drills (`docs/SLO.md`),
+runbooks (`docs/runbooks/`) and a path to production (`docs/PATH_TO_PRODUCTION.md`). What it
+does **not** yet have is attack-side evaluation, so detection effectiveness is not claimed.
+
 ## Documentation map
 
 The "Start here" table above covers what most readers need. Everything else:
@@ -201,6 +207,10 @@ The "Start here" table above covers what most readers need. Everything else:
 | `docs/FINAL_DEMO.md` | Repeatable demonstration script |
 | `docs/GNS3_TOPOLOGY.md` | Live network topology |
 | `docs/CI_CD.md` | Lint/type/test/build pipeline, image scanning, container publishing |
+| `docs/SECURITY_CHECKLIST.md` | Security review: what was checked, results, accepted risks |
+| `docs/SLO.md`, `docs/runbooks/` | Service levels, capacity, failure drills; one-page runbooks |
+| `docs/PATH_TO_PRODUCTION.md` | What separates this prototype from a deployable product |
+| `docs/PRODUCTION_PLAN.md` | The finish plan and its status |
 | `docs/engineering/` | Milestone design notes and individual scenario/session reports (engineering history) |
 | `docs/archive/` | Superseded status snapshots, kept for history only |
 

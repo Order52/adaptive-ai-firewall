@@ -62,7 +62,7 @@ afw train bootstrap --train <train-id> --val <val-id>
 ## 6. Verify
 
 ```bash
-uv run pytest                 # 155 tests (+9 live-lab with AFW_LAB=1)
+uv run pytest tests/unit tests/integration   # 441 tests (+ live-lab tests with AFW_LAB=1)
 uv run mypy src && uv run ruff check src tests
 afw experiment replay --datasets <held-out>    # M0/M1/M2
 ```
