@@ -29,3 +29,6 @@ lab/build/
 models/store/
 datasets/raw/
 artifacts/evidence/a4-2026-10-29/select/*.pkl
+
+# Personal scratch work (never part of the project)
+scratch/

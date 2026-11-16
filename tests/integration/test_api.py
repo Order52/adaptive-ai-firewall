@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import yaml
 from fastapi.testclient import TestClient
 
@@ -116,10 +118,13 @@ def test_geoip_endpoints_lookup_preview_and_real_country_tables(settings, tmp_pa
     src = tmp_path / "dl.csv.gz"
     with gzip.open(src, "wt") as f:
         f.write("1.0.0.0,1.0.0.255,AU\n1.0.1.0,1.0.3.255,CN\n")
-    install(src, settings.data_dir / "geo", "2026-10", "u", T0, min_ranges=1)
+    # The API validates GeoIP freshness against the real clock, so use the current month's
+    # release; a hardcoded release goes stale after 45 days and breaks this test.
+    release = datetime.now(UTC).strftime("%Y-%m")
+    install(src, settings.data_dir / "geo", release, "u", T0, min_ranges=1)
     client, tok, _ = client_with_tokens(settings)
     v = tok["viewer"]
-    assert client.get("/api/geo/status", headers=v).json()["release"] == "2026-10"
+    assert client.get("/api/geo/status", headers=v).json()["release"] == release
     assert client.get("/api/geo/lookup/1.0.1.1", headers=v).json()["country"] == "CN"
     assert client.get("/api/geo/lookup/10.77.10.10", headers=v).json()["country"] is None
     p = client.get("/api/geo/preview/cn", params={"direction": "inbound"}, headers=v).json()

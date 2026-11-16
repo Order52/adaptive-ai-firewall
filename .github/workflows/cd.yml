@@ -20,7 +20,7 @@ jobs:
     name: Wait for CI
     runs-on: ubuntu-latest
     steps:
-      - uses: lewagon/wait-on-check-action@v1.3.4
+      - uses: lewagon/wait-on-check-action@ccfb013c15c8afb7bf2b7c028fb74dc5a068cccc # v1.3.4
         with:
           ref: ${{ github.sha }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -34,19 +34,19 @@ jobs:
     runs-on: ubuntu-latest
     needs: [wait-for-ci]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
@@ -56,7 +56,7 @@ jobs:
             type=sha,format=short
 
       - name: Build image (load for scanning)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           push: false
@@ -67,7 +67,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
         env:
           # authenticates the trivy-db pull from ghcr.io, which otherwise hits
           # the anonymous-pull rate limit on shared GitHub-hosted runners
@@ -77,17 +77,30 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           severity: "CRITICAL,HIGH"
-          exit-code: "0" # report, don't block a student-project pipeline on upstream CVEs
+          exit-code: "0" # report-only: HIGH findings go to the Security tab, they don't block
           ignore-unfixed: true
 
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3
         if: always()
         with:
           sarif_file: trivy-results.sarif
           category: trivy-image-scan
 
+      # Hard gate: a CRITICAL vulnerability with an available fix stops the release.
+      # (HIGH stays report-only above; ignore-unfixed avoids blocking on CVEs nobody can fix yet.)
+      - name: Block on CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
+          format: table
+          severity: "CRITICAL"
+          exit-code: "1"
+          ignore-unfixed: true
+
       - name: Push image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           push: true
@@ -103,9 +116,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: "0.13.1"
+      # SBOM of the exact locked dependency set (CycloneDX 1.5).
+      - run: uv export --locked --no-emit-project --format cyclonedx1.5 -o sbom.cdx.json
       - run: |
-          gh release create "${{ github.ref_name }}" \
+          gh release create "${{ github.ref_name }}" sbom.cdx.json \
             --title "${{ github.ref_name }}" \
             --generate-notes \
             --notes "Container image: ghcr.io/${{ github.repository }}:${{ github.ref_name }}"

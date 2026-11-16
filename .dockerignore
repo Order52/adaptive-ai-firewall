@@ -20,4 +20,3 @@ tests/
 .env
 *.env
 !*.env.example
-dash_live.png

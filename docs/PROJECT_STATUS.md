@@ -1,6 +1,6 @@
 # Project status
 
-**As of 2026-10-29 ~13:00Z, branch `engineering-directive`.** This is the single status page.
+**As of 2026-10-29 ~13:00Z (branch `engineering-directive`, since merged into `main`).** This is the single status page.
 Milestone detail is in `engineering/AUTONOMOUS_PROGRESS.md`; per-criterion evidence is
 in `VALIDATION_MATRIX.md`. Older status files are in `docs/archive/` and are superseded.
 
