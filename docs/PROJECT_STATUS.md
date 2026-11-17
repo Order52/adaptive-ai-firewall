@@ -63,7 +63,7 @@ its operation were brought to release quality; none of this changes the detectio
 - *Quality gates in CI:* lint, `mypy --strict`, 442 unit and integration tests with a 73 %
   coverage floor (74.7 % measured), dependency audit, secret scan, CodeQL, a blocking
   image-vulnerability gate, pinned Actions, SBOM on releases (`CI_CD.md`). CI and CD ran green
-  on GitHub for the first time on 2026-11-17 (commit `e963ef5`); before that CD had failed on every
+  on GitHub for the first time on 2026-11-17 (commit `e963ef5`; release candidate `v1.0.0-rc.2` published); before that CD had failed on every
   run since 2026-11-11 because the Trivy action could not install its scanner. A date-dependent
   test and a vulnerable dependency were found and fixed.
 - *Security review* (`SECURITY_CHECKLIST.md`): 21 checks pass, 3 accepted risks, 0 open findings.
