@@ -111,7 +111,7 @@ are unchanged and still govern what may be claimed about detection).
 
 | Area | Result | Evidence |
 |---|---|---|
-| Quality gates | Lint, strict typing, 442 tests with a coverage floor (74.7 % measured, floor 73 %), dependency audit, secret scan, CodeQL, blocking image-vulnerability gate, pinned Actions, SBOM; verified locally, first GitHub run pending | `CI_CD.md`; a date-dependent test and a vulnerable dependency (CVE-2026-126360) were found and fixed |
+| Quality gates | Lint, strict typing, 442 tests with a coverage floor (74.7 % measured, floor 73 %), dependency audit, secret scan, CodeQL, blocking image-vulnerability gate, pinned Actions, SBOM; CI and CD green on GitHub since 2026-11-17 | `CI_CD.md`; a date-dependent test and a vulnerable dependency (CVE-2026-126360) were found and fixed |
 | Security review | 21 checks pass, 3 accepted risks (SSH password login, evidence-frozen patching, five non-expiring legacy tokens), 0 open | `SECURITY_CHECKLIST.md`; controller systemd exposure 8.3 to 2.9; per-route role matrix tested |
 | Reliability | Crash recovery 9.3 s; silent sensor detected at 151 s and cleared in 4 s; rollback and roll-forward 16 s each; full disk and FW01 reboot drilled with a safe end state | `SLO.md` drills A-G |
 | Capacity | Ingestion ceiling about 2 500 requests/s, loud degradation above it; API 1 283 requests/s, p95 35 ms (synthetic, local) | `SLO.md`; `scripts/loadtest.py` |

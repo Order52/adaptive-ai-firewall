@@ -68,7 +68,7 @@ afw lab status                # node inventory + state
 afw lab verify                # zone isolation checks
 
 # AI / models
-afw train status                               # profiles + models
+afw train status                               # profiles + models (empty on a fresh checkout; populated on CTRL01)
 afw experiment replay --datasets <held-out>    # model comparison
 
 # controller + dashboard (on CTRL01 via systemd, or locally)
@@ -76,8 +76,9 @@ afw serve                     # :8080, HTTPS when AFW_TLS_CERT/KEY set; dashboar
 claude mcp list                # confirm the `afw` MCP server is Connected
 ```
 
-Controller as a container (built and vulnerability-scanned by CD on every merge
-to `main`; see `docs/CI_CD.md`):
+Controller as a container (built, scanned for CRITICAL vulnerabilities and published by CD on
+every merge to `main`; see `docs/CI_CD.md`; if `docker pull` is denied, the GHCR package is still
+private: the repository owner sets it to public under Packages → Package settings):
 ```bash
 docker pull ghcr.io/order52/adaptive-ai-firewall:latest
 docker run -p 8080:8080 -v $PWD/config:/app/config:ro \

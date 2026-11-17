@@ -51,9 +51,10 @@ the team only.
 
 ## Phase 2: Engineering quality (about 1-2 days)
 
-**Status 2026-11-16: implemented on branch `phase2-engineering-quality`; tasks 2.2 (branch
-protection) must be switched on in GitHub settings by the repository owner. The new CI
-jobs (`audit`, `secrets`) and the blocking Trivy gate have not yet run on GitHub.**
+**Status 2026-11-17: implemented and merged to `main`. Task 2.2 (branch protection) must be
+switched on in GitHub settings by the repository owner. The CI jobs (`audit`, `secrets`) ran green
+on GitHub on 2026-11-16; the blocking Trivy gate first worked on 2026-11-17 (the Trivy action had
+never installed its scanner; fixed, see `CHANGELOG.md` rc.2).**
 
 | # | Task | Done when |
 |---|---|---|

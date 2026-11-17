@@ -6,11 +6,26 @@ versioning: [SemVer](https://semver.org/). Detailed milestone history is in
 
 ## [Unreleased]
 
-### Added (since rc.1)
+## [1.0.0-rc.2] - 2026-11-17
+
+Release candidate. The first release whose CI and CD pipeline ran green end to end on GitHub.
+Same caveat as rc.1: **attack-side evaluation has not been run**, so detection recall on the
+lab is unmeasured (gates B, E, G are "NOT MET: attack runs not performed"; see
+`docs/PROJECT_STATUS.md`). Release criteria and results: `docs/RELEASE_CRITERIA.md`.
+
+### Added
 - `scripts/refresh_geoip.sh` and metrics `afw_geoip_stale` / `afw_geoip_age_days`: the GeoIP
   database had silently gone stale (47 days old); refreshed on the lab.
+- `docs/RELEASE_CRITERIA.md` (measurable release gates and a stop rule) and rehearsal evidence in
+  `artifacts/evidence/release-rehearsal-2026-11-17/`.
+- README "Evidence at a glance": every claim labelled MEASURED, OFFLINE, SYNTHETIC or UNMEASURED.
 
-### Fixed (since rc.1)
+### Fixed
+- CD: the image job failed on every run since 2026-11-11. `aquasecurity/trivy-action` could not
+  install Trivy 0.65.0, so no scanner existed. Trivy 0.76.2 is now installed directly, pinned, with
+  the release checksum verified by its install script; the report upload also gets the
+  `security-events: write` permission it needs. The tag run also checked CI before CI had
+  started, which failed it; it now waits for the checks to register.
 - Dashboard: with no or a rejected token the page polled the API about 15 times in its first
   second and kept going, tripping the new authentication-failure lockout on its own so the correct
   token was refused for up to a minute. It now makes no calls without a token, stops after one
@@ -18,12 +33,14 @@ versioning: [SemVer](https://semver.org/). Detailed milestone history is in
   a bad one, immediate connection with a valid one).
 - Dashboard: `fmt()` stripped trailing zeros from integers, so chart axes read 1/5/0 instead of
   100/50/0. Long JSON in drift reports no longer overflows its card.
-- Tests run in parallel in CI (`pytest -n auto`, pytest-xdist). The GitHub test job took 11 to 22
-  minutes; locally the suite now takes 2 min (6 min with coverage) on 4 workers.
-- CD: the Trivy steps used the upper-case repository name, so the image job failed on every run
-  since 2026-11-11; the tag run also checked CI before it had started.
+- README and docs: storage, node count (8 VMs), check count (41) and ADR range corrected; the
+  "zero false positives" caption now states that it holds only for the profile's own sources.
 
-## [1.0.0-rc.1] - 2026-11-16
+### Changed
+- Tests run in parallel (`pytest -n auto`, pytest-xdist): about 2 min locally (6 min with
+  coverage). On GitHub the test job is about 12 min either way (one 217 s test is the long pole).
+
+## [1.0.0-rc.1] - 2026-11-16 (tag exists; never published, CD failed)
 
 Release candidate. Engineering, security review and operations work from
 `docs/PRODUCTION_PLAN.md` phases 2-6 are complete. **Not a final 1.0.0:** attack-side

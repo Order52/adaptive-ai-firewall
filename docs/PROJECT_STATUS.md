@@ -61,10 +61,11 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 its operation were brought to release quality; none of this changes the detection gaps above.
 
 - *Quality gates in CI:* lint, `mypy --strict`, 442 unit and integration tests with a 73 %
-  coverage floor (74.5 % measured), dependency audit, secret scan, CodeQL, a blocking
-  image-vulnerability gate, pinned Actions, SBOM on releases (`CI_CD.md`). Verified locally;
-  the new jobs have not yet run on GitHub. A date-dependent test and a vulnerable dependency
-  were found and fixed.
+  coverage floor (74.7 % measured), dependency audit, secret scan, CodeQL, a blocking
+  image-vulnerability gate, pinned Actions, SBOM on releases (`CI_CD.md`). CI and CD ran green
+  on GitHub for the first time on 2026-11-17 (commit `e963ef5`); before that CD had failed on every
+  run since 2026-11-11 because the Trivy action could not install its scanner. A date-dependent
+  test and a vulnerable dependency were found and fixed.
 - *Security review* (`SECURITY_CHECKLIST.md`): 21 checks pass, 3 accepted risks, 0 open findings.
   Token expiry and revocation, per-route role matrix tested, rate limiting and lockout, request
   size cap, security headers, hardened SSH, sandboxed controller (systemd exposure 8.3 to 2.9).
