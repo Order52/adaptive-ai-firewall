@@ -44,3 +44,21 @@ pushed.
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-11-17 morning | fail | pass (local) | pass | pass | pass | not run | partial | not run | CD never worked since 2026-11-11; CI test job 11 to 22 min |
 | 1 | 2026-11-17 evening | pass: `main` CI 12 m, CD 15 m, no CRITICAL; `v1.0.0-rc.2` published as a pre-release with the image `ghcr.io/order52/adaptive-ai-firewall:v1.0.0-rc.2` and a CycloneDX SBOM (CD 11 m) | pass (442 tests, 74.7 %) | pass | pass (41/41, ready, 0 console errors) | pass | pass | pass | pass: steps 0, 1, 2, 4, 5, 6 and the dashboard tour done (`artifacts/evidence/release-rehearsal-2026-11-17/README.md`); 6b, 7, 8, 9, 10 need people | Found and fixed: Trivy action never installed its scanner; dashboard self-lockout; chart axis labels; stale GeoIP; README overclaims |
+
+## 5. Conclusion (2026-11-17)
+
+Stop rule 1 is met: R1 to R8 pass after iteration 1 (R8 for every step that can be run without a
+person at a desktop or an attack run; the rest are listed in the rehearsal README). The project is
+a **release candidate** (`v1.0.0-rc.2`), not a 1.0.0.
+
+Still open, all outside this work (`BLOCKED-EXT`):
+
+1. **Attack runs** by the team (`TEAM_ATTACK_QUICKSTART.md`): gates B, E and G, and the live
+   promotion gate. Until then no detection rate is claimed for the deployed system.
+2. Owner-only settings: branch protection on `main`, GHCR package visibility (public), license
+   holder name, accepting or rejecting the three accepted risks, copying backups off the host.
+3. Demo rehearsal with the whole team, including steps 6b, 7 and 10.
+
+Not done on purpose (not gate failures): the open Dependabot pull requests (CD action bumps that
+only remove a Node 20 deprecation warning, two large dependency groups, and a Python 3.15 base
+image the ML dependencies are not validated on).
