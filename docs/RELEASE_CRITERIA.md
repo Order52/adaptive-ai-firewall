@@ -43,4 +43,4 @@ pushed.
 | Iteration | Date | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-11-17 morning | fail | pass (local) | pass | pass | pass | not run | partial | not run | CD never worked since 2026-11-11; CI test job 11 to 22 min |
-| 1 | 2026-11-17 evening | pass on `main` (CI 12 m, CD 15 m, no CRITICAL); release pending | pass (442 tests, 74.7 %) | pass | pass (41/41, ready, 0 console errors) | pass | pass | pass | partial: steps 0, 1, 3, 5, 6 done; 2, 4 pending | Found and fixed: Trivy action never installed its scanner; dashboard self-lockout; chart axis labels; stale GeoIP; README overclaims |
+| 1 | 2026-11-17 evening | pass on `main` (CI 12 m, CD 15 m, no CRITICAL); release pending | pass (442 tests, 74.7 %) | pass | pass (41/41, ready, 0 console errors) | pass | pass | pass | pass: steps 0, 1, 2, 4, 5, 6 and the dashboard tour done (`artifacts/evidence/release-rehearsal-2026-11-17/README.md`); 6b, 7, 8, 9, 10 need people | Found and fixed: Trivy action never installed its scanner; dashboard self-lockout; chart axis labels; stale GeoIP; README overclaims |
