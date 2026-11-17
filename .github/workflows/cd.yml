@@ -73,7 +73,7 @@ jobs:
       # image-ref comes from the metadata action: it lowercases the repository name, which
       # Docker requires (github.repository is 'Order52/...', with a capital letter).
       - name: Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:
           # authenticates the trivy-db pull from ghcr.io, which otherwise hits
           # the anonymous-pull rate limit on shared GitHub-hosted runners
@@ -95,7 +95,7 @@ jobs:
       # Hard gate: a CRITICAL vulnerability with an available fix stops the release.
       # (HIGH stays report-only above; ignore-unfixed avoids blocking on CVEs nobody can fix yet.)
       - name: Block on CRITICAL vulnerabilities
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
