@@ -106,7 +106,7 @@ close/reopen (verified in earlier sessions).
 
 ## Isolation gate (G1)
 
-`afw lab verify` runs 34 reachability checks from *inside* the guests (also
+`afw lab verify` runs 41 reachability checks from *inside* the guests (also
 exposed as the MCP tool `verify_isolation`). It confirms: clients cannot bypass
 the WAF to the app, **only APP01 may reach DB01:5432** (clients/WAF cannot, and the
 DB has no Internet and no back-connection to the app), clients cannot reach each

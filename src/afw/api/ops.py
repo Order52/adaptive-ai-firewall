@@ -152,6 +152,14 @@ def render_metrics(c: Container, started: float) -> str:
     used, free = disk_state(c.settings.data_dir)
     m.add("afw_data_disk_used_ratio", round(used, 4), "Fraction of the data filesystem in use.")
     m.add("afw_data_disk_free_bytes", free, "Free bytes on the data filesystem.")
+    if c.geoip is None:
+        m.add("afw_geoip_loaded", 0, "1 when a GeoIP database is loaded.")
+    else:
+        geo = c.geoip.status(datetime.now(UTC))
+        m.add("afw_geoip_loaded", 1, "1 when a GeoIP database is loaded.")
+        m.add("afw_geoip_stale", int(bool(geo["stale"])), "1 when the release is over 45 days old.")
+        if geo.get("age_days") is not None:
+            m.add("afw_geoip_age_days", geo["age_days"], "Age of the installed GeoIP release.")
     days = cert_days_left(c.settings.tls_cert if c.settings.tls_enabled() else None)
     if days is not None:
         m.add("afw_tls_certificate_days_left", round(days, 1), "Days until the API cert expires.")

@@ -1,0 +1,3 @@
+{"date":"2026-11-17","tool":"mcp simulate_block (dry run)",
+ "protected_management_10.77.50.10":{"valid":false,"errors":["10.77.50.10 is protected (management network and recovery path)","10.77.50.10 is outside the configured client zones"],"would_auto_apply":false},
+ "client_10.77.20.198":{"valid":true,"errors":[],"would_auto_apply":false}}

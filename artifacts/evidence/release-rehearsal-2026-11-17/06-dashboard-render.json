@@ -1,0 +1,13 @@
+{
+ "tabs": [
+  "Overview",
+  "Threats",
+  "Network",
+  "Firewall & controls",
+  "Learning",
+  "System"
+ ],
+ "console_errors": [],
+ "http_errors": [],
+ "banner": "AI-Adaptive-Firewall control plane\nmode monitor\nstrategy ml\ntelemetry healthy\nConnect AI agent\nAPI token\nOverview\nThreats\nNetwork\nFirewall & controls\nLearning\nSystem\nAll clear\nNo suspicious activity. Firewall, WAF and sensors are healthy.\nFW01 firewall reachable\nWAF reachable\nall sensors reporting\nm"
+}

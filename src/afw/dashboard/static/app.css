@@ -80,6 +80,7 @@ tbody tr:hover td { background: color-mix(in srgb, var(--series-1) 6%, transpare
 .badge { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 12px; }
 .badge i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
 .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+.ev .mono { overflow-wrap: anywhere; }  /* long JSON details must wrap inside the card */
 button { font: inherit; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); padding: 4px 10px; cursor: pointer; }
 button.ghost { background: transparent; }
 button:hover { border-color: var(--series-1); }

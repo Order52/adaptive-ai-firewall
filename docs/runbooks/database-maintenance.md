@@ -30,3 +30,15 @@ auto-vacuum so retention can shrink the file from then on.
 
 **Change retention:** `ASSESSMENT_RETENTION` and `WATCH_RETENTION` in `src/afw/services/runtime.py`
 (a deploy is needed). Do not delete rows by hand: policy explanations depend on them.
+
+## GeoIP database (monthly)
+
+DB-IP Country Lite is released on the 1st of each month. The controller marks it stale after 45 days
+(`afw_geoip_stale 1`; country policies are then refused by the validator). It silently went stale
+once (release 2026-10 aged out on 2026-11-15; found and refreshed 2026-11-17).
+
+```bash
+scripts/refresh_geoip.sh      # download, sanity-check, install on CTRL01, restart (about 15 s)
+```
+Alert if `afw_geoip_age_days > 35` or `afw_geoip_stale == 1`. If the new release is not published yet
+the script falls back to last month's.

@@ -114,9 +114,9 @@ Full breakdown of flows and trust boundaries: `docs/ARCHITECTURE.md`.
 ### The lab network itself
 
 ![AI-Adaptive-Firewall lab topology](docs/figures/fig-topology.png)
-*16 real GNS3 nodes — 7 VMs, 6 zone switches, 2 host connectors — colour-coded by
+*16 real GNS3 nodes — 8 VMs, 6 zone switches, 2 host connectors — colour-coded by
 security zone exactly as the live canvas is. Every arrow is a path the firewall's own
-policy enforces, verified by 34 automated reachability checks (`afw lab verify`), not
+policy enforces, verified by 41 automated reachability checks (`afw lab verify`), not
 just drawn this way. Full detail: `docs/GNS3_TOPOLOGY.md`.*
 
 ![Adaptation lifecycle observed live on real traffic](docs/figures/fig-c-adaptation-lifecycle.png)
@@ -135,10 +135,24 @@ the gate alone.*
 | Controller | Python 3.12, FastAPI, Uvicorn, Pydantic |
 | ML detectors | scikit-learn (Isolation Forest), River (online half-space trees), NumPy |
 | Telemetry transport | mutual TLS — sensors authenticate to the controller, not just the other way round |
-| Storage | PostgreSQL via SQLAlchemy + Alembic |
+| Storage | SQLite (WAL) by default on the controller; PostgreSQL supported via SQLAlchemy + Alembic |
 | Dashboard | Plain HTML/CSS/JS served by the controller, HTTPS JSON API with bearer tokens |
 | AI-agent control surface | MCP (Model Context Protocol) — same validated actions as the dashboard |
 | Provisioning | Ansible playbooks, driven by the project's own `afw` CLI (Typer) |
+
+## Evidence at a glance
+
+Every claim is labelled by where it comes from. Nothing marked UNMEASURED is claimed.
+
+| Claim | Label | Result | Source |
+|---|---|---|---|
+| Zone isolation and enforcement path work on the real lab | MEASURED (live) | 41/41 reachability checks; verified block/unblock on OPNsense and WAF | `afw lab verify`, `docs/VALIDATION_MATRIX.md` |
+| Brute-force detection on recorded real attacks | OFFLINE (CIC-IDS2017, not this lab) | RandomForest recall 0.846 at 0 false positives on 13,499 benign windows; behaviour-only features 0.895 | `docs/engineering/OFFLINE_CIC_AUDIT.md` |
+| False positives on unseen legitimate users | MEASURED (lab replay) | v2 restricts 13 of 16 users: **a known weakness**; new login controls refuse 0 of 2,791 logins | `docs/RESULTS.md` §3a, `docs/engineering/A4_AUTH_HOUSEHOLD_REVALIDATION.md` |
+| Network novelty false-unfamiliar rate | MEASURED (lab, benign only) | 0.59 % [0.16, 1.15] on 22 unseen users | `docs/engineering/NV2_NETWORK_NOVELTY_REVALIDATION.md` |
+| Attack recall of the deployed system in the lab | **UNMEASURED** | needs the team's attack runs (`docs/TEAM_ATTACK_QUICKSTART.md`) | `docs/PROJECT_STATUS.md` gates B and E |
+| Adaptive model promotion | MEASURED (live gate), none promoted | the promotion gate correctly refused every unqualified challenger | `docs/engineering/GATE_STATES.md` |
+| Service levels, capacity, failure drills | MEASURED (live) | about 2,500 events/s ingest ceiling; 7 failure drills ended in the documented safe state | `docs/SLO.md` |
 
 ## Measured, not just designed
 
@@ -151,9 +165,11 @@ the project.
 <tr>
 <td width="50%">
 
-![Zero false positives on real traffic](docs/figures/fig-b-zero-false-positives.png)
-*On genuine lab traffic, the trusted profile scores every live benign source below
-every detector's threshold.*
+![No false positives on the live lab sources](docs/figures/fig-b-zero-false-positives.png)
+*On the lab's live benign sources (the population the profile was built from), every
+source scores below every detector's threshold. **On unseen legitimate users this does not
+hold**: in replay the trusted v2 models restrict 13 of 16 (`docs/RESULTS.md` §3a), which is
+why the system runs in monitor mode.*
 
 </td>
 <td width="50%">
@@ -198,7 +214,7 @@ The "Start here" table above covers what most readers need. Everything else:
 |---|---|
 | `docs/VALIDATION_MATRIX.md` | Every acceptance criterion → tests → evidence |
 | `docs/COMPONENT_INVENTORY.md` | Nodes, ports, source tree, entry points |
-| `docs/ARCHITECTURE_DECISIONS.md` | Architecture decision records (ADR-001…033) |
+| `docs/ARCHITECTURE_DECISIONS.md` | Architecture decision records (ADR-001…044) |
 | `docs/AI_RESEARCH.md` | Research question, contribution, detectors, leakage controls |
 | `docs/ADAPTATION_DESIGN.md` | Online learning, promotion gate, rollback, in depth |
 | `docs/EXPERIMENTS.md` / `docs/RESULTS.md` | Methodology and measured results, including negative ones |

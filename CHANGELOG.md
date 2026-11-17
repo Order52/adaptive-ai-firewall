@@ -6,6 +6,23 @@ versioning: [SemVer](https://semver.org/). Detailed milestone history is in
 
 ## [Unreleased]
 
+### Added (since rc.1)
+- `scripts/refresh_geoip.sh` and metrics `afw_geoip_stale` / `afw_geoip_age_days`: the GeoIP
+  database had silently gone stale (47 days old); refreshed on the lab.
+
+### Fixed (since rc.1)
+- Dashboard: with no or a rejected token the page polled the API about 15 times in its first
+  second and kept going, tripping the new authentication-failure lockout on its own so the correct
+  token was refused for up to a minute. It now makes no calls without a token, stops after one
+  rejection and honours `Retry-After` on 429 (browser-tested: 0 failing calls with no token, 1 with
+  a bad one, immediate connection with a valid one).
+- Dashboard: `fmt()` stripped trailing zeros from integers, so chart axes read 1/5/0 instead of
+  100/50/0. Long JSON in drift reports no longer overflows its card.
+- Tests run in parallel in CI (`pytest -n auto`, pytest-xdist). The GitHub test job took 11 to 22
+  minutes; locally the suite now takes 2 min (6 min with coverage) on 4 workers.
+- CD: the Trivy steps used the upper-case repository name, so the image job failed on every run
+  since 2026-11-11; the tag run also checked CI before it had started.
+
 ## [1.0.0-rc.1] - 2026-11-16
 
 Release candidate. Engineering, security review and operations work from

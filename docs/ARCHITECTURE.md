@@ -12,7 +12,7 @@ proportional responses, validates them against safety rules, enforces them throu
 real firewall/WAF, verifies the effect, and adapts to legitimate change through a gated
 online learner.
 
-Design decisions are recorded as ADRs in `ARCHITECTURE_DECISIONS.md` (ADR-001…033).
+Design decisions are recorded as ADRs in `ARCHITECTURE_DECISIONS.md` (ADR-001…044).
 Node, port and entry-point details are in `COMPONENT_INVENTORY.md`.
 
 ## 1. Lab topology

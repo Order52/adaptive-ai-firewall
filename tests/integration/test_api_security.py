@@ -390,3 +390,14 @@ def test_readyz_fails_when_the_data_disk_is_nearly_full(api, monkeypatch):
         client.get("/api/readyz", headers=tok["viewer"]).json()["checks"]["disk_space"]["ok"]
         is True
     )
+
+
+def test_metrics_report_geoip_freshness(api):
+    client, tok, _, _ = api
+    text = client.get("/api/metrics", headers=tok["viewer"]).text
+    lines = text.splitlines()
+    assert "afw_geoip_loaded 0" in lines or "afw_geoip_loaded 1" in lines
+    if "afw_geoip_loaded 1" in lines:
+        assert any(
+            x.startswith("afw_geoip_stale ") for x in lines
+        )  # age appears only when release metadata exists

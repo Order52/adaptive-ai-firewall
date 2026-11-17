@@ -62,7 +62,7 @@ afw train bootstrap --train <train-id> --val <val-id>
 ## 6. Verify
 
 ```bash
-uv run pytest tests/unit tests/integration   # 441 tests (+ live-lab tests with AFW_LAB=1)
+uv run pytest tests/unit tests/integration   # 442 tests, about 2 min with `-n 4` (+ live-lab tests with AFW_LAB=1)
 uv run mypy src && uv run ruff check src tests
 afw experiment replay --datasets <held-out>    # M0/M1/M2
 ```
@@ -75,15 +75,13 @@ against the running lab. Without `AFW_LAB=1` those 9 tests are skipped.
 ## 7. Real GeoIP (optional, M7)
 
 ```bash
-curl -fLO https://download.db-ip.com/free/dbip-country-lite-YYYY-MM.csv.gz   # CC BY 4.0
-scp -F ~/.config/afw/ssh_config dbip-country-lite-YYYY-MM.csv.gz ctrl01:/tmp/
-ssh -F ~/.config/afw/ssh_config ctrl01 'sudo -u afwctl env AFW_CONFIG=/etc/afw/lab.yaml \
-  AFW_DATA_DIR=/var/lib/afw /opt/afw/venv/bin/afw geoip install /tmp/dbip-country-lite-YYYY-MM.csv.gz \
-  --release YYYY-MM --source https://download.db-ip.com/free/dbip-country-lite-YYYY-MM.csv.gz'
-ssh -F ~/.config/afw/ssh_config ctrl01 'sudo systemctl restart afw-controller'   # loads it
+scripts/refresh_geoip.sh            # this month's release (falls back to last month)
+scripts/refresh_geoip.sh 2026-11   # a specific release
 ```
 
-Refresh monthly; `/api/geo/status` reports `stale` after 45 days.
+The script downloads the CSV, sanity-checks it, installs it on CTRL01 as `afwctl` and restarts
+the controller (about 15 s). Refresh monthly; `/api/geo/status` reports `stale` after 45 days and `/api/metrics` exposes
+`afw_geoip_stale` and `afw_geoip_age_days`, so staleness can alert (it was found stale on 2026-11-17).
 
 Real-country enforcement (ADR-036) is installed once on FW01 with `uv run afw lab
 provision-geo`. It is idempotent and creates the tables, the two rules, the CA, the

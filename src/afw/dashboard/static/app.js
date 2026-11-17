@@ -5,7 +5,12 @@
 
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const fmt = (n, d = 2) => (n === null || n === undefined || Number.isNaN(n) ? "–" : Number(n).toFixed(d).replace(/\.?0+$/, "") || "0");
+// Trailing zeros are trimmed only after a decimal point ("1.50" -> "1.5"); never from an integer ("100").
+const fmt = (n, d = 2) => {
+  if (n === null || n === undefined || Number.isNaN(n)) return "–";
+  const s = Number(n).toFixed(d);
+  return s.includes(".") ? s.replace(/\.?0+$/, "") || "0" : s;
+};
 const tShort = (iso) => (iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "–");
 
 let TOKEN = "";
@@ -21,11 +26,23 @@ $("#token-form").addEventListener("submit", (e) => {
   $("#token-input").value = "";
   try { localStorage.setItem("afw_token", TOKEN); } catch (_) { /* ignore */ }
   $("#token-form").hidden = true;
+  authBlocked = !TOKEN;
+  retryAt = 0;
   loadRole().then(() => { refresh(); slow(); });
 });
 
+// Stop calling the API while the token is missing or rejected, and honour 429 Retry-After. The
+// server locks a client out after 10 failed authentications per minute; a page that keeps polling
+// with no or a bad token would trip that on its own and then block the correct token too.
+let authBlocked = !TOKEN;
+let retryAt = 0;
+
 async function api(path, opts = {}) {
+  if (authBlocked) throw new Error("401 no valid API token yet");
+  if (Date.now() < retryAt) throw new Error("429 rate limited, retrying shortly");
   const r = await fetch(path, { ...opts, headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json", ...(opts.headers || {}) } });
+  if (r.status === 401) authBlocked = true;
+  if (r.status === 429) retryAt = Date.now() + 1000 * (parseInt(r.headers.get("Retry-After"), 10) || 30);
   if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
   return r.json();
 }
@@ -362,9 +379,10 @@ async function refresh() {
     $("#token-form").hidden = false;
     const el = $("#status");
     const denied = /^401/.test(e.message);
+    const limited = /^429/.test(e.message);
     el.className = "status bad";
-    el.querySelector(".status-title").textContent = denied ? "Enter your API token to connect" : "Cannot reach the controller";
-    el.querySelector(".status-sub").textContent = denied
+    el.querySelector(".status-title").textContent = denied ? "Enter your API token to connect" : limited ? "Too many requests, retrying" : "Cannot reach the controller";
+    el.querySelector(".status-sub").textContent = limited ? "The controller is rate limiting this address (see Retry-After); the page retries by itself." : denied
       ? (TOKEN ? "That token was not accepted. Paste a valid viewer, operator or admin token in the box above and press Connect." : "The connection works; the page just needs a token. Paste a viewer token in the box above and press Connect.")
       : "Check that the SSH tunnel is still running, then reload.";
     $("#status-reasons").innerHTML = `<li>${esc(e.message)}</li>`;

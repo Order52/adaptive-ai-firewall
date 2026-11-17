@@ -14,7 +14,7 @@ see `DEPLOYMENT.md` §3. CI/CD here covers the software, not the lab.
 |---|---|---|
 | `lint` | Style, imports, bugs, security lint (`S` rules), formatting | `ruff check` + `ruff format --check` |
 | `typecheck` | Full static typing (`mypy --strict`) | `mypy src` |
-| `test` | Unit + integration suite, with coverage | `pytest tests/unit tests/integration --cov=afw` |
+| `test` | Unit + integration suite, with coverage | `pytest tests/unit tests/integration -n auto --cov=afw` (parallel via pytest-xdist; about 2 min without coverage, 6 min with it on a 20-core host) |
 | `audit` | Known vulnerabilities in the exact locked dependency versions | `pip-audit` on `uv export` of `uv.lock` |
 | `secrets` | Committed secrets, scanning the full git history | `gitleaks` |
 | `build` | The package actually builds (sdist + wheel); runs only after all of the above pass | `uv build` |

@@ -60,7 +60,7 @@ measurable ML sensitivity, so it fails its predeclared criteria and is not promo
 **Engineering readiness, 2026-11-16 (Phases 2-4 of `PRODUCTION_PLAN.md`).** The software and
 its operation were brought to release quality; none of this changes the detection gaps above.
 
-- *Quality gates in CI:* lint, `mypy --strict`, 441 unit and integration tests with a 73 %
+- *Quality gates in CI:* lint, `mypy --strict`, 442 unit and integration tests with a 73 %
   coverage floor (74.5 % measured), dependency audit, secret scan, CodeQL, a blocking
   image-vulnerability gate, pinned Actions, SBOM on releases (`CI_CD.md`). Verified locally;
   the new jobs have not yet run on GitHub. A date-dependent test and a vulnerable dependency
