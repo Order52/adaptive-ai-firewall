@@ -46,6 +46,9 @@ log = structlog.get_logger(__name__)
 S = PolicyState
 
 OWNING_STATES = frozenset({S.APPLYING, S.APPLIED_UNVERIFIED, S.ENFORCED, S.UNKNOWN})
+# States in which a policy is (or may still be) changing the source's traffic. A proposal that is
+# only validated or awaiting approval (monitor mode, approval mode) has not touched anything.
+AFFECTING_STATES = OWNING_STATES | frozenset({S.EXPIRING, S.ROLLBACK_PENDING})
 TRACKED_STATES = OWNING_STATES | frozenset(
     {S.VALIDATED, S.PENDING_APPROVAL, S.EXPIRING, S.ROLLBACK_PENDING, S.FAILED}
 )
@@ -114,13 +117,21 @@ class PolicyService:
     def active(self) -> list[Policy]:
         return self.repo.in_states(OWNING_STATES)
 
-    def has_active(self, source: IPv4Address, kinds: set[PolicyKind]) -> bool:
+    def _against(self, source: IPv4Address, kinds: set[PolicyKind], states: frozenset[S]) -> bool:
         return any(
             p.kind in kinds
             and isinstance(p.intent.target, SourceTarget)
             and p.intent.target.source_ip == source
-            for p in self.repo.in_states(OWNING_STATES | {S.PENDING_APPROVAL, S.VALIDATED})
+            for p in self.repo.in_states(states)
         )
+
+    def has_active(self, source: IPv4Address, kinds: set[PolicyKind]) -> bool:
+        """Enforced or still proposed (pending approval, validated); used to de-duplicate."""
+        return self._against(source, kinds, OWNING_STATES | {S.PENDING_APPROVAL, S.VALIDATED})
+
+    def is_affecting(self, source: IPv4Address, kinds: set[PolicyKind]) -> bool:
+        """A policy of these kinds is changing the source's traffic (not merely proposed)."""
+        return self._against(source, kinds, AFFECTING_STATES)
 
     def login_controls_of(
         self, source: IPv4Address, now: datetime, within: timedelta = timedelta(hours=1)

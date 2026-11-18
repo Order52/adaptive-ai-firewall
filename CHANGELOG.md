@@ -6,6 +6,27 @@ versioning: [SemVer](https://semver.org/). Detailed milestone history is in
 
 ## [Unreleased]
 
+### Fixed
+- **Live learning deadlock.** Any proposal tainted its source for 24 h, so a false positive on a
+  new legitimate user stopped the learning that would have fixed it (the live learner learned 0
+  windows). A source is now tainted by a policy only while that policy really changes its
+  traffic; unapplied proposals (monitor or approval mode) and proposals resting on behaviour
+  models alone no longer taint.
+- Test race under `pytest -n auto`: two API tests shared one token file.
+
+### Added
+- **Operator vouching.** `benign_change` / `false_positive` feedback on a source makes its windows
+  learnable within the quarantine time, instead of waiting for tenure, a population of similar
+  sources and corroboration. Evidence, range, rate and share checks still apply. Switch:
+  `learning.operator_vouching`.
+- `afw experiment adaptation` reports a third arm, `fast`, next to `default` and
+  `experiment_relaxed`.
+
+### Changed
+- Faster live learning in `config/lab.yaml`: quarantine 600 to 180 s, source tenure 1800 to 600 s,
+  20 to 60 windows per source per hour. On the recorded drift run: 45 learned windows and no
+  pivot before, 190 learned windows and one pivot now. Poisoning results are unchanged.
+
 ## [1.0.0-rc.2] - 2026-11-17
 
 Release candidate. The first release whose CI and CD pipeline ran green end to end on GitHub.

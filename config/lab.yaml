@@ -58,6 +58,17 @@ risk:
 
 window: {length_s: 30, hop_s: 5, min_requests: 3}
 
+# Shadow online learner (docs/ADAPTATION_DESIGN.md). Faster than the library defaults
+# (admission 600 s, tenure 1800 s, 20 windows per source per hour): about three times the
+# learning rate. The poisoning defences are unchanged: 3+ behaviourally similar clean sources
+# for anything the champion calls anomalous, per-source rate and share caps, evidence and
+# range checks. An operator's feedback ("benign_change" / "false_positive") makes one source
+# learnable at once. Promotion to the live detector still needs the gate and a human.
+learning:
+  admission_delay_s: 180
+  min_source_tenure_s: 600
+  max_windows_per_source_per_hour: 60
+
 telemetry:
   listen_host: 10.77.50.10
   # Plaintext listener disabled (P5, 2026-10-28): FW01 Suricata now uses the mTLS

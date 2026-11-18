@@ -291,3 +291,19 @@ def test_country_policy_rejections(svc, target, needle):
     assert p.state is S.REJECTED
     assert needle in p.history[-1].note
     assert not backend.state.blocked_sources
+
+
+def test_unapplied_proposals_do_not_affect_traffic_but_enforced_ones_do(svc):
+    service, _, settings = svc
+    kinds = {PolicyKind.SOURCE_BLOCK, PolicyKind.RATE_LIMIT}
+    monitored, pending, enforced = "10.77.10.31", "10.77.10.32", "10.77.10.33"
+    settings.set_mode(OperatingMode.MONITOR, "test")
+    assert service.submit(intent(ip=monitored)).state is S.VALIDATED
+    settings.set_mode(OperatingMode.ASSISTED, "test")
+    assert service.submit(intent(ip=pending)).state is S.PENDING_APPROVAL
+    settings.set_mode(OperatingMode.AUTO, "test")
+    assert service.submit(intent(ip=enforced)).state is S.ENFORCED
+    for ip in (monitored, pending):
+        assert service.has_active(IPv4Address(ip), kinds)  # still de-duplicates proposals
+        assert not service.is_affecting(IPv4Address(ip), kinds)  # nothing was applied
+    assert service.is_affecting(IPv4Address(enforced), kinds)

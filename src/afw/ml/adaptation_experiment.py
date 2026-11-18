@@ -29,7 +29,7 @@ from typing import Any
 
 import numpy as np
 
-from afw.config import LabConfig
+from afw.config import LabConfig, OnlineLearningConfig
 from afw.domain.adaptation import GateCheck
 from afw.domain.common import new_id
 from afw.domain.detection import DetectionResult, DetectorKind, ModelStatus
@@ -49,6 +49,14 @@ from afw.persistence.repositories import SqlLearningRepository, SqlModelReposito
 from afw.profiling.eligibility import SENSITIVE
 
 RELAXED = {"max_windows_per_source_per_hour": 10_000, "min_source_tenure_s": 0}
+# The faster live settings (config/lab.yaml): shorter quarantine and tenure, three times the
+# per-source rate. Every other defence (corroboration by 3+ similar sources, share cap,
+# evidence and range checks) is unchanged. Looser than "default", stricter than RELAXED.
+FAST = {
+    "admission_delay_s": 180,
+    "min_source_tenure_s": 600,
+    "max_windows_per_source_per_hour": 60,
+}
 
 
 def _rows(ws: Sequence[FeatureVector]) -> np.ndarray:
@@ -188,13 +196,16 @@ def run_adaptation(
     hold_ids: Sequence[str],
     seed: int = 0,
 ) -> dict[str, Any]:
-    relaxed = cfg.learning.model_copy(update=RELAXED)
+    base = OnlineLearningConfig()  # the conservative library defaults, whatever lab.yaml says
+    fast = base.model_copy(update=FAST)
+    relaxed = base.model_copy(update=RELAXED)
     hold_windows = tumbling(list(replay_windows(hold, cfg.window, catalog)))
     report: dict[str, Any] = {
         "datasets": {"learn": list(learn_ids), "holdout": list(hold_ids)},
         "provenance_assertion": "recorded benign runs replayed as CURATED (operator-curated)",
         "experiment_config": {
             "relaxed_overrides": RELAXED,
+            "fast_overrides": FAST,
             "reason": "default caps cannot reach a reference pivot within one 45-min run",
         },
     }
@@ -210,7 +221,7 @@ def run_adaptation(
     # ---------------------------------------------------------- A: drift
     a: dict[str, Any] = {}
     streams = {}
-    for name, lc in (("default", cfg.learning), ("experiment_relaxed", relaxed)):
+    for name, lc in (("default", base), ("fast", fast), ("experiment_relaxed", relaxed)):
         st = learn_stream(
             cfg=cfg,
             profile=profile,

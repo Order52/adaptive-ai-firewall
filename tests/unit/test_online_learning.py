@@ -199,6 +199,7 @@ class Env:
         self.champion = champion
         self.policed: set[IPv4Address] = set()
         self.reported: set[IPv4Address] = set()
+        self.vouched: set[IPv4Address] = set()
         self.learner = self.new_learner()
 
     def new_learner(self) -> ShadowLearner:
@@ -209,6 +210,7 @@ class Env:
             NullAudit(),
             policed=lambda ip: ip in self.policed,
             reported=lambda app: set(self.reported),
+            vouched=lambda app: set(self.vouched),
             clock=lambda: T0,
         )
         sl.reload(_profile(), self.champion)
@@ -630,3 +632,97 @@ def test_resource_cost_is_bounded(env):
     assert per_window_ms < 25, per_window_ms
     assert ck.size_bytes < 2_000_000, ck.size_bytes
     copy.deepcopy(env.learner.challenger)  # challenger is self-contained
+
+
+# ------------------------------------------- operator vouching and live policy taint
+SHIFTED = {**BENIGN, **SHIFT}
+
+
+def _shifted_items(src: str, n: int = 6):
+    return [
+        (v, ra_for(v, anomalous=("req_rate", "route_count")))
+        for v, _ in tumbling(src, n, base=SHIFTED)
+    ]
+
+
+def test_lone_anomalous_source_is_not_learned_without_a_vouch(lab_cfg, tmp_path, champion):
+    env = Env(lab_cfg, tmp_path, champion, min_source_tenure_s=600, min_distinct_sources=3)
+    env.feed(_shifted_items("10.77.20.30"))
+    assert env.learner.challenger.n_learned == 0  # one new user is not population drift
+
+
+def test_vouched_source_is_learned_without_tenure_population_or_peers(lab_cfg, tmp_path, champion):
+    env = Env(lab_cfg, tmp_path, champion, min_source_tenure_s=600, min_distinct_sources=3)
+    env.vouched.add(IPv4Address("10.77.20.30"))
+    env.feed(_shifted_items("10.77.20.30"))
+    assert env.learner.challenger.n_learned == 6
+    assert env.learner.counts["learned_vouched"] == 6
+
+
+def test_vouching_can_be_switched_off(lab_cfg, tmp_path, champion):
+    env = Env(lab_cfg, tmp_path, champion, min_source_tenure_s=600, operator_vouching=False)
+    env.vouched.add(IPv4Address("10.77.20.30"))
+    env.feed(_shifted_items("10.77.20.30"))
+    assert env.learner.challenger.n_learned == 0
+
+
+def test_vouch_overrides_policy_taint_but_never_evidence_taint(lab_cfg, tmp_path, champion):
+    env = Env(lab_cfg, tmp_path, champion)
+    until = T0 + timedelta(days=1)
+    env.repo.taint(IPv4Address("10.77.20.31"), T0, until, "policy:rate_limit")
+    env.repo.taint(IPv4Address("10.77.20.32"), T0, until, "ids_alert")
+    env.vouched |= {IPv4Address("10.77.20.31"), IPv4Address("10.77.20.32")}
+    env.feed(_shifted_items("10.77.20.31", 4) + _shifted_items("10.77.20.32", 4))
+    learned = {w.source_ip for w in env.learner.unflushed}
+    assert learned == {IPv4Address("10.77.20.31")}  # the IDS-tainted source stays out
+
+
+def test_unvouched_policy_taint_still_blocks_learning(env):
+    env.repo.taint(IPv4Address("10.77.20.31"), T0, T0 + timedelta(days=1), "policy:rate_limit")
+    env.feed(tumbling("10.77.20.31", 4))
+    assert env.learner.challenger.n_learned == 0
+    assert env.learner.excluded["tainted"] == 4
+
+
+def test_vouch_does_not_bypass_evidence_or_sensitive_range(env):
+    env.vouched.add(IPv4Address("10.77.20.33"))
+    v = fv("10.77.20.33", 30)
+    w = fv("10.77.20.33", 300, auth_fail_frac=0.9)
+    env.feed([(v, ra_for(v, evidence=(WAF_HIT,))), (w, ra_for(w))])
+    assert env.learner.challenger.n_learned == 0
+    assert env.learner.excluded["negative_evidence"] == 1
+
+
+def test_live_policy_on_a_source_taints_it_persistently(env):
+    ip = IPv4Address("10.77.20.34")
+    env.policed.add(ip)  # an enforced rate limit
+    env.feed(tumbling("10.77.20.34", 2))
+    env.policed.clear()  # the limit expired, traffic is natural again
+    later = tumbling("10.77.20.34", 2, start_s=1200)
+    env.feed(later)
+    assert env.learner.challenger.n_learned == 0
+    assert env.repo.source(ip).taint_reason == "policy_active"
+
+
+def test_latest_feedback_decides_who_is_vouched():
+    from afw.container import _vouched_sources
+    from afw.domain.adaptation import Feedback, FeedbackLabel
+
+    def fb(i, ip, label):  # newest first, as the repository returns them
+        return Feedback(
+            feedback_id=f"f{i}",
+            created_at=T0,
+            author="op",
+            label=label,
+            app_id="rental",
+            source_ip=IPv4Address(ip) if ip else None,
+        )
+
+    items = [
+        fb(5, "10.77.20.1", FeedbackLabel.TRUE_POSITIVE),  # later retracted the vouch
+        fb(4, "10.77.20.1", FeedbackLabel.BENIGN_CHANGE),
+        fb(3, "10.77.20.2", FeedbackLabel.FALSE_POSITIVE),
+        fb(2, None, FeedbackLabel.BENIGN_CHANGE),  # not about a source
+        fb(1, "10.77.20.3", FeedbackLabel.TRUE_POSITIVE),
+    ]
+    assert _vouched_sources(items) == {IPv4Address("10.77.20.2")}

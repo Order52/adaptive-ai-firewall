@@ -475,6 +475,15 @@ holdout (`real-drift-hold-20261027`).
 * **Live,** the shadow challenger learned **0** windows during the run. The champion's
   own proposals tainted every new source (fail-closed by design).
 
+**Update 2026-11-18, faster live learning.** The "live learned 0 windows" finding had a cause:
+a champion proposal tainted its source, so a false positive stopped the learning that would
+correct it. Fixed (a policy taints only while it really changes the source's traffic), operator
+vouching added, and the learner sped up (quarantine 180 s, tenure 600 s, 60 windows per source
+per hour). On the same recorded run the fast settings learn **190 windows and reach one pivot**
+(defaults: 45 and none); poisoning results are identical to the table above. Live: 12 vouched
+windows learned in one 4-minute test, none excluded as tainted. The gate still refuses
+promotion. Evidence: `artifacts/evidence/fast-learning-2026-11-18/README.md`.
+
 Evidence: `m3-2026-10-27/m4-adaptation.json`, `m4-adaptation-v1-name-corroboration.json`,
 `m2-2026-10-27/m2-replay-*.json`; `docs/engineering/M4_ADAPTATION_EXPERIMENTS.md`.
 

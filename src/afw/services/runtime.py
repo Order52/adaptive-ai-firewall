@@ -65,6 +65,10 @@ from afw.telemetry.routes import RouteMatcher
 from afw.telemetry.stats import TelemetryStats
 
 log = structlog.get_logger(__name__)
+
+_NON_BEHAVIOUR = frozenset(
+    {EvidenceCategory.WAF, EvidenceCategory.AUTH, EvidenceCategory.IDS, EvidenceCategory.HISTORY}
+)
 NET_PENDING_MAX = 50_000  # network events buffered between ticks (~1 s of a busy feed x 100)
 IDS_ONLY_EVERY = timedelta(seconds=60)
 HEARTBEAT_STALE_S = (
@@ -522,7 +526,13 @@ class Controller:
             PolicyKind.LOGIN_CONTROL,  # the ladder itself decides about active controls
         ) and self.policies.has_active(ra.source_ip, {intent.kind}):
             return
-        if intent.kind is not PolicyKind.WATCH:  # observe-only is not suspicion
+        # Suspicion that rests on the behaviour models alone must not stop those same models from
+        # learning that the source is legitimate (a false positive on a new user would otherwise
+        # make itself permanent). Corroborated suspicion, and any policy that really changes the
+        # source's traffic (shadow learner), still taints.
+        if intent.kind is not PolicyKind.WATCH and _NON_BEHAVIOUR & set(
+            ra.corroborating_categories
+        ):
             self.reputation.taint(ra.source_ip, now, f"policy:{intent.kind.value}")
         self.policies.submit(intent, degraded=degraded or not self.policies.reconciled_since_start)
 

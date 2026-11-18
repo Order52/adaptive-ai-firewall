@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
+from ipaddress import IPv4Address
 from pathlib import Path
 
 import structlog
 
 from afw.config import LabConfig, Settings, get_settings, load_lab_config
-from afw.domain.adaptation import FeedbackLabel
+from afw.domain.adaptation import Feedback, FeedbackLabel
 from afw.domain.policy import PolicyKind
 from afw.enforcement.memory import MemoryBackend, MemoryProbe
 from afw.enforcement.probe import LabProbe, ProbeAgent
@@ -70,6 +71,19 @@ class Container:
     geoip: GeoIpDatabase | None = None
     geoip_error: str | None = None
     geo_tables: GeoTables | None = None
+
+
+def _vouched_sources(feedback: list[Feedback]) -> set[IPv4Address]:
+    """Sources an operator last called legitimate (feedback is newest first)."""
+    latest: dict[IPv4Address, FeedbackLabel] = {}
+    for fb in feedback:
+        if fb.source_ip is not None and fb.source_ip not in latest:
+            latest[fb.source_ip] = fb.label
+    return {
+        ip
+        for ip, label in latest.items()
+        if label in (FeedbackLabel.FALSE_POSITIVE, FeedbackLabel.BENIGN_CHANGE)
+    }
 
 
 def _backends(
@@ -152,12 +166,13 @@ def build_container(
         learning_repo,
         checkpoints,
         audit,
-        policed=lambda ip: policy_service.has_active(ip, traffic_affecting),
+        policed=lambda ip: policy_service.is_affecting(ip, traffic_affecting),
         reported=lambda app_id: {
             fb.source_ip
             for fb in adaptation.feedback(app_id)
             if fb.label is FeedbackLabel.TRUE_POSITIVE and fb.source_ip is not None
         },
+        vouched=lambda app_id: _vouched_sources(adaptation.feedback(app_id)),
     )
     challenger = ChallengerLifecycle(
         cfg,

@@ -11,6 +11,8 @@ from afw.container import build_container
 
 
 def client_with_tokens(settings):
+    # a private token file per test: under pytest-xdist a shared path is a write race
+    settings = settings.model_copy(update={"api_tokens_file": settings.data_dir / "tokens.yaml"})
     tokens, entries = {}, []
     for name, role, channel in [
         ("viewer", "viewer", "api"),

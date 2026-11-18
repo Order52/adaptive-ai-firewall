@@ -29,6 +29,7 @@ from afw.domain.learning import (
     Exclusion,
     LearnedWindow,
     ShadowScore,
+    SourceRecord,
 )
 from afw.domain.profiles import BehaviorProfile
 from afw.domain.risk import RiskAssessment
@@ -60,6 +61,7 @@ class ShadowLearner:
         *,
         policed: Callable[[IPv4Address], bool],
         reported: Callable[[str], set[IPv4Address]],
+        vouched: Callable[[str], set[IPv4Address]] | None = None,
         clock: Callable[[], datetime] = utcnow,
     ) -> None:
         self.cfg = cfg
@@ -69,6 +71,10 @@ class ShadowLearner:
         self.audit = audit
         self.policed = policed  # any active policy against the source
         self.reported = reported  # sources reported as true positives by operators
+        # Sources an operator called legitimate. Their windows still pass every evidence and
+        # range check, but skip the autonomous tenure, population and corroboration waits.
+        self.vouched = vouched or (lambda _app: set())
+        self._vouched: set[IPv4Address] = set()
         self.clock = clock
         self.stage_one = StageOne.build(
             (p.network for p in cfg.safety.protected), cfg.telemetry.waf_sensor_ips
@@ -176,6 +182,7 @@ class ShadowLearner:
     def process(self, now: datetime | None = None) -> None:
         now = now or self.clock()
         with self._lock:
+            self._vouched = self.vouched(self.app_id) if self.lc.operator_vouching else set()
             while True:
                 try:
                     fv, ra = self.inbox.get_nowait()
@@ -206,6 +213,10 @@ class ShadowLearner:
                 now + timedelta(seconds=self.lc.taint_ttl_s),
                 "negative_evidence",
             )
+        if self.policed(fv.source_ip):  # the source's traffic is being changed right now
+            self.repo.taint(
+                fv.source_ip, now, now + timedelta(seconds=self.lc.taint_ttl_s), "policy_active"
+            )
         src = str(fv.source_ip)
         rec = self.repo.source(fv.source_ip)
         fp = fingerprint(fv)
@@ -215,7 +226,7 @@ class ShadowLearner:
             self.profile,
             watermark=self.watermarks.get(src),
             candidate_end=self.candidate_end.get(src),
-            tainted=bool(rec and rec.tainted(now)),
+            tainted=self._tainted(rec, fv.source_ip, now),
             learned=self.repo.is_learned(fp) or any(w.fingerprint == fp for w in self.unflushed),
         )
         if why is not None:
@@ -273,11 +284,12 @@ class ShadowLearner:
         for c in due:
             src = c.fv.source_ip
             rec = self.repo.source(src)
-            if (rec and rec.tainted(now)) or self.policed(src) or src in reported:
+            vouched = src in self._vouched
+            if self._tainted(rec, src, now) or self.policed(src) or src in reported:
                 self._drop(c, Exclusion.LATE_TAINT)
                 continue
             tenure = timedelta(seconds=self.lc.min_source_tenure_s)
-            if rec is None or c.fv.window_start - rec.first_seen < tenure:
+            if not vouched and (rec is None or c.fv.window_start - rec.first_seen < tenure):
                 self._drop(c, Exclusion.TENURE)
                 continue
             ready.append(c)
@@ -293,6 +305,9 @@ class ShadowLearner:
             if self._share_exceeded(src):
                 self._drop(c, Exclusion.SOURCE_SHARE)
                 continue
+            if src in self._vouched:  # an operator vouches; no peers or population needed
+                self._learn(c, now)
+                continue
             if c.anomalous and not self._anomaly_corroborated(c, horizon):
                 self._hold_or_drop(c, hold, now, expiry, Exclusion.CHAMPION_ANOMALOUS)
                 continue
@@ -302,6 +317,15 @@ class ShadowLearner:
             self._learn(c, now)
         due_ids = {id(c) for c in due}
         self.quarantine = [c for c in self.quarantine if id(c) not in due_ids] + hold
+
+    def _tainted(self, rec: SourceRecord | None, src: IPv4Address, now: datetime) -> bool:
+        """Persistent taint, except that an operator's vouch overrides the taint a policy left
+        (a proposal or a rate limit against a legitimate user). Evidence taint (IDS, WAF,
+        auth) is never overridden."""
+        if rec is None or not rec.tainted(now):
+            return False
+        reason = rec.taint_reason or ""
+        return not (src in self._vouched and reason.startswith("policy"))
 
     def _drop(self, c: Candidate, why: Exclusion) -> None:
         self._reject(why)
@@ -386,7 +410,9 @@ class ShadowLearner:
             )
         )
         self.counts["learned"] += 1
-        if c.anomalous:
+        if fv.source_ip in self._vouched:
+            self.counts["learned_vouched"] += 1
+        elif c.anomalous:
             self.counts["learned_anomalous_corroborated"] += 1
 
     # --------------------------------------------------------- persistence

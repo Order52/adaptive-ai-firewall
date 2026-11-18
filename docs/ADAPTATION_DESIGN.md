@@ -44,9 +44,23 @@ prequentially: it scores each window, then calls `learn_one`. It learns from tum
   and share caps, minimum population. Windows the champion finds anomalous also need
   corroboration from 3 or more *behaviourally similar* sources.
 
-Traffic-affecting policies and late evidence taint a source persistently. State is
-checkpointed atomically with watermarks and a fingerprinted ledger, so restarts and
-replays cannot double-learn.
+A source is tainted (persistently, 24 h) by late evidence (IDS, WAF, auth), by operator
+"true positive" feedback, and by a policy that is **actually changing its traffic**. A
+proposal that was never applied (monitor mode, or waiting for approval) does not taint it,
+and a proposal that rests on behaviour-model evidence alone does not either. Before
+2026-11-18 any proposal tainted the source, which made a false positive on a new legitimate
+user permanent: the champion's proposal stopped the learning that would have fixed it (the
+live learner learned 0 windows because of this). State is checkpointed atomically with
+watermarks and a fingerprinted ledger, so restarts and replays cannot double-learn.
+
+**Operator vouching (fast, human-driven learning).** `POST /api/feedback` (operator role, audited;
+MCP tool `feedback`) with label `benign_change` or `false_positive` on a source makes its windows
+learnable within the quarantine time (about 3 minutes) instead of waiting for tenure, a
+population of similar sources and corroboration. It overrides only the taint a *policy* left.
+It never overrides evidence taint, operator "true positive" marks, negative evidence in a
+window, the sensitive-feature ranges, malformed or unverified telemetry, or the per-source
+rate and share caps. The latest label for a source wins. Switch off with
+`learning.operator_vouching: false`.
 
 ## 4. Comparing and promoting
 
@@ -73,6 +87,7 @@ replays cannot double-learn.
 |---|---|---|
 | Forged telemetry | Only mTLS role-checked channels are eligible; IDS (plaintext) is never learned | `test_provenance.py`, ADR-029 |
 | Replay / duplicate events | Request-id UNIQUE, content-hash IDS ids, watermarks, fingerprint ledger | `test_online_learning.py`, `test_telemetry_v2.py` |
+| An operator vouch for an attacker (stolen operator token) | Operator role and audit log; evidence, range and rate checks still apply to the windows; learning is shadow-only, so a vouch can change no decision without the gate and an admin promotion | `test_online_learning.py` |
 | One or two sources pushing malicious "normal" | Tenure, per-source rate and share caps, taint from any negative evidence, corroboration across 3 or more similar sources | M4 §3: before the fix, 140/180 poison windows learned; after it, 0/180 |
 | Gradual evasion of sensitive features | Sensitive features capped at profile q99; gate invariance check | M4: gate correctly fails the adapted challenger on invariance |
 | Regressed or poisoned challenger promoted | Gate, human promotion, probation with automatic rollback | M4 scenario C: rollback after 100 windows |
@@ -85,8 +100,11 @@ replays cannot double-learn.
 * **Online HST adaptation alone would not have stopped the live false proposals.**
   Isolation Forest and robust stats drove most of them, and they adapt only through a
   batch rebuild.
-* **Live, the challenger learned 0 windows** during the 75 min run. The champion's own
-  proposals tainted every new source: fail-closed by design.
+* **Live, the challenger learned 0 windows** during the 75 min run (2026-10-27). The champion's
+  own proposals tainted every new source. That was a deadlock, not a safeguard, and it is fixed
+  (§3): on 2026-11-18 a live test learned 12 vouched windows with none excluded as tainted. The
+  fast settings reach a pivot on the recorded drift run (190 windows) where the old defaults did
+  not (45). Evidence: `artifacts/evidence/fast-learning-2026-11-18/README.md`.
 * **The gate currently refuses promotion,** for two reasons:
   * no real labelled attack runs exist (BLOCKED-EXT);
   * the adapted challenger lost sensitivity to auth-abuse-like variants (a real

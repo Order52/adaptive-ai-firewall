@@ -175,6 +175,9 @@ class OnlineLearningConfig(_Cfg):
     # driver *names* is not enough (M4 finding: benign drift vouched for poison).
     anomaly_max_distance: float = Field(default=0.35, gt=0, le=1)
     taint_ttl_s: int = Field(default=86_400, ge=60)
+    # An operator's "false_positive" or "benign_change" feedback on a source makes its windows
+    # learnable right away (evidence, range, rate and share checks still apply).
+    operator_vouching: bool = True
     quarantine_max: int = Field(default=5000, ge=10)
     queue_max: int = Field(default=2000, ge=10)
     checkpoint_every: int = Field(default=50, ge=1)

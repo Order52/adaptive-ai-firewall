@@ -1,0 +1,100 @@
+{
+  "n_learned": 619,
+  "counts": {
+    "windows": 49,
+    "quarantined": 12,
+    "learned": 12,
+    "learned_vouched": 12
+  },
+  "excluded": {
+    "overlap": 32,
+    "sensitive_range": 5
+  },
+  "quarantine": 0,
+  "recent_learned": [
+    {
+      "source_ip": "10.77.20.198",
+      "window_end": "2026-11-18T14:11:58.819529Z",
+      "learned_at": "2026-11-18T14:14:59.203770Z",
+      "challenger_score_before": 0.887274,
+      "champion_score": 0.876182
+    },
+    {
+      "source_ip": "10.77.20.134",
+      "window_end": "2026-10-28T13:46:34.297768Z",
+      "learned_at": "2026-10-28T13:56:35.215433Z",
+      "challenger_score_before": 0.636015,
+      "champion_score": 0.620348
+    },
+    {
+      "source_ip": "10.77.20.106",
+      "window_end": "2026-10-28T13:46:28.718674Z",
+      "learned_at": "2026-10-28T13:56:29.166637Z",
+      "challenger_score_before": 0.566573,
+      "champion_score": 0.584252
+    },
+    {
+      "source_ip": "10.77.20.134",
+      "window_end": "2026-10-28T13:46:00.199660Z",
+      "learned_at": "2026-10-28T13:56:00.950748Z",
+      "challenger_score_before": 0.688537,
+      "champion_score": 0.686784
+    },
+    {
+      "source_ip": "10.77.20.106",
+      "window_end": "2026-10-28T13:45:54.340928Z",
+      "learned_at": "2026-10-28T13:55:54.887093Z",
+      "challenger_score_before": 0.778233,
+      "champion_score": 0.765262
+    },
+    {
+      "source_ip": "10.77.20.134",
+      "window_end": "2026-10-28T13:45:26.305249Z",
+      "learned_at": "2026-10-28T13:55:26.921478Z",
+      "challenger_score_before": 0.863334,
+      "champion_score": 0.860553
+    },
+    {
+      "source_ip": "10.77.20.106",
+      "window_end": "2026-10-28T13:45:20.503250Z",
+      "learned_at": "2026-10-28T13:55:26.921478Z",
+      "challenger_score_before": 0.856667,
+      "champion_score": 0.862661
+    },
+    {
+      "source_ip": "10.77.20.134",
+      "window_end": "2026-10-28T13:44:51.526028Z",
+      "learned_at": "2026-10-28T13:55:26.921478Z",
+      "challenger_score_before": 0.661313,
+      "champion_score": 0.678346
+    },
+    {
+      "source_ip": "10.77.20.106",
+      "window_end": "2026-10-28T13:44:45.748519Z",
+      "learned_at": "2026-10-28T13:55:26.921478Z",
+      "challenger_score_before": 0.744776,
+      "champion_score": 0.734514
+    },
+    {
+      "source_ip": "10.77.20.134",
+      "window_end": "2026-10-28T13:44:17.328125Z",
+      "learned_at": "2026-10-28T13:55:26.921478Z",
+      "challenger_score_before": 0.660629,
+      "champion_score": 0.662803
+    },
+    {
+      "source_ip": "10.77.20.106",
+      "window_end": "2026-10-28T13:44:11.476081Z",
+      "learned_at": "2026-10-28T13:55:26.921478Z",
+      "challenger_score_before": 0.68768,
+      "champion_score": 0.681109
+    },
+    {
+      "source_ip": "10.77.20.134",
+      "window_end": "2026-10-28T13:43:43.131231Z",
+      "learned_at": "2026-10-28T13:55:26.921478Z",
+      "challenger_score_before": 0.839064,
+      "champion_score": 0.836245
+    }
+  ]
+}
