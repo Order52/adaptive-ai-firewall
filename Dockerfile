@@ -14,7 +14,7 @@
 # image — they are supplied at runtime via volumes/env vars, same as the
 # bare-metal CTRL01 deployment (see docs/DEPLOYMENT.md).
 
-FROM ghcr.io/astral-sh/uv:0.13.1 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.9 AS uv
 
 FROM python:3.12-slim-bookworm AS builder
 
