@@ -1,0 +1,75 @@
+{
+  "held_user": "10.77.20.254",
+  "windows_collected": 4460,
+  "held_windows": 94,
+  "held_first_window": "2026-11-21T08:27:50.194929Z",
+  "challenger_n_learned_at_start": 1131,
+  "champion_flag_rate": 1.0,
+  "challenger_flag_rate": 0.7446808510638298,
+  "mean_champion_score": 0.926828414893617,
+  "mean_challenger_score": 0.8155402872340426,
+  "threshold": 0.8064672290072192,
+  "A1": "FAIL",
+  "trend_vouched_users": {
+    "+000 min": {
+      "windows": 465,
+      "champion_flag_rate": 0.877,
+      "challenger_flag_rate": 0.933,
+      "n_learned_max": 690
+    },
+    "+010 min": {
+      "windows": 446,
+      "champion_flag_rate": 0.922,
+      "challenger_flag_rate": 0.599,
+      "n_learned_max": 762
+    },
+    "+020 min": {
+      "windows": 463,
+      "champion_flag_rate": 0.94,
+      "challenger_flag_rate": 0.354,
+      "n_learned_max": 829
+    },
+    "+030 min": {
+      "windows": 431,
+      "champion_flag_rate": 0.884,
+      "challenger_flag_rate": 0.418,
+      "n_learned_max": 884
+    },
+    "+040 min": {
+      "windows": 428,
+      "champion_flag_rate": 0.939,
+      "challenger_flag_rate": 0.315,
+      "n_learned_max": 907
+    },
+    "+050 min": {
+      "windows": 447,
+      "champion_flag_rate": 0.944,
+      "challenger_flag_rate": 0.286,
+      "n_learned_max": 917
+    },
+    "+060 min": {
+      "windows": 450,
+      "champion_flag_rate": 0.944,
+      "challenger_flag_rate": 0.284,
+      "n_learned_max": 983
+    },
+    "+070 min": {
+      "windows": 458,
+      "champion_flag_rate": 0.934,
+      "challenger_flag_rate": 0.29,
+      "n_learned_max": 1050
+    },
+    "+080 min": {
+      "windows": 436,
+      "champion_flag_rate": 0.927,
+      "challenger_flag_rate": 0.319,
+      "n_learned_max": 1115
+    },
+    "+090 min": {
+      "windows": 332,
+      "champion_flag_rate": 0.901,
+      "challenger_flag_rate": 0.274,
+      "n_learned_max": 1166
+    }
+  }
+}

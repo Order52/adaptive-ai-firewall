@@ -108,3 +108,11 @@ def test_validation_runs_are_not_scored() -> None:
     for r in rep["per_run"]:
         r["purpose"] = "validation"
     assert scorecard(rep)["overall"] == "NOT_RUN"
+
+
+def test_manifest_style_scenario_name_is_matched() -> None:
+    """Real manifests say 'web-sqli-probe: sql_injection', not the bare scenario."""
+    rep = _full(lambda: _arm("M2", 1))
+    for r in rep["per_run"]:
+        r["scenario"] = f"{r['scenario']}: some_family"
+    assert scorecard(rep)["overall"] == "PASS"

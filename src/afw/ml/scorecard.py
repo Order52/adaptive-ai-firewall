@@ -36,6 +36,11 @@ VALUE_OVER_STATIC_MIN = 0.2  # D4: pooled containment, M2 minus M0
 VALUE_VS_STATISTICAL_TOL = 0.05  # D4: M2 may trail M1 by at most this
 
 
+def _name(scenario: object) -> str:
+    """Manifests store ``"<scenario>: <family>"``; fixtures may hold the bare scenario."""
+    return str(scenario).split(":", 1)[0].strip()
+
+
 def _arm(run: Mapping[str, Any], name: str) -> Mapping[str, Any] | None:
     for a in run.get("arms", []):
         if a.get("arm") == name:
@@ -134,7 +139,7 @@ def scorecard(report: Mapping[str, Any]) -> dict[str, Any]:
     by_scn: dict[str, list[Mapping[str, Any]]] = {}
     for r in runs:
         if r.get("purpose") == "test":
-            by_scn.setdefault(str(r.get("scenario")), []).append(r)
+            by_scn.setdefault(_name(r.get("scenario")), []).append(r)
     gates: list[dict[str, str]] = []
     known_runs: list[Mapping[str, Any]] = []
     for scn, role in SCENARIOS.items():

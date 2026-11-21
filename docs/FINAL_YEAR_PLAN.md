@@ -9,12 +9,17 @@ nothing here is, or will be, faked.
 
 ## 1. Where the project stands
 
-| Claim | State on 2026-11-21 |
+| Claim | State on 2026-11-21 (after the first measurements, section 5) |
 |---|---|
-| Works end to end on a real lab, enforcement verified, secure and operable | **Done** (`RELEASE_CRITERIA.md` R1 to R8, `rc.2` + faster learning pushed, CI and CD green) |
-| Adapts to new legitimate users on live traffic | Path works (12 windows learned live on 2026-11-18); **effect on scores not yet measured** (gate A1 below) |
-| Detects attacks | **Unmeasured.** The system detects nothing it was never shown; only team attack runs can show that |
-| Smarter than static rules | Unproven for the same reason (gate D4) |
+| Works end to end on a real lab, enforcement verified, secure and operable | **Done** (`RELEASE_CRITERIA.md` R1 to R8, CI and CD green) |
+| Adapts to new legitimate users on live traffic | **Partly.** The challenger learned 575 vouched windows live and its flag rate on the users it learned fell from 93 % to about 30 %, but on an unseen user it flagged 74.5 % against the champion's 100 % (gate A1 **failed**) |
+| Detects attacks | **Brute force: yes, measured** (3 of 3 runs contained in under 6 s). SQL injection, port scan, SSH guessing: not enough team runs yet |
+| No collateral harm | **No.** The ML strategy restricted all 6 legitimate background users in the 3 brute-force runs (gate D3 **failed**) |
+| Smarter than static rules | Yes on brute force (static rules caught 0 of 3, ML 3 of 3); the statistical arm matched it with no false positives |
+
+Correction: this page first said no labelled attack run existed. The team's brute-force (7 November,
+3 test + 1 validation) and SQL-injection (9 November, 1) runs were already on CTRL01; the status
+documents were stale and I had not checked.
 
 ## 2. Gates
 
@@ -88,11 +93,28 @@ gated. A run that fails a gate is part of the result and stays in it.
 | Item | Gate | Who | State |
 |---|---|---|---|
 | Scorecard command (`afw experiment scorecard`) with tests on hand-made structures | D1 to D4 | me | done 2026-11-21 |
-| Live adaptation test and report script | A1 | me | running 2026-11-21 |
-| Gate evaluation, restart, poisoning re-check | A2 to A4 | me | after A1 |
-| Attack runs (`TEAM_ATTACK_QUICKSTART.md`), then the scorecard | D1 to D5 | team | open |
+| Live adaptation test and report script | A1 | me | done 2026-11-21: **failed** |
+| Gate evaluation, restart, poisoning re-check | A2 to A4 | me | done 2026-11-21: A2, A4 pass; gate ran, one check fails |
+| Attack runs (`TEAM_ATTACK_QUICKSTART.md`), then the scorecard | D1 to D5 | team | brute force done (D3 fails); SQL injection 1 of 3 runs; port scan, SSH, content discovery open |
 | Demo rehearsal and explanation | G1, G2 | team | open |
 
 ## 5. Log
 
-(Results are appended here as they are measured; see `artifacts/evidence/final-year-2026-11-21/`.)
+**2026-11-21 first measurements** (details and files: `artifacts/evidence/final-year-2026-11-21/`):
+
+| Gate | Result |
+|---|---|
+| A1 live correction | **FAIL**: unseen user, challenger flagged 74.5 % of 94 windows, champion 100 % (needed at most 50 %) |
+| A2 poisoning | PASS (equal to the M4 baseline; residual risk unchanged) |
+| A3 governance | Gate evaluated with real attack data for the first time: 6 of 7 checks pass (attack recall 1.0 on 30 windows, benign FPR 0.0017 vs champion 0.9462); **`sensitive_invariance` fails** (`auth_fail_frac`, -1.0). Not promoted |
+| A4 restart | PASS (1182 before and after) |
+| D1, D2 (brute force) | PASS: 3 of 3 contained, 2.4 to 5.2 s |
+| D3 (brute force) | **FAIL**: 6 of 6 legitimate users restricted by the ML strategy |
+| D4 (brute force) | PASS |
+| D1 to D4, other families | NOT_RUN (SQL injection 1 run; port scan and SSH none) |
+| D5, G | open (team) |
+
+Stop rule: the A1 allowance is used (no repeat was run). Two failures, A1 and D3, are the same weakness
+seen twice: legitimate users unlike the training population are scored anomalous. The next step is a
+design decision for the owner (strategy choice, learner constraints for `auth_fail_frac`), not another
+measurement of the same run. Fresh team runs are needed for any re-test of D3.

@@ -25,6 +25,22 @@ gate. Its most important measured weakness: the trusted v2 models, trained on on
 A candidate trained on more varied users (v3) removes those false positives but loses
 measurable ML sensitivity, so it fails its predeclared criteria and is not promoted.
 
+**Since 2026-11-21 (first attack-side and live-adaptation measurements;
+`FINAL_YEAR_PLAN.md`, `artifacts/evidence/final-year-2026-11-21/`).**
+Correction: the team's brute-force (2026-11-07, 3 test + 1 validation) and SQL-injection
+(2026-11-09, 1) runs were already on CTRL01; earlier versions of this page said no attack run existed.
+
+- *Brute force, offline replay of the 3 test runs:* ML strategy contained the attacker in 3 of 3 runs,
+  first action after 2.4 to 5.2 s; static rules 0 of 3. **But the ML strategy restricted all 6
+  legitimate background users** (gate D3 fails; the statistical arm flagged none).
+- *Promotion gate with real attack data (first time):* 6 of 7 checks pass (attack recall 1.0 on 30
+  windows; benign FPR 0.0017 vs the champion's 0.9462); `sensitive_invariance` fails on `auth_fail_frac`.
+  Not promoted.
+- *Live adaptation:* 6 vouched users over 100 minutes, challenger `n_learned` 607 to 1182. On an unseen
+  user it flagged 74.5 % of windows against the champion's 100 % (needed at most 50 %): gate A1 fails.
+- *Restart safe* (1182 before and after) and poisoning counts equal to the M4 baseline.
+- Only brute force has the 3 test runs the scorecard needs; SQL injection has 1, the rest none.
+
 **Since 2026-10-29.**
 
 - *A3: authentication controls redesigned.* Per-account evidence and login-only
@@ -81,7 +97,7 @@ its operation were brought to release quality; none of this changes the detectio
 | Gate | Status | Main gap |
 |---|---|---|
 | A Infrastructure | **MET** | — |
-| B Detection | **NOT MET** | No labelled attack runs (BLOCKED-EXT); FN unmeasurable |
+| B Detection | **PARTIAL** | Brute force measured (contained 3/3, under 6 s) but ML restricts legitimate users (D3 fails); SQL injection 1 run; port scan, SSH guessing, content discovery not run |
 | C Genuine adaptation | **PARTIAL** | Live learning, pivots, restart restore and drift reports observed on CTRL01; **promotion gate exercised live 2026-10-29 on fresh A4 benign data -> correctly refuses** (attack_recall_regression has no data, sensitive_invariance fails); `promote()` refuses a failed evaluation (code + M3 tests). No promotion; monitor mode. `live-governance-2026-10-29/` |
 | D Enforcement | **MET** | Live 2026-10-29: protected MGMT/DB addresses refused by the validator, attack-zone block valid but needs >=2 evidence categories to auto-apply (`live-governance-2026-10-29/`) |
 | E Independent value | **NOT MET** | Benign-only comparison; value under attack BLOCKED-EXT |

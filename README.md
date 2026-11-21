@@ -151,7 +151,8 @@ Every claim is labelled by where it comes from. Nothing marked UNMEASURED is cla
 | Brute-force detection on recorded real attacks | OFFLINE (CIC-IDS2017, not this lab) | RandomForest recall 0.846 at 0 false positives on 13,499 benign windows; behaviour-only features 0.895 | `docs/engineering/OFFLINE_CIC_AUDIT.md` |
 | False positives on unseen legitimate users | MEASURED (lab replay) | v2 restricts 13 of 16 users: **a known weakness**; new login controls refuse 0 of 2,791 logins | `docs/RESULTS.md` §3a, `docs/engineering/A4_AUTH_HOUSEHOLD_REVALIDATION.md` |
 | Network novelty false-unfamiliar rate | MEASURED (lab, benign only) | 0.59 % [0.16, 1.15] on 22 unseen users | `docs/engineering/NV2_NETWORK_NOVELTY_REVALIDATION.md` |
-| Attack recall of the deployed system in the lab | **UNMEASURED** | needs the team's attack runs (`docs/TEAM_ATTACK_QUICKSTART.md`) | `docs/PROJECT_STATUS.md` gates B and E |
+| Brute-force detection by the deployed system, team-run attacks | **MEASURED** (offline replay of 3 recorded lab runs) | attacker contained in 3 of 3 runs, first action after 2.4 to 5.2 s; **but the ML strategy also restricted all 6 legitimate background users** (statistical arm: 0 of 6) | `artifacts/evidence/final-year-2026-11-21/` |
+| Attack recall for SQL injection, port scan, SSH guessing, content discovery | **UNMEASURED** | SQL injection has 1 run of the 3 needed; the others are not run (`docs/TEAM_ATTACK_QUICKSTART.md`) | `docs/FINAL_YEAR_PLAN.md` |
 | Adaptive model promotion | MEASURED (live gate), none promoted | the promotion gate correctly refused every unqualified challenger | `docs/engineering/GATE_STATES.md` |
 | Service levels, capacity, failure drills | MEASURED (live) | about 2,500 events/s ingest ceiling; 7 failure drills ended in the documented safe state | `docs/SLO.md` |
 

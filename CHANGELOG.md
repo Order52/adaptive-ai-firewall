@@ -15,6 +15,9 @@ versioning: [SemVer](https://semver.org/). Detailed milestone history is in
 - Test race under `pytest -n auto`: two API tests shared one token file.
 
 ### Added
+- `afw experiment scorecard`: judges an evaluation report against the predeclared detection
+  thresholds (`docs/FINAL_YEAR_PLAN.md`); refuses synthetic reports.
+- `scripts/ad1_collect.py`, `scripts/ad1_report.py`: live champion-vs-challenger measurement.
 - **Operator vouching.** `benign_change` / `false_positive` feedback on a source makes its windows
   learnable within the quarantine time, instead of waiting for tenure, a population of similar
   sources and corroboration. Evidence, range, rate and share checks still apply. Switch:

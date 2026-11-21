@@ -1,0 +1,1100 @@
+{
+  "label": "lab runs",
+  "synthetic_datasets": [],
+  "n_attack_runs": 3,
+  "runs": [
+    "atk-bruteforce-20261107-1",
+    "atk-bruteforce-20261107-2",
+    "atk-bruteforce-20261107-3"
+  ],
+  "scenarios": [
+    "web-bruteforce-login: credential_bruteforce"
+  ],
+  "ci_note": "95 % bootstrap over runs; omitted below 3 runs",
+  "arms": {
+    "M0": {
+      "recall": {
+        "mean": 0.0,
+        "ci95_over_runs": [
+          0.0,
+          0.0
+        ],
+        "n_runs": 3
+      },
+      "fpr": {
+        "mean": 0.0,
+        "ci95_over_runs": [
+          0.0,
+          0.0
+        ],
+        "n_runs": 3
+      },
+      "containment": {
+        "mean": 0.0,
+        "ci95_over_runs": [
+          0.0,
+          0.0
+        ],
+        "n_runs": 3
+      },
+      "median_detection_latency_s": {
+        "mean": null,
+        "ci95_over_runs": null,
+        "n_runs": 0
+      },
+      "legit_request_success": {
+        "mean": 1.0,
+        "ci95_over_runs": [
+          1.0,
+          1.0
+        ],
+        "n_runs": 3
+      }
+    },
+    "M1": {
+      "recall": {
+        "mean": 1.0,
+        "ci95_over_runs": [
+          1.0,
+          1.0
+        ],
+        "n_runs": 3
+      },
+      "fpr": {
+        "mean": 0.0,
+        "ci95_over_runs": [
+          0.0,
+          0.0
+        ],
+        "n_runs": 3
+      },
+      "containment": {
+        "mean": 1.0,
+        "ci95_over_runs": [
+          1.0,
+          1.0
+        ],
+        "n_runs": 3
+      },
+      "median_detection_latency_s": {
+        "mean": 3.4667,
+        "ci95_over_runs": [
+          2.4,
+          5.2
+        ],
+        "n_runs": 3
+      },
+      "legit_request_success": {
+        "mean": 1.0,
+        "ci95_over_runs": [
+          1.0,
+          1.0
+        ],
+        "n_runs": 3
+      }
+    },
+    "M2": {
+      "recall": {
+        "mean": 1.0,
+        "ci95_over_runs": [
+          1.0,
+          1.0
+        ],
+        "n_runs": 3
+      },
+      "fpr": {
+        "mean": 0.6931,
+        "ci95_over_runs": [
+          0.3393,
+          0.9677
+        ],
+        "n_runs": 3
+      },
+      "containment": {
+        "mean": 1.0,
+        "ci95_over_runs": [
+          1.0,
+          1.0
+        ],
+        "n_runs": 3
+      },
+      "median_detection_latency_s": {
+        "mean": 3.4667,
+        "ci95_over_runs": [
+          2.4,
+          5.2
+        ],
+        "n_runs": 3
+      },
+      "legit_request_success": {
+        "mean": 0.46,
+        "ci95_over_runs": [
+          0.2682,
+          0.7825
+        ],
+        "n_runs": 3
+      }
+    },
+    "S-ML": {
+      "recall": {
+        "mean": 1.0,
+        "ci95_over_runs": [
+          1.0,
+          1.0
+        ],
+        "n_runs": 3
+      },
+      "fpr": {
+        "mean": 0.0744,
+        "ci95_over_runs": [
+          0.0,
+          0.2232
+        ],
+        "n_runs": 3
+      },
+      "containment": {
+        "mean": 1.0,
+        "ci95_over_runs": [
+          1.0,
+          1.0
+        ],
+        "n_runs": 3
+      },
+      "median_detection_latency_s": {
+        "mean": 3.4667,
+        "ci95_over_runs": [
+          2.4,
+          5.2
+        ],
+        "n_runs": 3
+      },
+      "legit_request_success": {
+        "mean": 0.9363,
+        "ci95_over_runs": [
+          0.8089,
+          1.0
+        ],
+        "n_runs": 3
+      }
+    },
+    "HYB": {
+      "recall": {
+        "mean": 1.0,
+        "ci95_over_runs": [
+          1.0,
+          1.0
+        ],
+        "n_runs": 3
+      },
+      "fpr": {
+        "mean": 0.6931,
+        "ci95_over_runs": [
+          0.3393,
+          0.9677
+        ],
+        "n_runs": 3
+      },
+      "containment": {
+        "mean": 1.0,
+        "ci95_over_runs": [
+          1.0,
+          1.0
+        ],
+        "n_runs": 3
+      },
+      "median_detection_latency_s": {
+        "mean": 3.4667,
+        "ci95_over_runs": [
+          2.4,
+          5.2
+        ],
+        "n_runs": 3
+      },
+      "legit_request_success": {
+        "mean": 0.46,
+        "ci95_over_runs": [
+          0.2682,
+          0.7825
+        ],
+        "n_runs": 3
+      }
+    }
+  },
+  "per_run": [
+    {
+      "dataset_id": "atk-bruteforce-20261107-1",
+      "scenario": "web-bruteforce-login: credential_bruteforce",
+      "purpose": "test",
+      "app_id": "rental",
+      "profile_version": 2,
+      "model_versions": {
+        "robust_stats": "robust_stats-p2-20261017190622",
+        "isolation_forest": "isolation_forest-p2-20261017190622",
+        "half_space_trees": "half_space_trees-p2-20261017190622"
+      },
+      "fp_budget": 0.01,
+      "window_length_s": 30,
+      "window_hop_s": 5,
+      "n_observations": 7218,
+      "duration_s": 568.5,
+      "waf_inline_blocked_requests": 0,
+      "waf_inline_contained_attack_sources": 0,
+      "arms": [
+        {
+          "arm": "M0",
+          "strategy": "static",
+          "n_windows": 202,
+          "n_benign_windows": 123,
+          "n_attack_windows": 79,
+          "n_unlabeled_windows": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 79,
+          "tn": 123,
+          "precision": null,
+          "recall": 0.0,
+          "fpr": 0.0,
+          "f1": null,
+          "attack_sources": 1,
+          "attack_sources_contained": 0,
+          "benign_sources": 2,
+          "benign_sources_flagged": 0,
+          "benign_sources_flagged_ips": [],
+          "benign_sources_site_restricted": 0,
+          "benign_sources_site_restricted_ips": [],
+          "benign_requests": 358,
+          "benign_requests_impacted": 0,
+          "legit_request_success": 1.0,
+          "benign_login_requests": 19,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {},
+          "mean_detection_latency_s": null,
+          "median_detection_latency_s": null,
+          "attack_requests_exposed": 6860,
+          "mean_score_latency_us": null,
+          "p95_score_latency_us": null,
+          "learning": {},
+          "decisions": {}
+        },
+        {
+          "arm": "M1",
+          "strategy": "statistical",
+          "n_windows": 202,
+          "n_benign_windows": 123,
+          "n_attack_windows": 79,
+          "n_unlabeled_windows": 0,
+          "tp": 79,
+          "fp": 0,
+          "fn": 0,
+          "tn": 123,
+          "precision": 1.0,
+          "recall": 1.0,
+          "fpr": 0.0,
+          "f1": 1.0,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 0,
+          "benign_sources_flagged_ips": [],
+          "benign_sources_site_restricted": 0,
+          "benign_sources_site_restricted_ips": [],
+          "benign_requests": 358,
+          "benign_requests_impacted": 0,
+          "legit_request_success": 1.0,
+          "benign_login_requests": 19,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 2.8
+          },
+          "mean_detection_latency_s": 2.8,
+          "median_detection_latency_s": 2.8,
+          "attack_requests_exposed": 48,
+          "mean_score_latency_us": 93.9,
+          "p95_score_latency_us": 179.3,
+          "learning": {},
+          "decisions": {
+            "watch": 2,
+            "login_control": 2
+          }
+        },
+        {
+          "arm": "M2",
+          "strategy": "ml",
+          "n_windows": 202,
+          "n_benign_windows": 123,
+          "n_attack_windows": 79,
+          "n_unlabeled_windows": 0,
+          "tp": 79,
+          "fp": 95,
+          "fn": 0,
+          "tn": 28,
+          "precision": 0.454,
+          "recall": 1.0,
+          "fpr": 0.7724,
+          "f1": 0.6245,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 2,
+          "benign_sources_flagged_ips": [
+            "10.77.20.206",
+            "10.77.20.207"
+          ],
+          "benign_sources_site_restricted": 2,
+          "benign_sources_site_restricted_ips": [
+            "10.77.20.206",
+            "10.77.20.207"
+          ],
+          "benign_requests": 358,
+          "benign_requests_impacted": 262,
+          "legit_request_success": 0.2682,
+          "benign_login_requests": 19,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 2.8
+          },
+          "mean_detection_latency_s": 2.8,
+          "median_detection_latency_s": 2.8,
+          "attack_requests_exposed": 48,
+          "mean_score_latency_us": 19435.6,
+          "p95_score_latency_us": 30533.9,
+          "learning": {},
+          "decisions": {
+            "rate_limit": 7,
+            "watch": 18,
+            "source_block": 1,
+            "login_control": 2
+          }
+        },
+        {
+          "arm": "S-ML",
+          "strategy": "streaming",
+          "n_windows": 202,
+          "n_benign_windows": 123,
+          "n_attack_windows": 79,
+          "n_unlabeled_windows": 0,
+          "tp": 79,
+          "fp": 0,
+          "fn": 0,
+          "tn": 123,
+          "precision": 1.0,
+          "recall": 1.0,
+          "fpr": 0.0,
+          "f1": 1.0,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 0,
+          "benign_sources_flagged_ips": [],
+          "benign_sources_site_restricted": 0,
+          "benign_sources_site_restricted_ips": [],
+          "benign_requests": 358,
+          "benign_requests_impacted": 0,
+          "legit_request_success": 1.0,
+          "benign_login_requests": 19,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 2.8
+          },
+          "mean_detection_latency_s": 2.8,
+          "median_detection_latency_s": 2.8,
+          "attack_requests_exposed": 48,
+          "mean_score_latency_us": 328.0,
+          "p95_score_latency_us": 586.6,
+          "learning": {
+            "warmup_windows": 3718,
+            "learned_in_warmup": 696,
+            "learned_windows": 0,
+            "gate": {
+              "windows": 3920,
+              "quarantined": 1045,
+              "learned": 696,
+              "learned_anomalous_corroborated": 595
+            },
+            "excluded": {
+              "overlap": 2442,
+              "sensitive_range": 332,
+              "tenure": 266,
+              "negative_evidence": 82,
+              "tainted": 19,
+              "late_taint": 1,
+              "source_rate": 24,
+              "champion_anomalous": 47
+            },
+            "threshold": 0.8064672290072192
+          },
+          "decisions": {
+            "watch": 3,
+            "source_block": 1,
+            "login_control": 2
+          }
+        },
+        {
+          "arm": "HYB",
+          "strategy": "hybrid",
+          "n_windows": 202,
+          "n_benign_windows": 123,
+          "n_attack_windows": 79,
+          "n_unlabeled_windows": 0,
+          "tp": 79,
+          "fp": 95,
+          "fn": 0,
+          "tn": 28,
+          "precision": 0.454,
+          "recall": 1.0,
+          "fpr": 0.7724,
+          "f1": 0.6245,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 2,
+          "benign_sources_flagged_ips": [
+            "10.77.20.206",
+            "10.77.20.207"
+          ],
+          "benign_sources_site_restricted": 2,
+          "benign_sources_site_restricted_ips": [
+            "10.77.20.206",
+            "10.77.20.207"
+          ],
+          "benign_requests": 358,
+          "benign_requests_impacted": 262,
+          "legit_request_success": 0.2682,
+          "benign_login_requests": 19,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 2.8
+          },
+          "mean_detection_latency_s": 2.8,
+          "median_detection_latency_s": 2.8,
+          "attack_requests_exposed": 48,
+          "mean_score_latency_us": 19989.3,
+          "p95_score_latency_us": 30977.3,
+          "learning": {
+            "warmup_windows": 3718,
+            "learned_in_warmup": 696,
+            "learned_windows": 0,
+            "gate": {
+              "windows": 3920,
+              "quarantined": 1013,
+              "learned": 696,
+              "learned_anomalous_corroborated": 595
+            },
+            "excluded": {
+              "overlap": 2362,
+              "sensitive_range": 332,
+              "tenure": 245,
+              "negative_evidence": 82,
+              "tainted": 131,
+              "late_taint": 1,
+              "source_rate": 24,
+              "champion_anomalous": 47
+            },
+            "threshold": 0.8064672290072192
+          },
+          "decisions": {
+            "rate_limit": 7,
+            "watch": 22,
+            "source_block": 1,
+            "login_control": 2
+          }
+        }
+      ]
+    },
+    {
+      "dataset_id": "atk-bruteforce-20261107-2",
+      "scenario": "web-bruteforce-login: credential_bruteforce",
+      "purpose": "test",
+      "app_id": "rental",
+      "profile_version": 2,
+      "model_versions": {
+        "robust_stats": "robust_stats-p2-20261017190622",
+        "isolation_forest": "isolation_forest-p2-20261017190622",
+        "half_space_trees": "half_space_trees-p2-20261017190622"
+      },
+      "fp_budget": 0.01,
+      "window_length_s": 30,
+      "window_hop_s": 5,
+      "n_observations": 8932,
+      "duration_s": 504.3,
+      "waf_inline_blocked_requests": 0,
+      "waf_inline_contained_attack_sources": 0,
+      "arms": [
+        {
+          "arm": "M0",
+          "strategy": "static",
+          "n_windows": 205,
+          "n_benign_windows": 112,
+          "n_attack_windows": 93,
+          "n_unlabeled_windows": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 93,
+          "tn": 112,
+          "precision": null,
+          "recall": 0.0,
+          "fpr": 0.0,
+          "f1": null,
+          "attack_sources": 1,
+          "attack_sources_contained": 0,
+          "benign_sources": 2,
+          "benign_sources_flagged": 0,
+          "benign_sources_flagged_ips": [],
+          "benign_sources_site_restricted": 0,
+          "benign_sources_site_restricted_ips": [],
+          "benign_requests": 832,
+          "benign_requests_impacted": 0,
+          "legit_request_success": 1.0,
+          "benign_login_requests": 105,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {},
+          "mean_detection_latency_s": null,
+          "median_detection_latency_s": null,
+          "attack_requests_exposed": 8100,
+          "mean_score_latency_us": null,
+          "p95_score_latency_us": null,
+          "learning": {},
+          "decisions": {}
+        },
+        {
+          "arm": "M1",
+          "strategy": "statistical",
+          "n_windows": 205,
+          "n_benign_windows": 112,
+          "n_attack_windows": 93,
+          "n_unlabeled_windows": 0,
+          "tp": 93,
+          "fp": 0,
+          "fn": 0,
+          "tn": 112,
+          "precision": 1.0,
+          "recall": 1.0,
+          "fpr": 0.0,
+          "f1": 1.0,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 0,
+          "benign_sources_flagged_ips": [],
+          "benign_sources_site_restricted": 0,
+          "benign_sources_site_restricted_ips": [],
+          "benign_requests": 832,
+          "benign_requests_impacted": 0,
+          "legit_request_success": 1.0,
+          "benign_login_requests": 105,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 2.4
+          },
+          "mean_detection_latency_s": 2.4,
+          "median_detection_latency_s": 2.4,
+          "attack_requests_exposed": 42,
+          "mean_score_latency_us": 91.2,
+          "p95_score_latency_us": 137.8,
+          "learning": {},
+          "decisions": {
+            "watch": 3,
+            "login_control": 2
+          }
+        },
+        {
+          "arm": "M2",
+          "strategy": "ml",
+          "n_windows": 205,
+          "n_benign_windows": 112,
+          "n_attack_windows": 93,
+          "n_unlabeled_windows": 0,
+          "tp": 93,
+          "fp": 38,
+          "fn": 0,
+          "tn": 74,
+          "precision": 0.7099,
+          "recall": 1.0,
+          "fpr": 0.3393,
+          "f1": 0.8303,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 2,
+          "benign_sources_flagged_ips": [
+            "10.77.20.209",
+            "10.77.20.208"
+          ],
+          "benign_sources_site_restricted": 2,
+          "benign_sources_site_restricted_ips": [
+            "10.77.20.209",
+            "10.77.20.208"
+          ],
+          "benign_requests": 832,
+          "benign_requests_impacted": 181,
+          "legit_request_success": 0.7825,
+          "benign_login_requests": 105,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 2.4
+          },
+          "mean_detection_latency_s": 2.4,
+          "median_detection_latency_s": 2.4,
+          "attack_requests_exposed": 42,
+          "mean_score_latency_us": 15719.9,
+          "p95_score_latency_us": 30021.6,
+          "learning": {},
+          "decisions": {
+            "rate_limit": 4,
+            "source_block": 1,
+            "login_control": 2,
+            "watch": 2
+          }
+        },
+        {
+          "arm": "S-ML",
+          "strategy": "streaming",
+          "n_windows": 205,
+          "n_benign_windows": 112,
+          "n_attack_windows": 93,
+          "n_unlabeled_windows": 0,
+          "tp": 93,
+          "fp": 25,
+          "fn": 0,
+          "tn": 87,
+          "precision": 0.7881,
+          "recall": 1.0,
+          "fpr": 0.2232,
+          "f1": 0.8815,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 2,
+          "benign_sources_flagged_ips": [
+            "10.77.20.209",
+            "10.77.20.208"
+          ],
+          "benign_sources_site_restricted": 2,
+          "benign_sources_site_restricted_ips": [
+            "10.77.20.209",
+            "10.77.20.208"
+          ],
+          "benign_requests": 832,
+          "benign_requests_impacted": 159,
+          "legit_request_success": 0.8089,
+          "benign_login_requests": 105,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 2.4
+          },
+          "mean_detection_latency_s": 2.4,
+          "median_detection_latency_s": 2.4,
+          "attack_requests_exposed": 42,
+          "mean_score_latency_us": 499.1,
+          "p95_score_latency_us": 746.4,
+          "learning": {
+            "warmup_windows": 3718,
+            "learned_in_warmup": 696,
+            "learned_windows": 0,
+            "gate": {
+              "windows": 3923,
+              "quarantined": 1017,
+              "learned": 696,
+              "learned_anomalous_corroborated": 595
+            },
+            "excluded": {
+              "overlap": 2370,
+              "sensitive_range": 333,
+              "tenure": 246,
+              "negative_evidence": 96,
+              "tainted": 107,
+              "late_taint": 3,
+              "source_rate": 24,
+              "champion_anomalous": 47
+            },
+            "threshold": 0.8064672290072192
+          },
+          "decisions": {
+            "rate_limit": 2,
+            "source_block": 1,
+            "login_control": 2,
+            "watch": 24
+          }
+        },
+        {
+          "arm": "HYB",
+          "strategy": "hybrid",
+          "n_windows": 205,
+          "n_benign_windows": 112,
+          "n_attack_windows": 93,
+          "n_unlabeled_windows": 0,
+          "tp": 93,
+          "fp": 38,
+          "fn": 0,
+          "tn": 74,
+          "precision": 0.7099,
+          "recall": 1.0,
+          "fpr": 0.3393,
+          "f1": 0.8303,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 2,
+          "benign_sources_flagged_ips": [
+            "10.77.20.209",
+            "10.77.20.208"
+          ],
+          "benign_sources_site_restricted": 2,
+          "benign_sources_site_restricted_ips": [
+            "10.77.20.209",
+            "10.77.20.208"
+          ],
+          "benign_requests": 832,
+          "benign_requests_impacted": 181,
+          "legit_request_success": 0.7825,
+          "benign_login_requests": 105,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 2.4
+          },
+          "mean_detection_latency_s": 2.4,
+          "median_detection_latency_s": 2.4,
+          "attack_requests_exposed": 42,
+          "mean_score_latency_us": 16136.0,
+          "p95_score_latency_us": 30799.1,
+          "learning": {
+            "warmup_windows": 3718,
+            "learned_in_warmup": 696,
+            "learned_windows": 0,
+            "gate": {
+              "windows": 3923,
+              "quarantined": 1013,
+              "learned": 696,
+              "learned_anomalous_corroborated": 595
+            },
+            "excluded": {
+              "overlap": 2362,
+              "sensitive_range": 333,
+              "tenure": 245,
+              "negative_evidence": 96,
+              "tainted": 119,
+              "late_taint": 1,
+              "source_rate": 24,
+              "champion_anomalous": 47
+            },
+            "threshold": 0.8064672290072192
+          },
+          "decisions": {
+            "rate_limit": 4,
+            "source_block": 1,
+            "watch": 27,
+            "login_control": 2
+          }
+        }
+      ]
+    },
+    {
+      "dataset_id": "atk-bruteforce-20261107-3",
+      "scenario": "web-bruteforce-login: credential_bruteforce",
+      "purpose": "test",
+      "app_id": "rental",
+      "profile_version": 2,
+      "model_versions": {
+        "robust_stats": "robust_stats-p2-20261017190622",
+        "isolation_forest": "isolation_forest-p2-20261017190622",
+        "half_space_trees": "half_space_trees-p2-20261017190622"
+      },
+      "fp_budget": 0.01,
+      "window_length_s": 30,
+      "window_hop_s": 5,
+      "n_observations": 9558,
+      "duration_s": 570.3,
+      "waf_inline_blocked_requests": 0,
+      "waf_inline_contained_attack_sources": 0,
+      "arms": [
+        {
+          "arm": "M0",
+          "strategy": "static",
+          "n_windows": 140,
+          "n_benign_windows": 31,
+          "n_attack_windows": 109,
+          "n_unlabeled_windows": 0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 109,
+          "tn": 31,
+          "precision": null,
+          "recall": 0.0,
+          "fpr": 0.0,
+          "f1": null,
+          "attack_sources": 1,
+          "attack_sources_contained": 0,
+          "benign_sources": 2,
+          "benign_sources_flagged": 0,
+          "benign_sources_flagged_ips": [],
+          "benign_sources_site_restricted": 0,
+          "benign_sources_site_restricted_ips": [],
+          "benign_requests": 82,
+          "benign_requests_impacted": 0,
+          "legit_request_success": 1.0,
+          "benign_login_requests": 0,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {},
+          "mean_detection_latency_s": null,
+          "median_detection_latency_s": null,
+          "attack_requests_exposed": 9476,
+          "mean_score_latency_us": null,
+          "p95_score_latency_us": null,
+          "learning": {},
+          "decisions": {}
+        },
+        {
+          "arm": "M1",
+          "strategy": "statistical",
+          "n_windows": 140,
+          "n_benign_windows": 31,
+          "n_attack_windows": 109,
+          "n_unlabeled_windows": 0,
+          "tp": 109,
+          "fp": 0,
+          "fn": 0,
+          "tn": 31,
+          "precision": 1.0,
+          "recall": 1.0,
+          "fpr": 0.0,
+          "f1": 1.0,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 0,
+          "benign_sources_flagged_ips": [],
+          "benign_sources_site_restricted": 0,
+          "benign_sources_site_restricted_ips": [],
+          "benign_requests": 82,
+          "benign_requests_impacted": 0,
+          "legit_request_success": 1.0,
+          "benign_login_requests": 0,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 5.2
+          },
+          "mean_detection_latency_s": 5.2,
+          "median_detection_latency_s": 5.2,
+          "attack_requests_exposed": 90,
+          "mean_score_latency_us": 120.9,
+          "p95_score_latency_us": 160.2,
+          "learning": {},
+          "decisions": {
+            "login_control": 2
+          }
+        },
+        {
+          "arm": "M2",
+          "strategy": "ml",
+          "n_windows": 140,
+          "n_benign_windows": 31,
+          "n_attack_windows": 109,
+          "n_unlabeled_windows": 0,
+          "tp": 109,
+          "fp": 30,
+          "fn": 0,
+          "tn": 1,
+          "precision": 0.7842,
+          "recall": 1.0,
+          "fpr": 0.9677,
+          "f1": 0.879,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 2,
+          "benign_sources_flagged_ips": [
+            "10.77.20.210",
+            "10.77.20.211"
+          ],
+          "benign_sources_site_restricted": 2,
+          "benign_sources_site_restricted_ips": [
+            "10.77.20.210",
+            "10.77.20.211"
+          ],
+          "benign_requests": 82,
+          "benign_requests_impacted": 55,
+          "legit_request_success": 0.3293,
+          "benign_login_requests": 0,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 5.2
+          },
+          "mean_detection_latency_s": 5.2,
+          "median_detection_latency_s": 5.2,
+          "attack_requests_exposed": 90,
+          "mean_score_latency_us": 18867.8,
+          "p95_score_latency_us": 19563.7,
+          "learning": {},
+          "decisions": {
+            "rate_limit": 7,
+            "source_block": 1,
+            "watch": 1,
+            "login_control": 2
+          }
+        },
+        {
+          "arm": "S-ML",
+          "strategy": "streaming",
+          "n_windows": 140,
+          "n_benign_windows": 31,
+          "n_attack_windows": 109,
+          "n_unlabeled_windows": 0,
+          "tp": 109,
+          "fp": 0,
+          "fn": 0,
+          "tn": 31,
+          "precision": 1.0,
+          "recall": 1.0,
+          "fpr": 0.0,
+          "f1": 1.0,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 0,
+          "benign_sources_flagged_ips": [],
+          "benign_sources_site_restricted": 0,
+          "benign_sources_site_restricted_ips": [],
+          "benign_requests": 82,
+          "benign_requests_impacted": 0,
+          "legit_request_success": 1.0,
+          "benign_login_requests": 0,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 5.2
+          },
+          "mean_detection_latency_s": 5.2,
+          "median_detection_latency_s": 5.2,
+          "attack_requests_exposed": 90,
+          "mean_score_latency_us": 440.8,
+          "p95_score_latency_us": 561.2,
+          "learning": {
+            "warmup_windows": 3718,
+            "learned_in_warmup": 696,
+            "learned_windows": 0,
+            "gate": {
+              "windows": 3858,
+              "quarantined": 1028,
+              "learned": 696,
+              "learned_anomalous_corroborated": 595
+            },
+            "excluded": {
+              "overlap": 2378,
+              "sensitive_range": 321,
+              "tenure": 256,
+              "negative_evidence": 112,
+              "tainted": 19,
+              "late_taint": 1,
+              "source_rate": 24,
+              "champion_anomalous": 47
+            },
+            "threshold": 0.8064672290072192
+          },
+          "decisions": {
+            "source_block": 1,
+            "login_control": 2
+          }
+        },
+        {
+          "arm": "HYB",
+          "strategy": "hybrid",
+          "n_windows": 140,
+          "n_benign_windows": 31,
+          "n_attack_windows": 109,
+          "n_unlabeled_windows": 0,
+          "tp": 109,
+          "fp": 30,
+          "fn": 0,
+          "tn": 1,
+          "precision": 0.7842,
+          "recall": 1.0,
+          "fpr": 0.9677,
+          "f1": 0.879,
+          "attack_sources": 1,
+          "attack_sources_contained": 1,
+          "benign_sources": 2,
+          "benign_sources_flagged": 2,
+          "benign_sources_flagged_ips": [
+            "10.77.20.210",
+            "10.77.20.211"
+          ],
+          "benign_sources_site_restricted": 2,
+          "benign_sources_site_restricted_ips": [
+            "10.77.20.210",
+            "10.77.20.211"
+          ],
+          "benign_requests": 82,
+          "benign_requests_impacted": 55,
+          "legit_request_success": 0.3293,
+          "benign_login_requests": 0,
+          "benign_login_refused": 0,
+          "benign_sources_login_controlled": 0,
+          "benign_sources_login_controlled_ips": [],
+          "detection_latency_s": {
+            "10.77.10.10": 5.2
+          },
+          "mean_detection_latency_s": 5.2,
+          "median_detection_latency_s": 5.2,
+          "attack_requests_exposed": 90,
+          "mean_score_latency_us": 19218.4,
+          "p95_score_latency_us": 20682.5,
+          "learning": {
+            "warmup_windows": 3718,
+            "learned_in_warmup": 696,
+            "learned_windows": 0,
+            "gate": {
+              "windows": 3858,
+              "quarantined": 1013,
+              "learned": 696,
+              "learned_anomalous_corroborated": 595
+            },
+            "excluded": {
+              "overlap": 2362,
+              "sensitive_range": 321,
+              "tenure": 245,
+              "negative_evidence": 112,
+              "tainted": 50,
+              "late_taint": 1,
+              "source_rate": 24,
+              "champion_anomalous": 47
+            },
+            "threshold": 0.8064672290072192
+          },
+          "decisions": {
+            "rate_limit": 7,
+            "source_block": 1,
+            "watch": 1,
+            "login_control": 2
+          }
+        }
+      ]
+    }
+  ]
+}
