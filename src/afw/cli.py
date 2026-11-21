@@ -810,6 +810,28 @@ def experiment_evaluate(
     typer.echo(json.dumps(result, indent=2, default=str))
 
 
+@exp_app.command("scorecard")
+def experiment_scorecard(
+    report: Annotated[Path, typer.Argument(help="JSON from `experiment evaluate --out`")],
+) -> None:
+    """Judge an evaluation report against the predeclared detection thresholds (D1-D4).
+
+    Exit code 0 = all PASS, 1 = a gate FAILS, 3 = nothing failed but a gate is NOT_RUN.
+    Synthetic reports are refused.
+    """
+    import json
+
+    from afw.ml.scorecard import scorecard
+
+    try:
+        result = scorecard(json.loads(report.read_text()))
+    except ValueError as e:
+        typer.echo(str(e))
+        raise typer.Exit(2) from e
+    typer.echo(json.dumps(result, indent=2))
+    raise typer.Exit({"PASS": 0, "FAIL": 1}.get(result["overall"], 3))
+
+
 @exp_app.command("adaptation")
 def experiment_adaptation(
     learn: Annotated[str, typer.Option(help="comma-separated recorded benign drift runs")],
