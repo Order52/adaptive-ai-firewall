@@ -118,3 +118,33 @@ Stop rule: the A1 allowance is used (no repeat was run). Two failures, A1 and D3
 seen twice: legitimate users unlike the training population are scored anomalous. The next step is a
 design decision for the owner (strategy choice, learner constraints for `auth_fail_frac`), not another
 measurement of the same run. Fresh team runs are needed for any re-test of D3.
+
+## 6. Conclusion (2026-11-21)
+
+Stop rule outcome: the engineering that the rules allow is finished; the gates are **not all met**.
+No result was edited and no threshold moved.
+
+**Met:** W1, W2, A2, A4; D1, D2, D4 for brute force.
+**Failed, with cause:**
+
+* **A1 and D3** are one weakness: legitimate users unlike the training population are scored
+  anomalous. Online learning only changes the HST detector (Isolation Forest and robust statistics
+  drove most proposals), so it cannot close D3 alone.
+* **A3 `sensitive_invariance`.** Offline decomposition (`adaptation-experiment-ad2.json`,
+  `sensitivity_decomposition`): at the champion's *own* threshold the learned challenger is not less
+  sensitive; the loss appears only at the recalibrated threshold. The champion flags about 95 % of
+  unseen benign windows, so any threshold calibrated to a small false-positive budget sits above a
+  lone `auth_fail_frac` probe. Admission rules in the learner do not cause this, so I did not change
+  them. Closing the gate means either judging sensitivity on the whole decision (the AUTH security
+  path flags such windows regardless of HST) or bounding recalibration. Both change a predeclared
+  safety check, so that is the owner's decision, with an ADR, not part of this work.
+
+**Open, outside this work:**
+
+1. Owner decisions: (a) strategy `ml` vs `statistical` (one family says statistical; decide after
+   the other families, D4 compares them), (b) how to treat `sensitive_invariance` (above),
+   (c) a batch profile rebuild on more varied users, which earlier phases found loses sensitivity.
+2. Team runs: 2 more SQL injection, 3 port scan, 3 SSH guessing, 3 content discovery (D5), then
+   `afwc experiment scorecard` (deployed to CTRL01 on 2026-11-21).
+3. G1 and G2: demo and explanation by the team.
+4. Re-testing D3 after any change needs fresh runs; the 7 November runs are used up for that purpose.
