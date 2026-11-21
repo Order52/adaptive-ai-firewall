@@ -141,7 +141,19 @@ afwc experiment evaluate --datasets <ids> --streaming --warmup p7-sel,p7-sel-shi
 ```
 
 This gives static, frozen-ML, streaming-ML and hybrid arms with recall, precision, FPR,
-containment, latency, CIs over runs. Then one run per family in **enforce** mode (admin
+containment, latency, CIs over runs.
+
+**When the 4 known families each have their 3 `test` runs**, evaluate them all in one report and
+judge it against the thresholds fixed in `FINAL_YEAR_PLAN.md` (gates D1 to D4):
+
+```bash
+afwc experiment evaluate --datasets <all known-family test runs> --streaming \
+  --warmup p7-sel,p7-sel-shift --out /tmp/eval-all.json
+afwc experiment scorecard /tmp/eval-all.json     # exit 0 PASS, 1 FAIL, 3 NOT_RUN
+```
+
+Report the scorecard as printed, FAIL included. The thresholds are in `src/afw/ml/scorecard.py`
+and are not read from the report. Then one run per family in **enforce** mode (admin
 switches the mode, back to monitor afterwards) shows real containment; it is reported
 separately.
 
