@@ -129,6 +129,7 @@ class Controller:
             join_wait_s=cfg.telemetry.join_wait_s,
         )
         self.inference = InferenceEngine()
+        self.inference.strategy = Strategy(cfg.initial_strategy)
         # A3: account-aware login evidence over the observation stream
         self.auth = AuthTracker(cfg.application(self.app_id).login_routes())
         self.correlation = CorrelationEngine(cfg.risk, auth=self.auth)

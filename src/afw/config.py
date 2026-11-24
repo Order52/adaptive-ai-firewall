@@ -250,6 +250,9 @@ class LabConfig(_Cfg):
     waf_helper: WafHelperConfig | None = None
     probes: ProbeConfig | None = None
     initial_mode: OperatingMode = OperatingMode.MONITOR
+    # Detection strategy at start-up (ADR-045): static (M0), statistical (M1) or ml (M2). Runtime
+    # changes through POST /api/strategy last until the next restart.
+    initial_strategy: Literal["static", "statistical", "ml"] = "ml"
     # SIMULATED GeoIP for the optional country-policy extension: fictitious
     # country -> lab client addresses. Never real geography; policies using it
     # must carry simulated=True and are labelled as such everywhere.

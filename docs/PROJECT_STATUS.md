@@ -33,6 +33,8 @@ Correction: the team's brute-force (2026-11-07, 3 test + 1 validation) and SQL-i
 - *Brute force, offline replay of the 3 test runs:* ML strategy contained the attacker in 3 of 3 runs,
   first action after 2.4 to 5.2 s; static rules 0 of 3. **But the ML strategy restricted all 6
   legitimate background users** (gate D3 fails; the statistical arm flagged none).
+- *Strategy (2026-11-24, owner decision, ADR-045):* the controller now starts with the `statistical`
+  strategy (`initial_strategy`). D3 is not yet re-measured: it needs fresh team runs.
 - *Promotion gate with real attack data (first time):* 6 of 7 checks pass (attack recall 1.0 on 30
   windows; benign FPR 0.0017 vs the champion's 0.9462); `sensitive_invariance` fails on `auth_fail_frac`.
   Not promoted.

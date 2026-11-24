@@ -13,6 +13,7 @@ from afw.container import build_container
 from afw.domain.policy import OperatingMode, PolicyKind, PolicyState, RateProfile
 from afw.domain.profiles import ProfileStatus
 from afw.ml.datasets import DatasetManifest, Purpose, Role, SourceLabel
+from afw.ml.inference import Strategy
 
 BENIGN = [f"10.77.20.{i}" for i in range(11, 19)]
 ATTACKER = "10.77.10.23"
@@ -112,9 +113,11 @@ def test_bruteforce_alone_gets_login_controls_not_a_block(trained):
 
 def test_end_to_end_bruteforce_is_blocked_and_legit_users_are_not(trained):
     """Brute force plus scraping from the same source: without the failed logins the
-    window is still anomalous, so behaviour independently corroborates AUTH."""
+    window is still anomalous, so behaviour independently corroborates AUTH. Needs the ML
+    strategy: the lab default is statistical (ADR-045), pinned explicitly here."""
     c, clock, result = trained
     _auto(c, result)
+    c.controller.set_strategy(Strategy.ML)
     policies = _run_live(c, clock, "bruteforce+scrape")
     blocks = [p for p in policies if p.kind is PolicyKind.SOURCE_BLOCK]
     assert blocks, "brute force should lead to a verified block"

@@ -6,6 +6,9 @@ versioning: [SemVer](https://semver.org/). Detailed milestone history is in
 
 ## [Unreleased]
 
+### Changed
+- Default detection strategy is now `statistical` (`initial_strategy`, ADR-045); `ml` stays selectable.
+
 ### Fixed
 - **Live learning deadlock.** Any proposal tainted its source for 24 h, so a false positive on a
   new legitimate user stopped the learning that would have fixed it (the live learner learned 0

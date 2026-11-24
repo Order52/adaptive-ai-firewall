@@ -141,10 +141,15 @@ No result was edited and no threshold moved.
 
 **Open, outside this work:**
 
-1. Owner decisions: (a) strategy `ml` vs `statistical` (one family says statistical; decide after
-   the other families, D4 compares them), (b) how to treat `sensitive_invariance` (above),
+1. Owner decisions: (a) ~~strategy `ml` vs `statistical`~~ **decided 2026-11-24: `statistical`**
+   (ADR-045, `initial_strategy`). It is not a D3 pass: fresh runs are needed, and D4 still compares
+   M2 with M1 once the other families are run; (b) how to treat `sensitive_invariance` (above),
    (c) a batch profile rebuild on more varied users, which earlier phases found loses sensitivity.
 2. Team runs: 2 more SQL injection, 3 port scan, 3 SSH guessing, 3 content discovery (D5), then
    `afwc experiment scorecard` (deployed to CTRL01 on 2026-11-21).
 3. G1 and G2: demo and explanation by the team.
 4. Re-testing D3 after any change needs fresh runs; the 7 November runs are used up for that purpose.
+
+**2026-11-24:** the owner chose the `statistical` strategy. The controller now starts with robust
+statistics only (ADR-045). A combined brute-force-plus-scrape block that needs Isolation Forest
+corroboration is no longer the default path; login controls still cover brute force alone.

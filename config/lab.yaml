@@ -113,6 +113,11 @@ probes:
 
 initial_mode: monitor
 
+# ADR-045: statistical (robust statistics only). The ML arm restricted every legitimate background
+# user in the 2026-11-07 brute-force runs (docs/FINAL_YEAR_PLAN.md, gate D3); the statistical arm
+# contained the same attacks with no false positives.
+initial_strategy: statistical
+
 # SIMULATED GeoIP (optional country-policy extension). These are NOT real
 # geographic mappings: fictitious lab assignments of client addresses so that
 # "block incoming traffic from <country>" can be demonstrated. Policies using
