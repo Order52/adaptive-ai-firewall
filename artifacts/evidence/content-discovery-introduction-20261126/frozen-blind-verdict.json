@@ -1,0 +1,32 @@
+{
+  "withheld": "content_discovery",
+  "windows": 4,
+  "SYNTHETIC": false,
+  "as_other_family": 0.0,
+  "unknown": 1.0,
+  "as_benign": 0.0,
+  "not_benign_ci95": [
+    0.5101,
+    1.0
+  ],
+  "trained_families": [
+    "benign",
+    "credential_bruteforce",
+    "sql_injection"
+  ],
+  "train": [
+    "atk-bruteforce-20261107-1",
+    "atk-bruteforce-20261107-2",
+    "atk-bruteforce-20261107-3",
+    "atk-bruteforce-20261107-validation",
+    "atk-sqli-20261109-1",
+    "atk-sqli-20261126-2",
+    "atk-sqli-20261126-3",
+    "atk-sqli-20261126-validation",
+    "atk-portscan-20261126-1",
+    "atk-sshguess-20261126-1"
+  ],
+  "test": [
+    "atk-contentdisc-20261126-1"
+  ]
+}
